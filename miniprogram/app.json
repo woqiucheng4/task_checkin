@@ -1,0 +1,6 @@
+{
+  "pages": ["pages/bootstrap/index"],
+  "window": {
+    "navigationBarTitleText": "成长果园"
+  }
+}

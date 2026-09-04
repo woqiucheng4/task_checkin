@@ -1,0 +1,15 @@
+.page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 64rpx 40rpx;
+}
+
+.status {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.note {
+  margin-top: 20rpx;
+  font-size: 28rpx;
+}
