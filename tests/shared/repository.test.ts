@@ -96,6 +96,7 @@ describe("collection manifest", () => {
         "groupRoleBindings",
         "groupTrees",
         "groups",
+        "growthCards",
         "guardianLinks",
         "invitations",
         "joinRequests",

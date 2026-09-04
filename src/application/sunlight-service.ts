@@ -2,6 +2,7 @@ import type { ApplicationDependencies, Transaction } from "./ports.js";
 import type { ActorContext, SunlightLedger, TenantScope } from "../domain/model.js";
 import { assertPositiveSunlight } from "../domain/rewards.js";
 import { DomainError } from "../shared/errors.js";
+import { OrchardService } from "./orchard-service.js";
 
 export interface SunlightGrantInput {
   readonly assignmentId: string;
@@ -82,7 +83,13 @@ export class SunlightService {
       referenceId,
       requestId: input.requestId,
     };
-    return tx.insert("sunlightLedgers", ledger);
+    const inserted = await tx.insert("sunlightLedgers", ledger);
+    await new OrchardService(this.dependencies).applySunlightInTransaction(
+      tx,
+      childId,
+      input.amount,
+    );
+    return inserted;
   }
 
   async ledgerForChild(childId: string): Promise<SunlightLedger[]> {

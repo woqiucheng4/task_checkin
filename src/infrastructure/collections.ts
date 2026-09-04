@@ -19,6 +19,7 @@ export const COLLECTIONS = {
   groupRoleBindings: "group_role_bindings",
   groupTrees: "group_trees",
   groups: "groups",
+  growthCards: "growth_cards",
   guardianLinks: "guardian_links",
   invitations: "invitations",
   joinRequests: "join_requests",

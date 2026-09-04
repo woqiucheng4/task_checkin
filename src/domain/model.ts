@@ -328,6 +328,16 @@ export interface FruitCollection extends MutableRecord {
   reservedQuantity: number;
 }
 
+export interface GrowthCard extends BaseRecord {
+  readonly childId: string;
+  readonly treeId: string;
+  readonly catalogId: string;
+  readonly title: string;
+  readonly maturedAt: IsoInstant;
+  readonly harvestedAt: IsoInstant;
+  readonly requestId: string;
+}
+
 export interface GroupTree extends MutableRecord {
   readonly organizationId: string;
   readonly groupId: string;
@@ -503,6 +513,7 @@ export interface DomainSchema {
   treeCatalog: TreeCatalog;
   childTrees: ChildTree;
   fruitCollections: FruitCollection;
+  growthCards: GrowthCard;
   groupTrees: GroupTree;
   groupContributions: GroupContribution;
   groupMemorials: GroupMemorial;
