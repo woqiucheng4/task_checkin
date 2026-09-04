@@ -85,7 +85,7 @@ export const CORE_ACTIONS = [
 export type CoreAction = (typeof CORE_ACTIONS)[number];
 
 const ACTION_SET = new Set<string>(CORE_ACTIONS);
-const READ_ACTIONS = new Set<CoreAction>([
+export const CORE_READ_ACTIONS = [
   "CHECK_ENTITLEMENT",
   "GET_CHILD_ORCHARD",
   "GET_CHILD_TODAY",
@@ -95,7 +95,9 @@ const READ_ACTIONS = new Set<CoreAction>([
   "GET_PROVIDER_WORKSPACE",
   "READ_MEDIA_ASSET",
   "READ_WITH_SUPPORT_GRANT",
-]);
+] as const satisfies readonly CoreAction[];
+
+const READ_ACTIONS = new Set<CoreAction>(CORE_READ_ACTIONS);
 
 export interface CoreAuthContext {
   readonly openId: string;

@@ -21,6 +21,62 @@ const taskFields = {
 };
 
 describe("child today projection", () => {
+  it("rejects an adult projection and separates future or not-yet-started work", async () => {
+    const seed = await createIdentityScenario(1);
+    seed.harness.clock.set("2026-09-05T09:00:00.000Z");
+    const tasks = new TaskService(seed.harness);
+    const views = new ViewModelService(seed.harness);
+    await expect(views.childToday(seed.guardian, "2026-09-05")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    const tomorrow = await tasks.publishFamilyTask(seed.guardian, {
+      ...taskFields,
+      childIds: [seed.firstChild.id],
+      dueAt: "2026-09-06T13:00:00.000Z",
+      familyId: seed.family.id,
+      occurrenceDate: "2026-09-06",
+      requestId: "today-upcoming-tomorrow",
+      requiresAcademicReview: false,
+      schedule: { date: "2026-09-06", kind: "ONCE" },
+      startsAt: "2026-09-06T09:00:00.000Z",
+    });
+    const laterToday = await tasks.publishFamilyTask(seed.guardian, {
+      ...taskFields,
+      childIds: [seed.firstChild.id],
+      familyId: seed.family.id,
+      requestId: "today-upcoming-later",
+      requiresAcademicReview: false,
+      startsAt: "2026-09-05T10:00:00.000Z",
+    });
+    const cancelled = await tasks.publishFamilyTask(seed.guardian, {
+      ...taskFields,
+      childIds: [seed.firstChild.id],
+      familyId: seed.family.id,
+      requestId: "today-cancelled-publish",
+      requiresAcademicReview: false,
+    });
+    await tasks.cancelTask(seed.guardian, {
+      requestId: "today-cancelled-task",
+      taskId: cancelled.id,
+    });
+    const childActor: ActorContext = {
+      accountId: seed.guardian.accountId,
+      childId: seed.firstChild.id,
+      mode: "CHILD",
+    };
+
+    const view = await views.childToday(childActor, "2026-09-05");
+
+    const upcomingTaskIds = await Promise.all(
+      view.upcoming.map(
+        async (item) =>
+          (await seed.harness.repository.read("taskAssignments", item.assignmentId))?.taskId,
+      ),
+    );
+    expect(upcomingTaskIds).toEqual(expect.arrayContaining([tomorrow.id, laterToday.id]));
+    expect(upcomingTaskIds).not.toContain(cancelled.id);
+  });
+
   it("automatically includes a due institution task without guardian action", async () => {
     const seed = await createIdentityScenario(1);
     seed.harness.clock.set("2026-09-05T09:30:00.000Z");
