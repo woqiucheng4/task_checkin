@@ -1,0 +1,12 @@
+{
+  "appid": "touristappid",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "miniprogram/",
+  "projectname": "growth-orchard-platform",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "postcss": true
+  }
+}
