@@ -274,6 +274,14 @@ export interface Submission extends BaseRecord {
   readonly requestId: string;
 }
 
+export interface SubmissionEvidenceLink extends BaseRecord {
+  readonly submissionId: string;
+  readonly assignmentId: string;
+  readonly childId: string;
+  readonly mediaAssetId: string;
+  readonly requestId: string;
+}
+
 export interface ReviewRecord extends BaseRecord {
   readonly assignmentId: string;
   readonly reviewType: "FAMILY" | "ACADEMIC";
@@ -509,6 +517,7 @@ export interface DomainSchema {
   tasks: Task;
   taskAssignments: TaskAssignment;
   submissions: Submission;
+  submissionEvidenceLinks: SubmissionEvidenceLink;
   reviewRecords: ReviewRecord;
   sunlightLedgers: SunlightLedger;
   treeCatalog: TreeCatalog;

@@ -30,6 +30,7 @@ export const COLLECTIONS = {
   publicPoolEvents: "public_pool_events",
   reviewRecords: "review_records",
   rosterSeats: "roster_seats",
+  submissionEvidenceLinks: "submission_evidence_links",
   submissions: "submissions",
   sunlightLedgers: "sunlight_ledgers",
   supportAccessGrants: "support_access_grants",

@@ -108,6 +108,7 @@ describe("collection manifest", () => {
         "reviewRecords",
         "rosterSeats",
         "submissions",
+        "submissionEvidenceLinks",
         "sunlightLedgers",
         "supportAccessGrants",
         "taskAssignments",

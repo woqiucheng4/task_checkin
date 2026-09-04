@@ -15,6 +15,7 @@ const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
   "growthCards",
   "publicPoolEvents",
   "reviewRecords",
+  "submissionEvidenceLinks",
   "submissions",
   "sunlightLedgers",
 ]);
@@ -189,6 +190,7 @@ function emptyState(): DatabaseState {
     publicPoolEvents: new Map(),
     reviewRecords: new Map(),
     rosterSeats: new Map(),
+    submissionEvidenceLinks: new Map(),
     submissions: new Map(),
     sunlightLedgers: new Map(),
     supportAccessGrants: new Map(),
