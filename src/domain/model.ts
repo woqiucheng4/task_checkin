@@ -123,7 +123,7 @@ export interface ChildGroupMembership extends MutableRecord {
   withdrawnAt?: IsoInstant;
 }
 
-export interface Invitation extends BaseRecord {
+export interface Invitation extends MutableRecord {
   readonly organizationId: string;
   readonly groupId: string;
   readonly codeHash: string;
