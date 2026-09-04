@@ -364,6 +364,7 @@ export interface GroupMemorial extends BaseRecord {
   readonly groupId: string;
   readonly groupTreeId: string;
   readonly title: string;
+  readonly requestId: string;
   readonly badgeKey?: string;
   readonly themeKey?: string;
 }

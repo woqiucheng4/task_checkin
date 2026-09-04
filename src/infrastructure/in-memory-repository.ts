@@ -11,6 +11,7 @@ const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
   "consentRecords",
   "fruitWishLinks",
   "groupContributions",
+  "groupMemorials",
   "growthCards",
   "publicPoolEvents",
   "reviewRecords",

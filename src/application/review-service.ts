@@ -12,6 +12,7 @@ import { AccessPolicy } from "../domain/policy.js";
 import { taskRewardAmount } from "../domain/rewards.js";
 import { DomainError } from "../shared/errors.js";
 import type { SunlightService } from "./sunlight-service.js";
+import { GroupOrchardService } from "./group-orchard-service.js";
 
 interface RequestBase {
   readonly requestId: string;
@@ -240,6 +241,12 @@ export class ReviewService {
         };
       }
       await tx.insert("reviewRecords", review);
+      if (input.decision === "APPROVE") {
+        await new GroupOrchardService(this.dependencies).contributeForAcademicApproval(
+          tx,
+          assignment,
+        );
+      }
       const updated = await tx.update("taskAssignments", assignment.id, patch);
       await this.audit(
         tx,
