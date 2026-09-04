@@ -471,6 +471,7 @@ export interface UsageCounter extends MutableRecord {
 }
 
 export interface ContentProvider extends MutableRecord {
+  readonly accountId: string;
   name: string;
   status: ActiveStatus;
   settlementAccountRef?: string;
