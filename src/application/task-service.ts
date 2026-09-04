@@ -229,6 +229,68 @@ export class TaskService {
     });
   }
 
+  async setFamilyFocus(
+    actor: ActorContext,
+    input: RequestBase & {
+      readonly childId: string;
+      readonly date: CalendarDate;
+      readonly assignmentIds: readonly string[];
+    },
+  ): Promise<TaskAssignment[]> {
+    requireRequestId(input.requestId);
+    const guardian = await this.policy.requireGuardian(actor, input.childId);
+    const assignmentIds = [...new Set(input.assignmentIds)];
+    if (assignmentIds.length < 1 || assignmentIds.length > 3) {
+      throw new DomainError("INVALID_INPUT", "家庭重点必须选择 1 至 3 项任务");
+    }
+    const selected: TaskAssignment[] = [];
+    for (const assignmentId of assignmentIds) {
+      const assignment = await this.dependencies.repository.read("taskAssignments", assignmentId);
+      if (
+        assignment === undefined ||
+        assignment.childId !== input.childId ||
+        assignment.familyId !== guardian.familyId ||
+        assignment.occurrenceDate !== input.date
+      ) {
+        throw new DomainError("FORBIDDEN", "只能设置自己孩子当天的任务为家庭重点");
+      }
+      selected.push(assignment);
+    }
+    const now = this.dependencies.clock.now();
+    return this.dependencies.repository.transaction(async (tx) => {
+      const current = await tx.query("taskAssignments", {
+        childId: input.childId,
+        occurrenceDate: input.date,
+      });
+      for (const assignment of current) {
+        if (assignment.familyFocusRank !== undefined) {
+          await tx.update("taskAssignments", assignment.id, (record) => {
+            const { familyFocusRank: _removed, ...withoutRank } = record;
+            return { ...withoutRank, updatedAt: now };
+          });
+        }
+      }
+      const focused = [];
+      for (const [index, assignment] of selected.entries()) {
+        focused.push(
+          await tx.update("taskAssignments", assignment.id, {
+            familyFocusRank: index + 1,
+            updatedAt: now,
+          }),
+        );
+      }
+      await this.audit(
+        tx,
+        actor,
+        input.requestId,
+        "FAMILY_FOCUS_SET",
+        { kind: "FAMILY", familyId: guardian.familyId },
+        input.childId,
+      );
+      return focused;
+    });
+  }
+
   private makeTask(
     actor: ActorContext,
     input: TaskFields,

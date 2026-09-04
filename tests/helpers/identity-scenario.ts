@@ -4,6 +4,9 @@ import type { ActorContext } from "../../src/domain/model.js";
 import { createHarness } from "./harness.js";
 
 export async function createIdentityScenario(childCount = 2) {
+  if (!Number.isInteger(childCount) || childCount < 1) {
+    throw new Error("identity scenario requires at least one child");
+  }
   const harness = createHarness();
   const identity = new IdentityService(harness);
   const invitations = new InvitationService(harness);
@@ -66,9 +69,14 @@ export async function createIdentityScenario(childCount = 2) {
       }),
     );
   }
+  const firstChild = children[0];
+  if (firstChild === undefined) {
+    throw new Error("identity scenario failed to create its first child");
+  }
 
   return {
     children,
+    firstChild,
     family,
     group,
     guardian,
