@@ -82,6 +82,7 @@ export interface OrganizationMember extends MutableRecord {
   readonly childId?: string;
   readonly organizationMemberId: string;
   memberType: "ADULT" | "CHILD";
+  organizationRole?: "ORGANIZATION_ADMIN" | "STAFF";
   displayName: string;
   grade?: number;
   internalRosterNumber?: string;
