@@ -1,0 +1,10 @@
+{
+  "name": "growth-orchard-core-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}
