@@ -31,6 +31,7 @@
 
 .status__button {
   min-width: 180rpx;
+  min-height: 88rpx;
   margin-top: 30rpx;
   border-radius: 12rpx;
   background: #d93a22;
@@ -69,4 +70,11 @@
 @keyframes status-pulse {
   from { opacity: 0.5; }
   to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status__pulse,
+  .status__line {
+    animation: none;
+  }
 }

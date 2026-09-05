@@ -75,6 +75,7 @@
 
 .task__button {
   min-width: 126rpx;
+  min-height: 88rpx;
   padding: 16rpx 18rpx;
   border-radius: 12rpx;
   background: #d93a22;

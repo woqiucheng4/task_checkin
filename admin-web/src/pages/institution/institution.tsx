@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { DataTable, type DataTableColumn } from "../../components/data-table/data-table";
 import { FilterBar } from "../../components/filter-bar/filter-bar";
@@ -35,12 +35,22 @@ function Dialog({
   readonly label: string;
   readonly onClose: () => void;
 }): React.JSX.Element {
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeButton.current?.focus();
+  }, []);
   return (
     <div className="dialog-backdrop">
       <section aria-label={label} aria-modal="true" className="dialog-panel" role="dialog">
         <header>
           <h2>{label}</h2>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
+          <button
+            ref={closeButton}
+            className="icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="关闭抽屉"
+          >
             ×
           </button>
         </header>
@@ -204,7 +214,7 @@ export function InstitutionGroups(): React.JSX.Element {
           </ul>
           <footer className="dialog-actions">
             <button className="button" type="button" onClick={() => setSelected(null)}>
-              关闭
+              取消
             </button>
             <button className="button primary" type="button">
               管理成员

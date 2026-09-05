@@ -5,8 +5,8 @@
 .text-link { margin: 0; padding: 8rpx 0; background: transparent; color: #174e2a; font-size: 24rpx; line-height: 1.4; }
 .paper-card { padding: 28rpx; border: 2rpx solid #dedbd0; border-radius: 18rpx; background: #fffdf7; }
 .soft-card { padding: 28rpx; border-radius: 18rpx; background: #f2f3e4; }
-.primary-button { margin: 28rpx 0 0; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; }
-.secondary-button { margin: 20rpx 0 0; border: 2rpx solid #174e2a; border-radius: 14rpx; background: transparent; color: #174e2a; font-size: 27rpx; font-weight: 650; }
+.primary-button { min-height: 88rpx; margin: 28rpx 0 0; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; }
+.secondary-button { min-height: 88rpx; margin: 20rpx 0 0; border: 2rpx solid #174e2a; border-radius: 14rpx; background: transparent; color: #174e2a; font-size: 27rpx; font-weight: 650; }
 .danger-link { margin: 22rpx 0 0; background: transparent; color: #b23725; font-size: 24rpx; }
 .field { margin-top: 28rpx; }
 .field__label { margin-bottom: 10rpx; color: #30342e; font-size: 25rpx; font-weight: 650; }
