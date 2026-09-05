@@ -22,30 +22,15 @@ import {
   PlatformSupport,
   PlatformTenants,
 } from "../pages/platform/platform";
-
-function WorkspaceHome({
-  workspaceRole,
-}: {
-  readonly workspaceRole: "institution" | "platform" | "provider";
-}): React.JSX.Element {
-  const title =
-    workspaceRole === "institution"
-      ? "机构工作台"
-      : workspaceRole === "platform"
-        ? "平台概览"
-        : "内容概览";
-  return (
-    <section className="page">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">2026年9月5日</p>
-          <h1>{title}</h1>
-          <p>管理页面正在载入当前工作区数据。</p>
-        </div>
-      </header>
-    </section>
-  );
-}
+import {
+  ProviderAssets,
+  ProviderDashboard,
+  ProviderSettings,
+  ProviderSettlement,
+  ProviderTemplates,
+  ProviderThemes,
+  ProviderUsage,
+} from "../pages/provider/provider";
 
 export function AdminRouter(): React.JSX.Element {
   return (
@@ -75,7 +60,13 @@ export function AdminRouter(): React.JSX.Element {
         <Route path="settings" element={<PlatformSettings />} />
       </Route>
       <Route path="/provider" element={<AdminShell workspaceRole="provider" />}>
-        <Route index element={<WorkspaceHome workspaceRole="provider" />} />
+        <Route index element={<ProviderDashboard />} />
+        <Route path="templates" element={<ProviderTemplates />} />
+        <Route path="themes" element={<ProviderThemes />} />
+        <Route path="assets" element={<ProviderAssets />} />
+        <Route path="usage" element={<ProviderUsage />} />
+        <Route path="settlement" element={<ProviderSettlement />} />
+        <Route path="settings" element={<ProviderSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/institution" replace />} />
     </Routes>
