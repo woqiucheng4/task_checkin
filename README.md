@@ -1,6 +1,6 @@
 # 成长果园业务平台
 
-面向小学生、家长、学校与辅导机构的任务协作和正向成长激励平台。当前分支已经完成 UI 无关的业务主体；页面视觉、果树美术与动效可以在不改动权限、任务、审核、阳光和果园规则的前提下单独替换。
+面向小学生、家长、学校与辅导机构的任务协作和正向成长激励平台。当前分支已经完成业务主体、微信小程序全角色页面、机构/平台/内容方 Web 后台和同构浏览器预览。UI 全面采用已确认的暖纸、水彩果树、墨绿与番茄红视觉体系。
 
 ## 核心闭环
 
@@ -20,9 +20,9 @@
 - 受控媒体上传、OCR 可编辑草稿、作业证据、访问范围和到期删除。
 - 客服临时授权、数据导出审批、套餐权益、配额和第三方内容隔离。
 - 统一 `coreApi` 云函数边界：运行时微信身份鉴权、动作白名单、写命令幂等回执和安全错误结构。
-- 原生微信小程序调用客户端、会话状态、页面 ViewModel 与可替换设计令牌。
-
-当前小程序页面仅为中性占位页，不代表最终 UI。完整 Web 机构管理后台、支付、真实 OCR/存储服务接入和最终视觉不在本次本地业务交付内。
+- 原生微信小程序调用客户端、会话状态、页面 ViewModel、完整角色页面与设计令牌。
+- 机构管理、平台运营和第三方内容服务方三个隔离的 Web 工作区。
+- 孩子今日、家长审核和教师工作台同构浏览器预览，便于在没有微信开发者工具时验收视觉和主交互。
 
 ## 目录
 
@@ -31,14 +31,54 @@ src/domain/                  领域规则与不可变约束
 src/application/             业务服务、权限、命令路由与 ViewModel
 src/infrastructure/          内存事务仓库与 CloudBase 仓库适配器
 cloudfunctions/coreApi/      云函数入口和独立运行时依赖
-miniprogram/                 UI 无关的小程序客户端与主题契约
+miniprogram/                 原生小程序客户端、页面、组件与主题
+admin-web/                   机构、平台、内容方后台与移动同构预览
+artifacts/design-qa/         最终设计对照与代表性页面截图
 tests/                       单元、契约、边界和端到端业务验收测试
 docs/                        规格、架构、隐私、发布与验证文档
 ```
 
+## 本地页面预览
+
+安装依赖并启动 Web：
+
+```bash
+npm ci
+npm run admin:dev -- --host 127.0.0.1 --port 4173 --strictPort
+```
+
+常用入口：
+
+- 孩子今日：`http://127.0.0.1:4173/preview/child-today`
+- 家长审核：`http://127.0.0.1:4173/preview/parent-review`
+- 教师工作台：`http://127.0.0.1:4173/preview/teacher-home`
+- 机构管理：`http://127.0.0.1:4173/institution`
+- 平台运营：`http://127.0.0.1:4173/platform`
+- 内容服务方：`http://127.0.0.1:4173/provider`
+
+Web 测试、类型检查和生产构建：
+
+```bash
+npm run admin:test
+npm --prefix admin-web run typecheck
+npm run admin:build
+```
+
+## 微信小程序
+
+使用微信开发者工具导入仓库内的 `miniprogram/` 目录。`miniprogram/app.json` 已注册公共 3 页、孩子 6 页、家长 9 页和教师/助教 9 页。实际接入时需要配置小程序 AppID、CloudBase 环境 ID，并部署 `coreApi`；不要让客户端直接访问业务集合。
+
+原生页面和 Web 同构预览共享业务 ViewModel、语义设计令牌和以下果园资产体系：
+
+- 苹果树从种子、发芽、幼苗、树干、花苞、开花、小果到成熟的连续成长素材。
+- 苹果、梨、橙三类成熟果树。
+- 空任务、离线、邀请过期、浇水、采摘和分组共育场景。
+
+完整资产登记与占位校验由 `src/presentation/asset-manifest.ts` 和 `tests/presentation/assets.test.ts` 负责。
+
 ## 本地验证
 
-本次使用 Node.js 25、npm 11 验证。安装和全量验证：
+本次使用 Node.js 25、npm 11 验证。完整质量门：
 
 ```bash
 npm ci
@@ -47,16 +87,20 @@ npm run lint
 npm run typecheck
 npm run test:coverage
 npm run build
+npm run admin:test
+npm run admin:build
+git diff --check
+npm audit --omit=dev
 ```
 
-当前质量门槛为全局语句/分支/函数/行覆盖率均不低于 85%；领域层要求不低于 90%。详细结果见[业务验收用例报告](docs/verification/2026-09-06-business-cases.md)。
+当前质量门槛为全局语句/分支/函数/行覆盖率均不低于 85%；领域层要求不低于 90%。详细结果见[业务验收用例报告](docs/verification/2026-09-06-business-cases.md)、[全页面验收矩阵](docs/verification/2026-09-06-ui-pages.md)和[视觉质检记录](design-qa.md)。
 
 ## CloudBase 发布前置条件
 
 1. 按[集合与索引清单](docs/architecture/collection-indexes.md)创建 41 个集合及索引，并禁止小程序端直接读写业务集合。
 2. 配置开发/生产环境 ID、平台运营白名单以及正式媒体、OCR、导出适配器。
 3. 部署 `coreApi` 后，在开发环境执行身份伪造、跨租户、重复请求、事务并发和日志脱敏测试。
-4. 使用微信开发者工具和真机验证小程序工程、授权、上传与网络异常重试。
+4. 使用微信开发者工具和真机验证小程序工程、字体与安全区、授权、上传与网络异常重试。
 5. 处理或书面接受 `wx-server-sdk@4.0.2` 当前上游依赖审计风险后再进入生产发布。
 
 具体步骤见[CloudBase 发布与回滚手册](docs/runbooks/cloudbase-release.md)。
@@ -67,5 +111,11 @@ npm run build
 - [业务实施计划](docs/superpowers/plans/2026-09-05-growth-orchard-business.md)
 - [儿童数据与权限边界](docs/privacy/child-data-boundary.md)
 - [业务验收用例报告](docs/verification/2026-09-06-business-cases.md)
+- [全页面验收矩阵](docs/verification/2026-09-06-ui-pages.md)
+- [视觉质检记录](design-qa.md)
 
 仓库内较早的“单家庭积分打卡 V1”文档仅作为历史方案保留；后续开发以“成长果园平台总体设计”为准。
+
+## 生产边界
+
+本地交付不等于已发布。真实 CloudBase 数据库与索引、微信身份、开发者工具和真机、OCR/对象存储、支付、导出文件、生产日志和云函数依赖安全门仍须在目标环境验证；当前状态统一记录为 `NOT RUN`，详见发布手册和验收报告。

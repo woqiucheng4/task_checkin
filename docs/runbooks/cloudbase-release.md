@@ -17,13 +17,47 @@
 
 ## 构建与部署
 
-1. 执行 `npm ci`、`npm run typecheck`、`npm test` 和 `npm run build`。
+1. 执行完整本地质量门：
+
+   ```bash
+   npm ci
+   npm run format:check
+   npm run lint
+   npm run typecheck
+   npm run test:coverage
+   npm run build
+   npm run admin:test
+   npm run admin:build
+   git diff --check
+   npm audit --omit=dev
+   ```
+
 2. 将 `dist/cloudfunctions/coreApi/index.js`、`dist/src/**` 和 `cloudfunctions/coreApi/package.json` 打包到同一部署目录，并保持编译后的相对路径。
 3. 在目标云函数中安装锁定版本 `wx-server-sdk@4.0.2`。
 4. 配置 `PLATFORM_OPERATOR_OPENIDS`；生产值由密钥或环境变量管理，不进入代码、日志或测试快照。
 5. 部署 `coreApi` 后仅通过 `wx.cloud.callFunction` 调用。
 
 媒体上传、OCR 识别和正式导出文件生成需要在部署环境提供存储、OCR、导出适配器；未配置时相关命令会返回安全错误，不会绕过到客户端直连。
+
+## 客户端与后台发布
+
+### 微信小程序
+
+1. 在微信开发者工具中导入仓库的 `miniprogram/` 目录，配置真实 AppID 和开发环境 ID。
+2. 确认 `app.json` 中 27 个页面全部可以编译；分别以孩子、家长、教师/助教身份完成一次主流程。
+3. 在低年级和高年级密度下检查字号、触控区域、横向溢出、导航栏安全区和减少动态效果设置。
+4. 使用真机验证拍照、录音、弱网重试、前后台切换和授权撤销；模拟器通过不能替代真机通过。
+
+### Web 后台
+
+1. 执行 `npm run admin:build`，部署 `admin-web/dist/` 到启用 HTTPS 和 History API 回退的静态站点。
+2. 生产身份必须由服务端会话提供；不能使用本地 fixture 中的角色或租户值作为鉴权依据。
+3. 在机构、平台、内容方三个入口分别执行权限冒烟；平台客服必须在精确临时授权前看不到儿童内容。
+4. 内容方接口和日志只允许模板、主题、素材、聚合用量与结算字段，不得添加儿童、家庭、提交、媒体或愿望投影。
+
+### 本地视觉复查
+
+执行 `npm run admin:dev -- --host 127.0.0.1 --port 4173 --strictPort` 后，按照 `design-qa.md` 和 `docs/verification/2026-09-06-ui-pages.md` 复查移动预览和三个桌面工作区。生产发布前需重新记录目标浏览器、微信开发者工具和真机证据。
 
 ## 上线验证
 
@@ -34,6 +68,12 @@
 5. 以家庭、教师、机构管理员、孩子、内容方五种身份执行最小权限冒烟测试。
 6. 检查云函数日志：不得出现 openId、孩子姓名、作业图片地址、愿望内容或完整请求体。
 7. 检查 `audit_logs` 中高权限读取、导出审批、套餐变更均有记录。
+8. 检查 Web 路由刷新、未登录跳转、会话过期、键盘焦点和错误恢复。
+9. 检查内容方接口与页面响应不包含儿童、家庭、提交、媒体和愿望字段。
+
+## 当前外部门禁
+
+在真实环境执行前，下列状态必须写为 `NOT RUN`：CloudBase 建库与事务、生产身份、微信开发者工具、真机、真实 OCR/对象存储、导出文件、支付结算、生产日志和云函数依赖安全审计。不得用本地 mock、截图或单元测试替代这些结果。
 
 ## 备份与回滚
 
