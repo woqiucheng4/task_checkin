@@ -1,0 +1,16 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; }
+.note { margin-top: 6rpx; color: #6c7068; font-size: 23rpx; }
+.tabs { margin: 28rpx 0 10rpx; white-space: nowrap; }
+.tab { display: inline-flex; margin: 0 12rpx 0 0; padding: 10rpx 20rpx; border: 2rpx solid #d9d6ca; border-radius: 28rpx; background: #fffdf7; color: #646861; font-size: 23rpx; line-height: 1.4; }
+.tab--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.group-tree { width: 100%; height: 480rpx; }
+.progress-card { padding: 28rpx; border-radius: 18rpx; background: #f2f3e4; }
+.progress-card__top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20rpx; }
+.progress-card__title { color: #174e2a; font-size: 29rpx; font-weight: 700; }
+.progress-card__note { margin-top: 4rpx; color: #62675e; font-size: 22rpx; }
+.mine { margin-top: 18rpx; color: #4f554c; font-size: 23rpx; }
+.section { margin-top: 34rpx; }
+.section__title { color: #20231e; font-size: 32rpx; font-weight: 700; }
+.goal { display: grid; grid-template-columns: 56rpx 1fr; gap: 14rpx; margin-top: 16rpx; padding: 22rpx; border-bottom: 2rpx solid #dedbd0; color: #30342e; font-size: 26rpx; }
+.goal text { display: block; margin-top: 3rpx; color: #777a72; font-size: 21rpx; }

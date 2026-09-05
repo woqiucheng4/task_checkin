@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="title">{{revision ? '再次提交' : '完成任务后，选择提交方式'}}</view>
+  <view class="note">提交后，预计获得的阳光会先被保护，不会因为等待审核而流回公共阳光池。</view>
+  <view class="modes">
+    <button class="mode {{mode === 'CONFIRM' ? 'mode--selected' : ''}}" data-mode="CONFIRM" bindtap="chooseMode"><t-icon name="check-circle" size="40rpx" />确认完成</button>
+    <button class="mode {{mode === 'TEXT' ? 'mode--selected' : ''}}" data-mode="TEXT" bindtap="chooseMode"><t-icon name="edit" size="40rpx" />文字说明</button>
+    <button class="mode {{mode === 'PHOTO' ? 'mode--selected' : ''}}" data-mode="PHOTO" bindtap="chooseMode"><t-icon name="camera" size="40rpx" />拍照上传</button>
+    <button class="mode {{mode === 'TEXT_AND_PHOTO' ? 'mode--selected' : ''}}" data-mode="TEXT_AND_PHOTO" bindtap="chooseMode"><t-icon name="image-edit" size="40rpx" />图文组合</button>
+  </view>
+  <view wx:if="{{mode === 'TEXT' || mode === 'TEXT_AND_PHOTO'}}" class="field">
+    <view class="field__label">说说你是怎么完成的</view>
+    <textarea class="textarea" maxlength="300" placeholder="可以写下过程、收获或需要帮助的地方" value="{{text}}" bindinput="editText" />
+  </view>
+  <view wx:if="{{mode === 'PHOTO' || mode === 'TEXT_AND_PHOTO'}}" class="field">
+    <view class="field__label">上传完成结果</view>
+    <button class="photo" bindtap="choosePhoto">
+      <image wx:if="{{previewImage}}" src="{{previewImage}}" mode="aspectFill" />
+      <block wx:else><t-icon name="camera" size="52rpx" color="#174E2A" /><text>拍照或从相册选择</text></block>
+    </button>
+  </view>
+  <view class="protected"><t-icon name="shield" size="38rpx" color="#174E2A" /><text>提交成功后，阳光立即进入保护状态</text></view>
+  <button class="primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">{{submitting ? '正在提交' : '确认提交'}}</button>
+</view>

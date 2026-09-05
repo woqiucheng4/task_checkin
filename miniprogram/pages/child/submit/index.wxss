@@ -1,0 +1,13 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; }
+.note { margin-top: 10rpx; color: #666b62; font-size: 24rpx; line-height: 1.65; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-top: 34rpx; }
+.mode { display: flex; align-items: center; justify-content: center; gap: 10rpx; min-height: 96rpx; margin: 0; border: 2rpx solid #d9d6ca; border-radius: 15rpx; background: #fffdf7; color: #4e534b; font-size: 25rpx; }
+.mode--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.field { margin-top: 30rpx; }
+.field__label { margin-bottom: 10rpx; color: #30342e; font-size: 26rpx; font-weight: 700; }
+.textarea { box-sizing: border-box; width: 100%; min-height: 220rpx; padding: 22rpx; border: 2rpx solid #d9d6ca; border-radius: 16rpx; background: #fffdf7; font-size: 26rpx; }
+.photo { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10rpx; overflow: hidden; width: 100%; height: 290rpx; margin: 0; border: 2rpx dashed #9aa693; border-radius: 16rpx; background: #f2f3e4; color: #174e2a; font-size: 24rpx; }
+.photo image { width: 100%; height: 100%; }
+.protected { display: flex; align-items: center; gap: 10rpx; margin-top: 30rpx; color: #174e2a; font-size: 23rpx; }
+.primary { margin-top: 26rpx; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; }

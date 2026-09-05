@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "任务详情",
+  "usingComponents": {
+    "status-view": "/components/status-view/index",
+    "t-icon": "tdesign-miniprogram/icon/icon"
+  }
+}

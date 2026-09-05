@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "app-shell": "/components/app-shell/index",
+    "bottom-nav": "/components/bottom-nav/index",
+    "orchard-hero": "/components/orchard-hero/index",
+    "status-view": "/components/status-view/index",
+    "task-row": "/components/task-row/index"
+  }
+}

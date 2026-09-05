@@ -1,0 +1,4 @@
+@import "../../../styles/pages.wxss";
+.tasks { margin-top: 10rpx; }
+.sunlight-note { display: grid; grid-template-columns: 112rpx 1fr; align-items: center; gap: 18rpx; margin-top: 28rpx; padding: 18rpx 22rpx; border-radius: 14rpx; background: #f2f3e4; color: #52574e; font-size: 23rpx; line-height: 1.6; }
+.sunlight-note image { width: 112rpx; height: 88rpx; }

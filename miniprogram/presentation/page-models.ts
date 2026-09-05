@@ -7,6 +7,7 @@ import type {
 export type ScreenState = "loading" | "empty" | "ready" | "offline" | "error" | "success";
 
 export interface NavigationItem {
+  readonly icon: string;
   readonly key: string;
   readonly label: string;
   readonly path: string;
@@ -150,24 +151,25 @@ export function buildNavigation(
 ): readonly NavigationItem[] {
   const definitions = {
     child: [
-      ["today", "今日", "/pages/child/today/index"],
-      ["orchard", "果园", "/pages/child/orchard/index"],
-      ["profile", "我的", "/pages/child/profile/index"],
+      ["today", "今日", "/pages/child/today/index", "calendar"],
+      ["orchard", "果园", "/pages/child/orchard/index", "image"],
+      ["profile", "我的", "/pages/child/profile/index", "user"],
     ],
     parent: [
-      ["home", "今日", "/pages/parent/home/index"],
-      ["tasks", "任务", "/pages/parent/tasks/index"],
-      ["orchard", "果园", "/pages/parent/orchard/index"],
-      ["profile", "我的", "/pages/parent/profile/index"],
+      ["home", "今日", "/pages/parent/home/index", "home"],
+      ["tasks", "任务", "/pages/parent/tasks/index", "task"],
+      ["orchard", "果园", "/pages/parent/orchard/index", "image"],
+      ["profile", "我的", "/pages/parent/profile/index", "user"],
     ],
     teacher: [
-      ["home", "今日", "/pages/teacher/home/index"],
-      ["groups", "班级", "/pages/teacher/groups/index"],
-      ["tasks", "任务", "/pages/teacher/tasks/index"],
-      ["profile", "我的", "/pages/teacher/profile/index"],
+      ["home", "今日", "/pages/teacher/home/index", "home"],
+      ["groups", "班级", "/pages/teacher/groups/index", "usergroup"],
+      ["tasks", "任务", "/pages/teacher/tasks/index", "task"],
+      ["profile", "我的", "/pages/teacher/profile/index", "user"],
     ],
   } as const;
-  return definitions[role].map(([key, label, path]) => ({
+  return definitions[role].map(([key, label, path, icon]) => ({
+    icon,
     key,
     label,
     path,

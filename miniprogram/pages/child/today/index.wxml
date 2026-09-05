@@ -1,0 +1,26 @@
+<app-shell title="{{date}}" subtitle="你好，小禾" context-label="孩子端" bindroleswitch="openRoles">
+  <orchard-hero
+    asset="{{tree.asset}}"
+    current="{{sunlight.current}}"
+    level="{{tree.level}}"
+    name="{{tree.name}}"
+    progress-percent="{{progressPercent}}"
+    remaining="{{remainingSunlight}}"
+    target="{{sunlight.target}}"
+  />
+  <status-view wx:if="{{screenState === 'loading'}}" kind="loading" title="正在整理今天的任务" />
+  <status-view wx:elif="{{screenState === 'empty'}}" kind="empty" title="今天的任务完成啦" description="去果园看看小树长大了多少" asset="/assets/orchard/scene-empty-tasks.png" />
+  <status-view wx:elif="{{screenState === 'offline'}}" kind="offline" title="暂时没有网络" description="已经完成的内容会保留，联网后再试一次" asset="/assets/orchard/scene-offline.png" bindretry="retry" />
+  <status-view wx:elif="{{screenState === 'error'}}" kind="error" title="任务没有加载出来" description="小树正在等你，稍后再试一次" asset="/assets/orchard/scene-offline.png" bindretry="retry" />
+  <view wx:else class="page-section tasks">
+    <view class="page-section__heading">
+      <view><view class="page-title">今日任务</view><view class="page-subtitle">来自学校和家庭的 {{tasks.length}} 项任务</view></view>
+    </view>
+    <task-row wx:for="{{tasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="activateTask" />
+    <view class="sunlight-note">
+      <image src="/assets/orchard/scene-watering.png" mode="aspectFit" aria-label="给小树浇水" />
+      <text>任务经家长确认后，阳光会自动存入果树，助力成长。</text>
+    </view>
+  </view>
+</app-shell>
+<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

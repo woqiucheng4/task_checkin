@@ -1,0 +1,26 @@
+<app-shell title="我的果园" subtitle="每一次认真完成，都在这里留下成长" context-label="小禾" bindroleswitch="openRoles">
+  <view class="tree-card">
+    <image class="tree-card__image" src="/assets/orchard/apple-mature.png" mode="aspectFit" aria-label="成熟的苹果树" />
+    <view class="tree-card__copy"><view class="tree-card__title">小禾的苹果树 · LV.1</view><view class="tree-card__note">30 / 30 阳光 · 已成熟</view></view>
+    <button class="harvest" bindtap="harvest">采摘果实</button>
+  </view>
+  <view wx:if="{{selecting}}" class="select-next">
+    <view class="page-title">选择下一棵果树</view>
+    <view class="choices">
+      <button data-fruit="apple" data-name="小禾的苹果树" bindtap="startNext"><image src="/assets/orchard/apple-seed.png" mode="aspectFit" /><text>苹果树</text></button>
+      <button data-fruit="pear" data-name="小禾的梨树" bindtap="startNext"><image src="/assets/orchard/pear-mature.png" mode="aspectFit" /><text>梨树</text></button>
+      <button data-fruit="orange" data-name="小禾的橙子树" bindtap="startNext"><image src="/assets/orchard/orange-mature.png" mode="aspectFit" /><text>橙子树</text></button>
+    </view>
+  </view>
+  <view class="page-section">
+    <view class="page-section__heading"><view><view class="page-title">成长足迹</view><view class="page-subtitle">每 3 阳光就能看到一次变化</view></view></view>
+    <scroll-view class="stage-scroll" scroll-x enable-flex>
+      <view wx:for="{{stages}}" wx:key="label" class="stage {{item.done ? 'stage--done' : ''}}"><image src="{{item.asset}}" mode="aspectFit" /><text>{{item.label}}</text></view>
+    </scroll-view>
+  </view>
+  <view class="page-section">
+    <view class="page-section__heading"><view><view class="page-title">水果图鉴</view><view class="page-subtitle">成熟并采摘后点亮</view></view><button class="text-link" bindtap="openGroup">查看共育树</button></view>
+    <view class="collection"><view wx:for="{{collection}}" wx:key="name" class="fruit {{item.count === 0 ? 'fruit--locked' : ''}}"><image src="{{item.asset}}" mode="aspectFit" /><view>{{item.name}}</view><text>{{item.count > 0 ? '已收获 ' + item.count : '待解锁'}}</text></view></view>
+  </view>
+</app-shell>
+<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />
