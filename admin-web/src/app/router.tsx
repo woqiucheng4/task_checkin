@@ -31,11 +31,17 @@ import {
   ProviderThemes,
   ProviderUsage,
 } from "../pages/provider/provider";
+import { ChildTodayPreview } from "../preview/child-today";
+import { ParentReviewPreview } from "../preview/parent-review";
+import { TeacherHomePreview } from "../preview/teacher-home";
 
 export function AdminRouter(): React.JSX.Element {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/institution" replace />} />
+      <Route path="/preview/child-today" element={<ChildTodayPreview />} />
+      <Route path="/preview/parent-review" element={<ParentReviewPreview />} />
+      <Route path="/preview/teacher-home" element={<TeacherHomePreview />} />
       <Route path="/institution" element={<AdminShell workspaceRole="institution" />}>
         <Route index element={<InstitutionDashboard />} />
         <Route path="groups" element={<InstitutionGroups />} />
