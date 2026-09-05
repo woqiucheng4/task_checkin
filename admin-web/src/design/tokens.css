@@ -1,0 +1,31 @@
+:root {
+  --orchard-paper: #faf7ee;
+  --orchard-paper-raised: #fffdf7;
+  --orchard-ink: #20231e;
+  --orchard-ink-muted: #6f7068;
+  --orchard-forest: #174e2a;
+  --orchard-leaf: #6e923c;
+  --orchard-sprout-tint: #eef3de;
+  --orchard-tomato: #d93a22;
+  --orchard-sun: #f2a326;
+  --orchard-family-blue: #256a92;
+  --orchard-line: #ded8c9;
+  --orchard-danger: #b9362c;
+  --orchard-focus: #235f36;
+  --orchard-radius-control: 12px;
+  --orchard-radius-panel: 16px;
+  --orchard-radius-sheet: 24px;
+  --orchard-shadow-raised: 0 8px 28px rgba(41, 52, 34, 0.09);
+  --orchard-shadow-overlay: 0 18px 52px rgba(41, 52, 34, 0.18);
+  --orchard-motion-fast: 150ms;
+  --orchard-motion-normal: 240ms;
+  --orchard-motion-celebration: 900ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --orchard-motion-fast: 0ms;
+    --orchard-motion-normal: 0ms;
+    --orchard-motion-celebration: 0ms;
+  }
+}
