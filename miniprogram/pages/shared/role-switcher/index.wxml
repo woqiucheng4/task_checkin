@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="title">你要以哪个身份进入？</view>
+  <view class="note">切换身份不会改变任务或阳光记录</view>
+  <button wx:for="{{roles}}" wx:key="path" class="role {{item.selected ? 'role--selected' : ''}}" data-path="{{item.path}}" bindtap="choose">
+    <t-icon name="{{item.selected ? 'check-circle-filled' : 'user'}}" size="42rpx" color="{{item.selected ? '#174E2A' : '#6C7068'}}" />
+    <text>{{item.label}}</text>
+    <t-icon name="chevron-right" size="34rpx" color="#6C7068" />
+  </button>
+</view>

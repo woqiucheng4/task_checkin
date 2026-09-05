@@ -1,0 +1,72 @@
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 460rpx;
+  padding: 54rpx 24rpx;
+  color: #20231e;
+  text-align: center;
+}
+
+.status__asset {
+  width: 360rpx;
+  height: 280rpx;
+}
+
+.status__title {
+  margin-top: 20rpx;
+  color: #174e2a;
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.status__description {
+  max-width: 500rpx;
+  margin-top: 8rpx;
+  color: #6c7068;
+  font-size: 25rpx;
+}
+
+.status__button {
+  min-width: 180rpx;
+  margin-top: 30rpx;
+  border-radius: 12rpx;
+  background: #d93a22;
+  color: #fffdf7;
+  font-size: 26rpx;
+}
+
+.status__loading {
+  width: 100%;
+}
+
+.status__pulse,
+.status__line {
+  border-radius: 18rpx;
+  background: #ebe7dc;
+  animation: status-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.status__pulse {
+  width: 280rpx;
+  height: 280rpx;
+  margin: 0 auto 34rpx;
+  border-radius: 50%;
+}
+
+.status__line {
+  height: 28rpx;
+  margin: 16rpx 10%;
+}
+
+.status__line--short {
+  margin-right: 24%;
+  margin-left: 24%;
+}
+
+@keyframes status-pulse {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}

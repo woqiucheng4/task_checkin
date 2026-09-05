@@ -1,0 +1,5 @@
+.page { min-height: 100vh; padding: 54rpx 36rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 46rpx; font-weight: 700; }
+.note { margin: 10rpx 0 36rpx; color: #6c7068; font-size: 24rpx; }
+.role { display: grid; grid-template-columns: 52rpx 1fr 36rpx; align-items: center; gap: 14rpx; width: 100%; min-height: 106rpx; margin: 0 0 18rpx; padding: 20rpx 24rpx; border: 2rpx solid #d9d6ca; border-radius: 18rpx; background: #fffdf7; color: #20231e; font-size: 28rpx; text-align: left; }
+.role--selected { border-color: #b8c7a5; background: #f2f3e4; color: #174e2a; font-weight: 700; }

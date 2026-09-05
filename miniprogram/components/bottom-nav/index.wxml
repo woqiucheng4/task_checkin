@@ -1,0 +1,12 @@
+<view class="nav" role="navigation" aria-label="主要导航">
+  <button
+    wx:for="{{items}}"
+    wx:key="key"
+    class="nav__item {{item.selected ? 'nav__item--selected' : ''}}"
+    data-path="{{item.path}}"
+    bindtap="navigate"
+  >
+    <t-icon name="{{item.icon || item.key}}" size="44rpx" color="{{item.selected ? '#174E2A' : '#74766F'}}" />
+    <text>{{item.label}}</text>
+  </button>
+</view>

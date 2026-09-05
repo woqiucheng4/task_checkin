@@ -1,0 +1,14 @@
+<view class="status" aria-live="polite">
+  <view wx:if="{{kind === 'loading'}}" class="status__loading">
+    <view class="status__pulse"></view>
+    <view class="status__line"></view>
+    <view class="status__line status__line--short"></view>
+  </view>
+  <block wx:else>
+    <image wx:if="{{asset}}" class="status__asset" src="{{asset}}" mode="aspectFit" aria-label="{{title}}" />
+    <t-icon wx:else name="info-circle" size="78rpx" color="#87927D" />
+    <view class="status__title">{{title}}</view>
+    <view wx:if="{{description}}" class="status__description">{{description}}</view>
+    <button wx:if="{{kind === 'error' || kind === 'offline'}}" class="status__button" bindtap="retry">{{actionLabel}}</button>
+  </block>
+</view>

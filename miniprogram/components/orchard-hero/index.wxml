@@ -1,0 +1,20 @@
+<view class="hero">
+  <view class="hero__copy">
+    <view class="hero__title">{{title}}</view>
+    <view class="hero__subtitle">{{subtitle}}</view>
+    <view class="hero__label">阳光进度</view>
+    <view class="hero__numbers">
+      <text class="hero__current">{{current}}</text>
+      <text class="hero__target"> / {{target}} 阳光</text>
+      <t-icon name="sunny" size="48rpx" color="#EE9A25" />
+    </view>
+    <view class="hero__track" aria-label="阳光进度 {{progressPercent}}%">
+      <view class="hero__fill" style="width: {{progressPercent}}%;"></view>
+    </view>
+    <view class="hero__remaining">再收集 <text>{{remaining}}</text> 阳光就能长大啦！</view>
+  </view>
+  <view class="hero__tree-wrap">
+    <image class="hero__tree" src="{{asset}}" mode="aspectFit" aria-label="{{name}}，等级 {{level}}" />
+    <view class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
+  </view>
+</view>

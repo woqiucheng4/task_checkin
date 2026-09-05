@@ -1,0 +1,15 @@
+<view class="page">
+  <status-view wx:if="{{state === 'expired'}}" kind="error" title="邀请已失效" description="请联系老师重新生成邀请" asset="/assets/orchard/scene-invitation-expired.png" bindretry="retry" />
+  <block wx:else>
+    <view class="eyebrow">来自 春芽小学</view>
+    <view class="title">邀请小禾加入三年级 2 班</view>
+    <view class="teacher">邀请人：语文李老师</view>
+    <view class="scope">
+      <view class="scope__title">加入后，分组可看到</view>
+      <view>孩子在本分组的姓名、年级、任务完成状态和提交内容</view>
+      <view class="scope__exclude">不会看到家庭任务、个人愿望和其他分组记录</view>
+    </view>
+    <label class="consent"><checkbox checked color="#174E2A" /> 我已了解以上披露范围，并同意提交入组申请</label>
+    <button class="primary" bindtap="confirmJoin">提交申请</button>
+  </block>
+</view>

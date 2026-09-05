@@ -1,0 +1,4 @@
+{
+  "navigationBarTitleText": "加入分组",
+  "usingComponents": { "status-view": "/components/status-view/index" }
+}

@@ -1,0 +1,107 @@
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48%;
+  align-items: center;
+  min-height: 520rpx;
+  padding: 12rpx 0 36rpx;
+}
+
+.hero__title {
+  color: #174e2a;
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 64rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  line-height: 1.14;
+}
+
+.hero__subtitle {
+  max-width: 360rpx;
+  margin-top: 22rpx;
+  color: #3f423d;
+  font-size: 27rpx;
+  line-height: 1.65;
+}
+
+.hero__label {
+  margin-top: 38rpx;
+  color: #20231e;
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.hero__numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+
+.hero__current {
+  color: #d93a22;
+  font-size: 66rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hero__target {
+  color: #4e514b;
+  font-size: 26rpx;
+}
+
+.hero__track {
+  overflow: hidden;
+  height: 16rpx;
+  margin-top: 20rpx;
+  border-radius: 8rpx;
+  background: #e7e3d8;
+}
+
+.hero__fill {
+  min-width: 8rpx;
+  height: 100%;
+  border-radius: inherit;
+  background: #d93a22;
+  transition: width 700ms ease-out;
+}
+
+.hero__remaining {
+  margin-top: 14rpx;
+  color: #666961;
+  font-size: 23rpx;
+}
+
+.hero__remaining text {
+  color: #174e2a;
+  font-weight: 700;
+}
+
+.hero__tree-wrap {
+  position: relative;
+  height: 500rpx;
+}
+
+.hero__tree {
+  width: 100%;
+  height: 100%;
+}
+
+.hero__sign {
+  position: absolute;
+  right: -4rpx;
+  bottom: 50rpx;
+  min-width: 116rpx;
+  padding: 10rpx 14rpx;
+  border: 3rpx solid #6b4d22;
+  border-radius: 8rpx;
+  background: #d8ae66;
+  color: #332712;
+  font-size: 23rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.hero__sign text {
+  display: block;
+  font-size: 20rpx;
+}

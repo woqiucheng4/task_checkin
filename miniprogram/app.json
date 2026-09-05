@@ -1,6 +1,39 @@
 {
-  "pages": ["pages/bootstrap/index"],
+  "pages": [
+    "pages/bootstrap/index",
+    "pages/shared/role-switcher/index",
+    "pages/shared/invitation/index",
+    "pages/child/today/index",
+    "pages/child/task/index",
+    "pages/child/submit/index",
+    "pages/child/orchard/index",
+    "pages/child/group/index",
+    "pages/child/profile/index",
+    "pages/parent/home/index",
+    "pages/parent/tasks/index",
+    "pages/parent/task-editor/index",
+    "pages/parent/reviews/index",
+    "pages/parent/review-detail/index",
+    "pages/parent/orchard/index",
+    "pages/parent/wishes/index",
+    "pages/parent/groups/index",
+    "pages/parent/profile/index",
+    "pages/teacher/home/index",
+    "pages/teacher/groups/index",
+    "pages/teacher/tasks/index",
+    "pages/teacher/task-editor/index",
+    "pages/teacher/reviews/index",
+    "pages/teacher/review-detail/index",
+    "pages/teacher/group-tree/index",
+    "pages/teacher/members/index",
+    "pages/teacher/profile/index"
+  ],
   "window": {
+    "backgroundColor": "#FAF7EE",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#FAF7EE",
+    "navigationBarTextStyle": "black",
     "navigationBarTitleText": "成长果园"
-  }
+  },
+  "sitemapLocation": "sitemap.json"
 }

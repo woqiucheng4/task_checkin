@@ -1,0 +1,23 @@
+<view class="shell">
+  <view class="shell__header">
+    <view class="shell__heading">
+      <view class="shell__title">{{title}}</view>
+      <view wx:if="{{subtitle}}" class="shell__subtitle">{{subtitle}}</view>
+    </view>
+    <view class="shell__actions">
+      <button wx:if="{{contextLabel}}" class="shell__switch" bindtap="switchContext">
+        <text>{{contextLabel}}</text>
+        <t-icon name="chevron-down" size="30rpx" color="#174E2A" />
+      </button>
+      <button
+        wx:if="{{showRoleSwitch}}"
+        class="shell__role"
+        aria-label="切换身份"
+        bindtap="openRoleSwitcher"
+      >
+        <t-icon name="user-switch" size="36rpx" color="#174E2A" />
+      </button>
+    </view>
+  </view>
+  <view class="shell__body"><slot /></view>
+</view>

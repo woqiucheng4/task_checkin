@@ -1,15 +1,85 @@
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 64rpx 40rpx;
+  padding: 58rpx 42rpx 52rpx;
+  background: #faf7ee;
 }
 
-.status {
-  font-size: 36rpx;
+.brand__eyebrow {
+  color: #174e2a;
+  font-size: 25rpx;
+  letter-spacing: 2rpx;
+}
+
+.brand__title {
+  margin-top: 8rpx;
+  color: #174e2a;
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 70rpx;
   font-weight: 600;
+  line-height: 1.15;
 }
 
-.note {
-  margin-top: 20rpx;
-  font-size: 28rpx;
+.brand__subtitle {
+  margin-top: 14rpx;
+  color: #6c7068;
+  font-size: 27rpx;
+}
+
+.tree {
+  display: block;
+  width: 490rpx;
+  height: 460rpx;
+  margin: -32rpx auto -26rpx;
+}
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.role {
+  display: grid;
+  grid-template-columns: 54rpx minmax(0, 1fr) 36rpx;
+  align-items: center;
+  gap: 14rpx;
+  width: 100%;
+  min-height: 116rpx;
+  margin: 0;
+  padding: 20rpx 24rpx;
+  border: 2rpx solid #d9d6ca;
+  border-radius: 18rpx;
+  background: #fffdf7;
+  color: #174e2a;
+  font-size: 29rpx;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.role--primary {
+  border-color: #d93a22;
+  background: #d93a22;
+  color: #fffdf7;
+}
+
+.role__hint {
+  display: block;
+  margin-top: 5rpx;
+  color: #6c7068;
+  font-size: 22rpx;
+  font-weight: 400;
+}
+
+.role--primary .role__hint {
+  color: rgba(255, 253, 247, 0.82);
+}
+
+.privacy {
+  margin-top: 28rpx;
+  color: #7a7d75;
+  font-size: 21rpx;
+  line-height: 1.6;
+  text-align: center;
 }

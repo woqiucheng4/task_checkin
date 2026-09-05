@@ -1,0 +1,4 @@
+{
+  "navigationBarTitleText": "切换身份",
+  "usingComponents": { "t-icon": "tdesign-miniprogram/icon/icon" }
+}

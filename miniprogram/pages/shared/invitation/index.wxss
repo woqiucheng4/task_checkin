@@ -1,0 +1,9 @@
+.page { min-height: 100vh; padding: 54rpx 36rpx; box-sizing: border-box; background: #faf7ee; }
+.eyebrow { color: #174e2a; font-size: 24rpx; }
+.title { margin-top: 12rpx; color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; line-height: 1.35; }
+.teacher { margin-top: 12rpx; color: #6c7068; font-size: 25rpx; }
+.scope { margin-top: 42rpx; padding: 30rpx; border: 2rpx solid #d9d6ca; border-radius: 18rpx; background: #fffdf7; color: #4c5049; font-size: 25rpx; line-height: 1.7; }
+.scope__title { margin-bottom: 10rpx; color: #20231e; font-size: 28rpx; font-weight: 700; }
+.scope__exclude { margin-top: 16rpx; color: #246397; }
+.consent { display: flex; gap: 12rpx; margin-top: 34rpx; color: #4c5049; font-size: 24rpx; line-height: 1.6; }
+.primary { margin-top: 32rpx; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; }

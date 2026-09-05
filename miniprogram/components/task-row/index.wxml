@@ -1,0 +1,22 @@
+<view class="task">
+  <view class="task__icon task__icon--{{item.sourceTone}}">
+    <t-icon name="{{item.category === '数学' ? 'calculation' : item.category === '运动' ? 'activity' : 'book-open'}}" size="54rpx" color="{{item.sourceTone === 'family' ? '#246397' : '#174E2A'}}" />
+  </view>
+  <view class="task__main">
+    <view class="task__heading">
+      <text class="task__source task__source--{{item.sourceTone}}">{{item.sourceLabel}}</text>
+      <text class="task__title">{{item.title}}</text>
+    </view>
+    <view wx:if="{{item.description}}" class="task__description">{{item.description}}</view>
+    <view class="task__due">{{item.dueLabel}}</view>
+  </view>
+  <button
+    wx:if="{{item.action.kind === 'PRIMARY' || item.action.kind === 'REVISION'}}"
+    class="task__button {{item.action.kind === 'REVISION' ? 'task__button--revision' : ''}}"
+    bindtap="activate"
+  >{{item.action.label}}</button>
+  <button wx:else class="task__status" bindtap="activate">
+    <text>{{item.action.label}}</text>
+    <t-icon name="chevron-right" size="32rpx" color="#59615A" />
+  </button>
+</view>

@@ -1,0 +1,4 @@
+{
+  "desc": "成长果园小程序页面索引",
+  "rules": [{ "action": "disallow", "page": "*" }]
+}

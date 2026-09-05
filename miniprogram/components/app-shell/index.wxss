@@ -1,0 +1,63 @@
+.shell {
+  min-height: 100vh;
+  background: #faf7ee;
+}
+
+.shell__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 36rpx 36rpx 20rpx;
+}
+
+.shell__heading {
+  min-width: 0;
+}
+
+.shell__title {
+  color: #174e2a;
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.shell__subtitle {
+  margin-top: 4rpx;
+  color: #6c7068;
+  font-size: 24rpx;
+}
+
+.shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.shell__switch,
+.shell__role {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  margin: 0;
+  border: 2rpx solid #d9d6ca;
+  border-radius: 36rpx;
+  background: #fffdf7;
+  color: #174e2a;
+  font-size: 26rpx;
+}
+
+.shell__switch {
+  gap: 4rpx;
+  padding: 0 22rpx;
+}
+
+.shell__role {
+  width: 72rpx;
+  padding: 0;
+}
+
+.shell__body {
+  padding: 0 36rpx 160rpx;
+}
