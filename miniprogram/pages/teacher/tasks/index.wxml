@@ -1,0 +1,6 @@
+<app-shell title="分组任务" subtitle="三年级 2 班" context-label="进行中">
+  <view class="summary"><view><strong>2</strong><text>进行中</text></view><view><strong>51</strong><text>已提交</text></view><view><strong>4</strong><text>待审核</text></view></view>
+  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">任务列表</view><view class="page-subtitle">按截止时间排序</view></view><button class="text-link" bindtap="create">新建任务</button></view><button wx:for="{{tasks}}" wx:key="id" class="task" data-id="{{item.id}}" bindtap="openReviews"><view class="task__top"><text>{{item.status}}</text><strong>{{item.due}}</strong></view><view class="task__title">{{item.title}}</view><progress percent="{{item.completed / item.total * 100}}" stroke-width="6" activeColor="#174E2A" backgroundColor="#E7E3D8" /><view class="task__bottom">已提交 {{item.completed}} / {{item.total}} <t-icon name="chevron-right" size="30rpx" /></view></button></view>
+  <button class="primary-button" bindtap="create"><t-icon name="add" size="36rpx" color="#FFFDF7" /> 发布分组任务</button>
+</app-shell>
+<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

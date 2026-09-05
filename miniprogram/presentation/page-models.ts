@@ -146,6 +146,44 @@ export function buildParentReviewPage(input: {
   };
 }
 
+export function buildTeacherWorkbench(input: {
+  readonly dueToday: number;
+  readonly pendingReview: number;
+  readonly revisionRequired: number;
+}): {
+  readonly sections: readonly {
+    readonly count: number;
+    readonly kind: "REVISION" | "PENDING_REVIEW" | "DUE_TODAY";
+    readonly label: string;
+  }[];
+} {
+  return {
+    sections: [
+      { count: input.revisionRequired, kind: "REVISION", label: "待订正确认" },
+      { count: input.pendingReview, kind: "PENDING_REVIEW", label: "待学习审核" },
+      { count: input.dueToday, kind: "DUE_TODAY", label: "今日截止" },
+    ],
+  };
+}
+
+export function buildGroupTreePage(input: {
+  readonly groupName: string;
+  readonly memberCount: number;
+  readonly progress: number;
+  readonly target: number;
+}): {
+  readonly groupName: string;
+  readonly memberCount: number;
+  readonly progress: number;
+  readonly progressPercent: number;
+  readonly target: number;
+} {
+  return {
+    ...input,
+    progressPercent: Math.min(100, Math.round((input.progress / Math.max(input.target, 1)) * 100)),
+  };
+}
+
 export function buildTodayProgress(today: TodaySummaryView): {
   readonly completed: number;
   readonly label: string;

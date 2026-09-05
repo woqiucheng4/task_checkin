@@ -1,0 +1,7 @@
+<app-shell title="教师工作台" subtitle="2026年9月5日 星期六" context-label="{{groupName}}" bindcontextswitch="openGroup" bindroleswitch="openRoles">
+  <view class="metrics"><button wx:for="{{sections}}" wx:key="kind" class="metric metric--{{item.kind}}" bindtap="openReview"><view>{{item.count}}</view><text>{{item.label}}</text></button></view>
+  <view class="notice"><t-icon name="info-circle" size="38rpx" color="#246397" /><text>教师负责学习评价；阳光仍由每个孩子的家长确认。</text></view>
+  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">优先处理</view><view class="page-subtitle">订正和等待较久的提交排在前面</view></view><button class="text-link" bindtap="createTask">发布任务</button></view><button wx:for="{{submissions}}" wx:key="id" class="submission" data-id="{{item.id}}" bindtap="openReview"><view><text class="submission__label">{{item.label}}</text><view class="submission__title">{{item.name}} · {{item.title}}</view><text class="submission__time">提交于 {{item.time}}</text></view><t-icon name="chevron-right" size="34rpx" color="#6C7068" /></button></view>
+  <view class="page-section"><view class="page-title">今日截止</view><view class="deadline"><view><view>语文 · 朗读《秋天的雨》</view><text>23 / 32 人已提交</text></view><strong>20:00</strong></view><view class="deadline"><view><view>数学 · 练习题 5 道</view><text>28 / 32 人已提交</text></view><strong>21:00</strong></view></view>
+</app-shell>
+<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

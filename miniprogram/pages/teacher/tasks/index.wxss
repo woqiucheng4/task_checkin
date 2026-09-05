@@ -1,0 +1,11 @@
+@import "../../../styles/pages.wxss";
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; padding: 24rpx; border-radius: 17rpx; background: #f2f3e4; text-align: center; }
+.summary strong { display: block; color: #174e2a; font-size: 39rpx; }
+.summary text { color: #6c7068; font-size: 21rpx; }
+.task { width: 100%; margin: 0; padding: 25rpx 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }
+.task__top, .task__bottom { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; color: #6c7068; font-size: 21rpx; }
+.task__top text { color: #2d6a3f; }
+.task__top strong { color: #d93a22; font-size: 22rpx; }
+.task__title { margin: 10rpx 0 14rpx; color: #20231e; font-size: 28rpx; font-weight: 700; }
+.task__bottom { margin-top: 12rpx; justify-content: flex-end; }
+.primary-button { display: flex; align-items: center; justify-content: center; gap: 8rpx; }

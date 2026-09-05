@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const REQUIRED_MOBILE_ROUTES = [
@@ -38,5 +38,10 @@ describe("小程序页面清单", () => {
     };
     expect(app.pages).toEqual(expect.arrayContaining([...REQUIRED_MOBILE_ROUTES]));
     expect(new Set(app.pages).size).toBe(app.pages.length);
+    for (const route of app.pages) {
+      for (const extension of ["json", "ts", "wxml", "wxss"]) {
+        expect(existsSync(`miniprogram/${route}.${extension}`), `${route}.${extension}`).toBe(true);
+      }
+    }
   });
 });

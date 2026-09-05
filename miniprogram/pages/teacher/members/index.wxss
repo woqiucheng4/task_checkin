@@ -1,0 +1,15 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18rpx; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 42rpx; font-weight: 700; }
+.note { color: #6c7068; font-size: 22rpx; }
+.heading button { display: flex; align-items: center; gap: 5rpx; margin: 0; padding: 9rpx; background: transparent; color: #174e2a; font-size: 23rpx; }
+.invite { display: grid; grid-template-columns: 170rpx 1fr; align-items: center; gap: 18rpx; margin-top: 24rpx; padding: 24rpx; border-radius: 16rpx; background: #f2f3e4; color: #174e2a; font-size: 25rpx; }
+.qr { display: flex; align-items: center; justify-content: center; width: 170rpx; height: 170rpx; background: #fffdf7; }
+.invite text { display: block; margin-top: 7rpx; color: #6c7068; font-size: 21rpx; }
+.section { margin-top: 30rpx; }
+.section__title { color: #20231e; font-size: 30rpx; font-weight: 700; }
+.section__title text { color: #d93a22; }
+.request, .seat, .staff { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; min-height: 96rpx; border-bottom: 2rpx solid #dedbd0; color: #20231e; font-size: 25rpx; }
+.request text, .seat text, .staff text { display: block; color: #6c7068; font-size: 21rpx; }
+.request button, .seat button { margin: 0; padding: 9rpx 15rpx; border: 2rpx solid #174e2a; border-radius: 10rpx; background: transparent; color: #174e2a; font-size: 21rpx; line-height: 1.4; }
+.seat { display: grid; grid-template-columns: 50rpx 1fr auto; }

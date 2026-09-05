@@ -1,0 +1,12 @@
+@import "../../../styles/pages.wxss";
+.group-tabs { display: flex; gap: 12rpx; margin-bottom: 24rpx; }
+.group-tab { margin: 0; padding: 10rpx 20rpx; border: 2rpx solid #d9d6ca; border-radius: 26rpx; background: #fffdf7; color: #62675f; font-size: 23rpx; line-height: 1.4; }
+.group-tab--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.group-head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; padding: 28rpx; border-radius: 17rpx; background: #f2f3e4; }
+.group-head view view { color: #174e2a; font-size: 31rpx; font-weight: 700; }
+.group-head text { display: block; color: #6c7068; font-size: 21rpx; }
+.group-head button { display: flex; align-items: center; gap: 6rpx; margin: 0; padding: 11rpx 17rpx; border: 2rpx solid #174e2a; border-radius: 12rpx; background: #fffdf7; color: #174e2a; font-size: 23rpx; }
+.metric-grid { margin-top: 20rpx; }
+.entry { display: grid; grid-template-columns: 100rpx 1fr 34rpx; align-items: center; gap: 16rpx; width: 100%; margin: 24rpx 0 0; padding: 22rpx 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; color: #20231e; font-size: 27rpx; text-align: left; }
+.entry image { width: 100rpx; height: 100rpx; }
+.entry text { display: block; color: #6c7068; font-size: 21rpx; }

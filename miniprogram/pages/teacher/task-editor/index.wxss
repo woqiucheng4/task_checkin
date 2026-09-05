@@ -1,0 +1,15 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 42rpx; font-weight: 700; }
+.note { margin-top: 8rpx; color: #6c7068; font-size: 23rpx; line-height: 1.6; }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 28rpx; }
+.mode { margin: 0; padding: 13rpx 8rpx; border: 2rpx solid #d9d6ca; border-radius: 12rpx; background: #fffdf7; color: #666a62; font-size: 23rpx; }
+.mode--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.ocr { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 340rpx; margin: 28rpx 0 0; border: 2rpx dashed #9da894; border-radius: 18rpx; background: #f2f3e4; color: #174e2a; font-size: 26rpx; }
+.ocr text { margin-top: 8rpx; color: #6c7068; font-size: 21rpx; }
+.field { margin-top: 26rpx; }
+.label { margin-bottom: 8rpx; color: #353a33; font-size: 24rpx; font-weight: 700; }
+input, .select { box-sizing: border-box; width: 100%; min-height: 84rpx; padding: 19rpx; border: 2rpx solid #d9d6ca; border-radius: 13rpx; background: #fffdf7; color: #20231e; font-size: 25rpx; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
+.review { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14rpx; margin-top: 28rpx; padding: 20rpx; border-radius: 14rpx; background: #edf0dc; color: #174e2a; font-size: 25rpx; }
+.review text { display: block; color: #666b62; font-size: 21rpx; }
+.primary { margin-top: 30rpx; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 28rpx; font-weight: 700; }

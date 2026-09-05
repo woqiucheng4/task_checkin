@@ -1,0 +1,14 @@
+@import "../../../styles/pages.wxss";
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; }
+.metric { min-height: 132rpx; margin: 0; padding: 18rpx 8rpx; border: 2rpx solid #dedbd0; border-radius: 15rpx; background: #fffdf7; }
+.metric view { color: #174e2a; font-size: 42rpx; font-weight: 750; }
+.metric text { color: #6c7068; font-size: 20rpx; }
+.metric--REVISION view { color: #d93a22; }
+.notice { display: grid; grid-template-columns: 44rpx 1fr; gap: 10rpx; margin-top: 22rpx; padding: 18rpx 20rpx; border-radius: 13rpx; background: #e7eff4; color: #405c70; font-size: 22rpx; line-height: 1.55; }
+.submission { display: grid; grid-template-columns: 1fr 36rpx; align-items: center; width: 100%; margin: 0; padding: 24rpx 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }
+.submission__label { color: #d93a22; font-size: 21rpx; }
+.submission__title { margin-top: 5rpx; color: #20231e; font-size: 27rpx; font-weight: 700; }
+.submission__time { color: #74776f; font-size: 21rpx; }
+.deadline { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 23rpx 0; border-bottom: 2rpx solid #dedbd0; color: #20231e; font-size: 26rpx; }
+.deadline text { display: block; color: #6c7068; font-size: 21rpx; }
+.deadline strong { color: #d93a22; font-size: 24rpx; }

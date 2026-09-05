@@ -1,0 +1,13 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; }
+.note { margin-top: 7rpx; color: #6c7068; font-size: 23rpx; line-height: 1.55; }
+.tree { width: 100%; height: 580rpx; margin-top: 4rpx; }
+.progress { padding: 28rpx; border-radius: 17rpx; background: #f2f3e4; }
+.progress__top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20rpx; color: #174e2a; font-size: 30rpx; font-weight: 700; }
+.progress__top text { display: block; color: #686d64; font-size: 21rpx; font-weight: 400; }
+.principle { display: grid; grid-template-columns: 48rpx 1fr; gap: 12rpx; margin-top: 22rpx; padding: 22rpx; border: 2rpx solid #d9d6ca; border-radius: 14rpx; color: #174e2a; font-size: 25rpx; }
+.principle text { display: block; color: #6c7068; font-size: 21rpx; line-height: 1.55; }
+.stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; margin-top: 22rpx; text-align: center; }
+.stages view { padding: 20rpx; border-radius: 14rpx; background: #fffdf7; }
+.stages strong { display: block; color: #174e2a; font-size: 34rpx; }
+.stages text { color: #6c7068; font-size: 20rpx; }

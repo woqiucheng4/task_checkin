@@ -1,0 +1,10 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 40rpx; font-weight: 700; }
+.note { margin-top: 6rpx; color: #6c7068; font-size: 23rpx; }
+.filters { display: flex; gap: 10rpx; margin: 26rpx 0 10rpx; }
+.filters button { flex: 1; margin: 0; padding: 10rpx 5rpx; border: 2rpx solid #d9d6ca; border-radius: 24rpx; background: #fffdf7; color: #686c65; font-size: 21rpx; }
+.filters .selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.student { display: grid; grid-template-columns: 70rpx 1fr 36rpx; align-items: center; gap: 16rpx; width: 100%; margin: 0; padding: 24rpx 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }
+.avatar { display: flex; align-items: center; justify-content: center; width: 70rpx; height: 70rpx; border-radius: 50%; background: #f2f3e4; color: #174e2a; font-size: 23rpx; font-weight: 700; }
+.student__name { color: #20231e; font-size: 27rpx; font-weight: 700; }
+.student text { color: #6c7068; font-size: 21rpx; }

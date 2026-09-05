@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "学生提交",
+  "usingComponents": {
+    "status-view": "/components/status-view/index",
+    "t-icon": "tdesign-miniprogram/icon/icon"
+  }
+}
