@@ -6,6 +6,7 @@ import { InvitationService } from "./invitation-service.js";
 import { MediaService } from "./media-service.js";
 import { OrchardService } from "./orchard-service.js";
 import type { ApplicationDependencies, MediaStorage, OcrProvider } from "./ports.js";
+import { PresentationService } from "./presentation-service.js";
 import { ReviewService } from "./review-service.js";
 import { SubmissionService } from "./submission-service.js";
 import { SunlightService } from "./sunlight-service.js";
@@ -18,6 +19,15 @@ import { commandFailure, commandSuccess, type CommandResult } from "../shared/re
 
 export const CORE_ACTIONS = [
   "BOOTSTRAP_ACCOUNT",
+  "GET_ACCOUNT_SHELL",
+  "GET_PARENT_DASHBOARD",
+  "GET_PARENT_TASK_CENTER",
+  "GET_REVIEW_QUEUE",
+  "GET_TEACHER_DASHBOARD",
+  "GET_GROUP_WORKSPACE",
+  "GET_INSTITUTION_DASHBOARD",
+  "GET_PLATFORM_DASHBOARD",
+  "GET_PROVIDER_DASHBOARD",
   "CREATE_FAMILY",
   "ADD_CHILD",
   "CREATE_ORGANIZATION",
@@ -87,12 +97,21 @@ export type CoreAction = (typeof CORE_ACTIONS)[number];
 const ACTION_SET = new Set<string>(CORE_ACTIONS);
 export const CORE_READ_ACTIONS = [
   "CHECK_ENTITLEMENT",
+  "GET_ACCOUNT_SHELL",
   "GET_CHILD_ORCHARD",
   "GET_CHILD_TODAY",
   "GET_FAMILY_WISHES",
+  "GET_GROUP_WORKSPACE",
   "GET_GROUP_PROGRESS",
+  "GET_INSTITUTION_DASHBOARD",
   "GET_ORGANIZATION_CHILD",
+  "GET_PARENT_DASHBOARD",
+  "GET_PARENT_TASK_CENTER",
+  "GET_PLATFORM_DASHBOARD",
+  "GET_PROVIDER_DASHBOARD",
   "GET_PROVIDER_WORKSPACE",
+  "GET_REVIEW_QUEUE",
+  "GET_TEACHER_DASHBOARD",
   "READ_MEDIA_ASSET",
   "READ_WITH_SUPPORT_GRANT",
 ] as const satisfies readonly CoreAction[];
@@ -195,6 +214,7 @@ interface Services {
   readonly invitations: InvitationService;
   readonly media?: MediaService;
   readonly orchard: OrchardService;
+  readonly presentation: PresentationService;
   readonly reviews: ReviewService;
   readonly submissions: SubmissionService;
   readonly tasks: TaskService;
@@ -220,6 +240,7 @@ function createServices(dependencies: CoreApiDependencies): Services {
           ),
         }),
     orchard: new OrchardService(dependencies),
+    presentation: new PresentationService(dependencies),
     reviews: new ReviewService(dependencies, sunlight),
     submissions: new SubmissionService(dependencies),
     tasks: new TaskService(dependencies),
@@ -302,6 +323,35 @@ async function dispatch(
 ): Promise<unknown> {
   const input = { ...payload, ...(requestId === undefined ? {} : { requestId }) };
   switch (action) {
+    case "GET_ACCOUNT_SHELL":
+      return services.presentation.accountShell(actor);
+    case "GET_PARENT_DASHBOARD":
+      return services.presentation.parentDashboard(actor, {
+        childId: requireString(payload.childId),
+        date: requireString(payload.date),
+      });
+    case "GET_PARENT_TASK_CENTER":
+      return services.presentation.parentTaskCenter(actor, {
+        childId: requireString(payload.childId),
+      });
+    case "GET_REVIEW_QUEUE":
+      return services.presentation.reviewQueue(actor, reviewQueueInput(payload));
+    case "GET_TEACHER_DASHBOARD":
+      return services.presentation.teacherDashboard(actor, {
+        date: requireString(payload.date),
+      });
+    case "GET_GROUP_WORKSPACE":
+      return services.presentation.groupWorkspace(actor, {
+        groupId: requireString(payload.groupId),
+      });
+    case "GET_INSTITUTION_DASHBOARD":
+      return services.presentation.institutionDashboard(actor, {
+        organizationId: requireString(payload.organizationId),
+      });
+    case "GET_PLATFORM_DASHBOARD":
+      return services.presentation.platformDashboard(actor);
+    case "GET_PROVIDER_DASHBOARD":
+      return services.presentation.providerDashboard(actor);
     case "CREATE_FAMILY":
       return services.identity.createFamily(actor, castInput(input));
     case "ADD_CHILD":
@@ -499,6 +549,20 @@ function requireString(value: unknown): string {
     throw new DomainError("INVALID_COMMAND", "请求缺少必填文本字段");
   }
   return value;
+}
+
+function reviewQueueInput(
+  payload: Readonly<Record<string, unknown>>,
+):
+  | { readonly kind: "FAMILY"; readonly childId: string }
+  | { readonly kind: "GROUP"; readonly groupId: string } {
+  if (payload.kind === "FAMILY") {
+    return { childId: requireString(payload.childId), kind: "FAMILY" };
+  }
+  if (payload.kind === "GROUP") {
+    return { groupId: requireString(payload.groupId), kind: "GROUP" };
+  }
+  throw new DomainError("INVALID_COMMAND", "审核队列类型必须是 FAMILY 或 GROUP");
 }
 
 function castInput<T>(value: unknown): T {

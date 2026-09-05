@@ -3,6 +3,7 @@ import { createCoreApi } from "../../src/application/core-api.js";
 import { createCloudFunctionHandler } from "../../cloudfunctions/coreApi/handler.js";
 import { IdentityService } from "../../src/application/identity-service.js";
 import { createHarness } from "../helpers/harness.js";
+import { createIdentityScenario } from "../helpers/identity-scenario.js";
 
 describe("core API authentication", () => {
   it("ignores payload openId and authenticates from trusted context", async () => {
@@ -89,5 +90,23 @@ describe("core API authentication", () => {
     await handler({ action: "CREATE_FAMILY", openId: "attacker-openid", payload: {} }, {});
 
     expect(capturedOpenId).toBe("trusted-runtime-openid");
+  });
+
+  it("routes a parent dashboard read through the authenticated guardian account", async () => {
+    const seed = await createIdentityScenario(1);
+    const api = createCoreApi(seed.harness);
+
+    const result = await api.handle(
+      {
+        action: "GET_PARENT_DASHBOARD",
+        payload: { childId: seed.firstChild.id, date: "2026-09-05" },
+      },
+      { openId: "wx-scenario-guardian" },
+    );
+
+    expect(result).toMatchObject({
+      data: { selectedChild: { id: seed.firstChild.id, nickname: "孩子1" } },
+      ok: true,
+    });
   });
 });
