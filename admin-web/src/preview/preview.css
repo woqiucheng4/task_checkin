@@ -15,7 +15,7 @@ body:has(.mobile-preview-page) {
 }
 .mobile-content {
   min-height: 100vh;
-  padding-bottom: 112px;
+  padding-bottom: 140px;
 }
 .mobile-bottom-nav {
   position: fixed;
@@ -24,7 +24,7 @@ body:has(.mobile-preview-page) {
   bottom: 0;
   left: max(0px, calc((100vw - 853px) / 2));
   display: flex;
-  height: 104px;
+  height: 136px;
   align-items: stretch;
   justify-content: space-around;
   border-top: 1px solid var(--divider);
@@ -40,7 +40,11 @@ body:has(.mobile-preview-page) {
   border: 0;
   background: transparent;
   color: #6d6e68;
-  font-size: 15px;
+  font-size: 26px;
+}
+.mobile-bottom-nav svg {
+  width: 46px;
+  height: 46px;
 }
 .mobile-bottom-nav button.active {
   color: var(--forest);
@@ -48,9 +52,9 @@ body:has(.mobile-preview-page) {
 }
 .mobile-bottom-nav button.active::after {
   position: absolute;
-  right: 28px;
-  bottom: 8px;
-  left: 28px;
+  right: 26px;
+  bottom: 12px;
+  left: 26px;
   height: 3px;
   border-radius: 3px;
   background: var(--forest);
@@ -61,7 +65,7 @@ body:has(.mobile-preview-page) {
   gap: 28px;
   padding: 70px 42px 20px;
   color: #183e24;
-  font-size: 22px;
+  font-size: 26px;
 }
 .orchard-intro {
   display: grid;
@@ -77,7 +81,7 @@ body:has(.mobile-preview-page) {
   margin: 0;
   color: var(--forest);
   font-family: "STKaiti", "KaiTi", serif;
-  font-size: 62px;
+  font-size: 76px;
   font-weight: 800;
   letter-spacing: 0.08em;
   white-space: nowrap;
@@ -85,12 +89,12 @@ body:has(.mobile-preview-page) {
 .orchard-copy > p {
   margin: 38px 0 54px;
   color: #30332f;
-  font-size: 23px;
+  font-size: 29px;
   line-height: 1.75;
 }
 .sun-progress h2 {
   margin: 0 0 17px;
-  font-size: 22px;
+  font-size: 28px;
 }
 .sun-progress > p {
   display: flex;
@@ -110,6 +114,8 @@ body:has(.mobile-preview-page) {
   font-size: 19px;
 }
 .sun-progress svg {
+  width: 48px;
+  height: 48px;
   color: var(--orchard-sun);
 }
 .sun-progress progress {
@@ -118,11 +124,21 @@ body:has(.mobile-preview-page) {
   border: 0;
   accent-color: var(--tomato);
 }
+.sun-progress progress::-webkit-progress-bar,
+.submission-progress progress::-webkit-progress-bar {
+  border-radius: 8px;
+  background: #dfddd4;
+}
+.sun-progress progress::-webkit-progress-value,
+.submission-progress progress::-webkit-progress-value {
+  border-radius: 8px;
+  background: var(--tomato);
+}
 .sun-progress small {
   display: block;
   margin-top: 13px;
   color: #4d504b;
-  font-size: 16px;
+  font-size: 19px;
 }
 .sun-progress small b {
   color: var(--forest);
@@ -163,11 +179,13 @@ body:has(.mobile-preview-page) {
   align-items: center;
   gap: 12px;
   margin: 0 0 12px;
-  font-size: 21px;
+  font-size: 28px;
   font-weight: 500;
 }
-.growth-guide > h2 svg {
-  color: var(--forest);
+.guide-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 .growth-guide > div {
   display: grid;
@@ -188,11 +206,11 @@ body:has(.mobile-preview-page) {
   display: grid;
   gap: 10px;
   margin: 0;
-  font-size: 17px;
+  font-size: 22px;
 }
 .growth-guide strong {
   color: var(--forest);
-  font-size: 27px;
+  font-size: 31px;
   font-weight: 500;
 }
 .growth-guide > div > span {
@@ -210,7 +228,7 @@ body:has(.mobile-preview-page) {
 .today-section > p {
   margin: 14px 0 24px;
   color: #494c47;
-  font-size: 18px;
+  font-size: 22px;
 }
 .mobile-task-list {
   border-top: 1px solid var(--divider);
@@ -238,16 +256,20 @@ body:has(.mobile-preview-page) {
   background: #e8f0f4;
   color: var(--orchard-family-blue);
 }
+.task-icon svg {
+  width: 52px;
+  height: 52px;
+}
 .task-copy h3 {
   margin: 0;
-  font-size: 21px;
+  font-size: 27px;
 }
 .source {
   display: inline-flex;
   padding: 4px 9px;
   margin-right: 10px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   vertical-align: middle;
 }
@@ -262,38 +284,45 @@ body:has(.mobile-preview-page) {
 .task-copy p {
   margin: 10px 0;
   color: #4c4e4a;
-  font-size: 17px;
+  font-size: 22px;
 }
 .task-copy small {
   color: var(--tomato);
-  font-size: 15px;
+  font-size: 18px;
 }
 .mobile-task > button,
 .mobile-primary {
-  min-width: 124px;
-  min-height: 62px;
+  min-width: 164px;
+  min-height: 70px;
   padding: 0 24px;
   border: 0;
   border-radius: 10px;
   background: var(--tomato);
   color: white;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
 }
 .protected-state {
   display: grid;
-  gap: 8px;
+  grid-template-columns: 1fr auto;
+  gap: 8px 4px;
   color: var(--forest);
   text-align: right;
 }
 .protected-state span {
+  grid-column: 1;
   color: var(--ink-muted);
-  font-size: 14px;
+  font-size: 17px;
+}
+.protected-state svg {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
 }
 .sun-tip {
   display: grid;
   min-height: 102px;
-  grid-template-columns: 38px 1fr 100px;
+  grid-template-columns: 38px 1fr 180px;
   align-items: center;
   gap: 15px;
   padding: 10px 26px;
@@ -301,14 +330,14 @@ body:has(.mobile-preview-page) {
   border-radius: 10px;
   background: #f3f2dd;
   color: #4a4c47;
-  font-size: 16px;
+  font-size: 19px;
 }
 .sun-tip > svg {
   color: var(--orchard-sun);
 }
 .sun-tip img {
-  width: 100px;
-  height: 78px;
+  width: 180px;
+  height: 90px;
   object-fit: contain;
 }
 .mobile-sheet-backdrop {
@@ -625,46 +654,30 @@ body:has(.mobile-preview-page) {
   font-weight: 700;
 }
 @media (max-width: 620px) {
-  .journal-date,
-  .mobile-topbar {
-    padding-right: 22px;
-    padding-left: 22px;
+  body:has(.mobile-preview-page) {
+    overflow: hidden;
+  }
+  .mobile-preview-page {
+    width: 200%;
+    min-height: 200vh;
+    margin: 0;
+    transform: scale(0.5);
+    transform-origin: top left;
   }
   .orchard-intro {
-    min-height: 430px;
-    grid-template-columns: 55% 45%;
-    padding-left: 22px;
+    min-height: 530px;
   }
-  .orchard-copy > h1 {
-    font-size: 42px;
+  .growth-guide > h2 {
+    margin-bottom: -32px;
   }
-  .orchard-copy > p {
-    margin: 22px 0 30px;
-    font-size: 17px;
+  .mobile-bottom-nav {
+    position: absolute;
+    top: 1708px;
+    right: 0;
+    bottom: auto;
+    left: 0;
   }
-  .tree-visual > img {
-    right: -40px;
-    width: 340px;
-    height: 420px;
-  }
-  .growth-guide,
-  .today-section,
-  .mobile-section {
-    padding-right: 20px;
-    padding-left: 20px;
-  }
-  .mobile-task {
-    grid-template-columns: 64px 1fr;
-    padding: 16px 0;
-  }
-  .task-icon {
-    width: 64px;
-    height: 64px;
-  }
-  .mobile-task > button,
-  .protected-state {
-    grid-column: 2;
-    justify-self: start;
-    text-align: left;
+  .teacher-create {
+    right: 28px;
   }
 }

@@ -2,6 +2,8 @@ import { Icon } from "tdesign-icons-react";
 import { useState } from "react";
 import appleTree from "../assets/orchard/apple-mature.png";
 import seedling from "../assets/orchard/apple-seedling.png";
+import sprout from "../assets/orchard/apple-sprout.png";
+import watering from "../assets/orchard/scene-watering.png";
 import { MobileShell } from "./mobile-shell";
 import "./preview.css";
 
@@ -94,7 +96,7 @@ export function ChildTodayPreview(): React.JSX.Element {
         </section>
         <section className="growth-guide">
           <h2>
-            <Icon name="sprout" />
+            <img className="guide-icon" src={sprout} alt="" />
             小树成长指南
           </h2>
           <div>
@@ -134,6 +136,7 @@ export function ChildTodayPreview(): React.JSX.Element {
                         {task.id === "desk" ? "已提交 · 等待家长确认" : "待确认 · 阳光已保护"}
                       </strong>
                       <span>已提交 09:48</span>
+                      <Icon name="chevron-right" size="24px" />
                     </div>
                   ) : (
                     <button type="button" onClick={() => setActiveTask(task)}>
@@ -148,7 +151,7 @@ export function ChildTodayPreview(): React.JSX.Element {
         <aside className="sun-tip">
           <Icon name="sunny" size="28px" />
           <span>任务被家长确认后，阳光会自动存入小树，助力成长！</span>
-          <img src={seedling} alt="正在成长的小树" />
+          <img src={watering} alt="为小树浇水" />
         </aside>
       </section>
       {activeTask ? (

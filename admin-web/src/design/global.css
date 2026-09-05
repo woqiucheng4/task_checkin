@@ -346,6 +346,14 @@ td {
   border-radius: 8px;
   accent-color: var(--tomato);
 }
+.progress-list progress::-webkit-progress-bar {
+  border-radius: 8px;
+  background: #dfddd4;
+}
+.progress-list progress::-webkit-progress-value {
+  border-radius: 8px;
+  background: var(--tomato);
+}
 .notice-panel,
 .panel-title-row,
 .permission-row {
