@@ -11,6 +11,17 @@ import {
   InstitutionSettings,
   InstitutionTasks,
 } from "../pages/institution/institution";
+import {
+  PlatformAccess,
+  PlatformAudit,
+  PlatformDashboard,
+  PlatformExports,
+  PlatformPlans,
+  PlatformProviders,
+  PlatformSettings,
+  PlatformSupport,
+  PlatformTenants,
+} from "../pages/platform/platform";
 
 function WorkspaceHome({
   workspaceRole,
@@ -52,7 +63,16 @@ export function AdminRouter(): React.JSX.Element {
         <Route path="settings" element={<InstitutionSettings />} />
       </Route>
       <Route path="/platform" element={<AdminShell workspaceRole="platform" />}>
-        <Route index element={<WorkspaceHome workspaceRole="platform" />} />
+        <Route index element={<PlatformDashboard />} />
+        <Route path="tenants" element={<PlatformTenants />} />
+        <Route path="plans" element={<PlatformPlans />} />
+        <Route path="providers" element={<PlatformProviders />} />
+        <Route path="support" element={<PlatformSupport />} />
+        <Route path="support/:ticketId" element={<PlatformSupport />} />
+        <Route path="access" element={<PlatformAccess />} />
+        <Route path="exports" element={<PlatformExports />} />
+        <Route path="audit" element={<PlatformAudit />} />
+        <Route path="settings" element={<PlatformSettings />} />
       </Route>
       <Route path="/provider" element={<AdminShell workspaceRole="provider" />}>
         <Route index element={<WorkspaceHome workspaceRole="provider" />} />

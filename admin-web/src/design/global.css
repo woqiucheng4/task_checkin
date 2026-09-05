@@ -583,6 +583,102 @@ select {
   display: flex;
   justify-content: flex-end;
 }
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.plan-card {
+  min-height: 320px;
+}
+.plan-card.featured {
+  border-color: #aabe9e;
+  background: #f5f5e7;
+}
+.plan-card > h2 {
+  margin-top: 20px;
+}
+.plan-card > p {
+  min-height: 48px;
+  color: var(--ink-muted);
+}
+.plan-card dl,
+.detail-list {
+  margin: 24px 0;
+}
+.plan-card dl > div,
+.detail-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--divider);
+}
+.plan-card dt,
+.detail-list dt {
+  color: var(--ink-muted);
+}
+.plan-card dd,
+.detail-list dd {
+  margin: 0;
+  font-weight: 650;
+  text-align: right;
+}
+.ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.65fr) minmax(520px, 1.35fr);
+  gap: 18px;
+}
+.protected-panel {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  align-items: center;
+  gap: 28px;
+  min-height: 390px;
+  padding: 34px;
+  border: 1px solid #e3d7b9;
+  border-radius: 12px;
+  background: #faf6e9;
+}
+.protected-panel img {
+  width: 250px;
+  height: 220px;
+  object-fit: contain;
+}
+.protected-panel h2 {
+  margin: 16px 0 8px;
+  color: var(--forest);
+  font-family: "STKaiti", "KaiTi", serif;
+  font-size: 28px;
+}
+.protected-panel p {
+  margin-bottom: 24px;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+.access-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.access-grid .form-stack {
+  padding-top: 22px;
+}
+.principle-list {
+  display: grid;
+  gap: 16px;
+  padding-left: 22px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+.inline-actions {
+  display: flex;
+  gap: 12px;
+}
+.danger-text {
+  color: var(--danger);
+}
 .admin-status {
   display: flex;
   min-height: 420px;
