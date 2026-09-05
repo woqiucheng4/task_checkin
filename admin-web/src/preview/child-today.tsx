@@ -53,7 +53,7 @@ export function ChildTodayPreview(): React.JSX.Element {
     <MobileShell
       active="今日"
       navItems={[
-        { icon: "sprout", label: "今日" },
+        { icon: "apple-filled", label: "今日" },
         { icon: "tree-round-dot-vertical", label: "果园" },
         { icon: "user", label: "我的" },
       ]}
