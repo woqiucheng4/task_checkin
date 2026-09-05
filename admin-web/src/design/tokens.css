@@ -20,6 +20,17 @@
   --orchard-motion-fast: 150ms;
   --orchard-motion-normal: 240ms;
   --orchard-motion-celebration: 900ms;
+
+  --paper: var(--orchard-paper);
+  --paper-raised: var(--orchard-paper-raised);
+  --ink: var(--orchard-ink);
+  --ink-muted: var(--orchard-ink-muted);
+  --forest: var(--orchard-forest);
+  --sprout-tint: var(--orchard-sprout-tint);
+  --tomato: var(--orchard-tomato);
+  --divider: var(--orchard-line);
+  --danger: var(--orchard-danger);
+  --focus: var(--orchard-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {

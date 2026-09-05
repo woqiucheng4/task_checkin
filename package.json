@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "admin:build": "npm --prefix admin-web run build",
+    "admin:dev": "npm --prefix admin-web run dev --",
+    "admin:test": "npm --prefix admin-web run test --",
     "build": "tsc -p tsconfig.build.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
