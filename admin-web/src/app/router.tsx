@@ -1,5 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminShell } from "../components/admin-shell/admin-shell";
+import {
+  InstitutionAnalytics,
+  InstitutionBilling,
+  InstitutionDashboard,
+  InstitutionExports,
+  InstitutionGroups,
+  InstitutionMembers,
+  InstitutionReviews,
+  InstitutionSettings,
+  InstitutionTasks,
+} from "../pages/institution/institution";
 
 function WorkspaceHome({
   workspaceRole,
@@ -30,7 +41,15 @@ export function AdminRouter(): React.JSX.Element {
     <Routes>
       <Route path="/" element={<Navigate to="/institution" replace />} />
       <Route path="/institution" element={<AdminShell workspaceRole="institution" />}>
-        <Route index element={<WorkspaceHome workspaceRole="institution" />} />
+        <Route index element={<InstitutionDashboard />} />
+        <Route path="groups" element={<InstitutionGroups />} />
+        <Route path="tasks" element={<InstitutionTasks />} />
+        <Route path="reviews" element={<InstitutionReviews />} />
+        <Route path="members" element={<InstitutionMembers />} />
+        <Route path="analytics" element={<InstitutionAnalytics />} />
+        <Route path="exports" element={<InstitutionExports />} />
+        <Route path="billing" element={<InstitutionBilling />} />
+        <Route path="settings" element={<InstitutionSettings />} />
       </Route>
       <Route path="/platform" element={<AdminShell workspaceRole="platform" />}>
         <Route index element={<WorkspaceHome workspaceRole="platform" />} />
