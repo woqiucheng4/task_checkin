@@ -1,0 +1,6 @@
+@import "../../../styles/pages.wxss";
+.family { display: grid; grid-template-columns: 94rpx 1fr; align-items: center; gap: 18rpx; padding: 24rpx; border-radius: 17rpx; background: #f2f3e4; }
+.family__mark { display: flex; align-items: center; justify-content: center; width: 94rpx; height: 94rpx; border-radius: 50%; background: #fffdf7; }
+.family__name { color: #174e2a; font-size: 31rpx; font-weight: 700; }
+.family__note { color: #6c7068; font-size: 22rpx; }
+.setting-row { width: 100%; margin: 0; padding: 0; border: 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }

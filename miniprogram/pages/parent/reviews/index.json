@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "待审核中心",
+  "usingComponents": {
+    "status-view": "/components/status-view/index",
+    "t-icon": "tdesign-miniprogram/icon/icon"
+  }
+}

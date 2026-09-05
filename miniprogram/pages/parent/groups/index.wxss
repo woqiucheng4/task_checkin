@@ -1,0 +1,22 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20rpx; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; }
+.note { margin-top: 5rpx; color: #6c7068; font-size: 22rpx; }
+.heading button { display: flex; align-items: center; gap: 4rpx; margin: 0; padding: 8rpx; background: transparent; color: #174e2a; font-size: 23rpx; }
+.group { margin-top: 24rpx; padding: 28rpx; border: 2rpx solid #dedbd0; border-radius: 17rpx; background: #fffdf7; }
+.group__top { display: flex; justify-content: space-between; gap: 18rpx; }
+.type { padding: 3rpx 10rpx; border-radius: 6rpx; background: #edf0dc; color: #174e2a; font-size: 20rpx; }
+.type--tutor { background: #e7eff4; color: #246397; }
+.group__title { margin-top: 10rpx; color: #20231e; font-size: 28rpx; font-weight: 700; }
+.active { color: #2c6a3e; font-size: 22rpx; }
+.group__meta { margin-top: 8rpx; color: #74776f; font-size: 22rpx; }
+.scope { margin-top: 20rpx; padding: 20rpx; border-radius: 12rpx; background: #f2f3e4; color: #174e2a; font-size: 23rpx; }
+.scope text { display: block; margin-top: 5rpx; color: #52574f; font-size: 22rpx; line-height: 1.55; }
+.scope__private { margin-top: 12rpx; color: #246397; font-size: 21rpx; }
+.withdraw { margin: 18rpx 0 0; padding: 6rpx 0; background: transparent; color: #a33c2b; font-size: 22rpx; }
+.mask { position: fixed; z-index: 50; inset: 0; display: flex; align-items: flex-end; background: rgba(31, 35, 29, 0.38); }
+.dialog { width: 100%; padding: 38rpx 36rpx calc(34rpx + env(safe-area-inset-bottom)); border-radius: 30rpx 30rpx 0 0; background: #fffdf7; }
+.dialog__title { color: #20231e; font-size: 32rpx; font-weight: 700; }
+.dialog__copy { margin-top: 12rpx; color: #676b63; font-size: 24rpx; line-height: 1.65; }
+.danger { margin-top: 28rpx; border-radius: 13rpx; background: #b83a28; color: #fffdf7; font-size: 27rpx; }
+.cancel { margin-top: 12rpx; background: transparent; color: #555950; font-size: 25rpx; }

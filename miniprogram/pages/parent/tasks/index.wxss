@@ -1,0 +1,9 @@
+@import "../../../styles/pages.wxss";
+.filters { margin: 4rpx 0 24rpx; white-space: nowrap; }
+.filter { display: inline-flex; margin: 0 12rpx 0 0; padding: 9rpx 20rpx; border: 2rpx solid #d9d6ca; border-radius: 26rpx; background: #fffdf7; color: #676b63; font-size: 23rpx; line-height: 1.4; }
+.filter--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
+.focus-note { display: grid; grid-template-columns: 46rpx 1fr; gap: 12rpx; padding: 22rpx; border-radius: 14rpx; background: #f2f3e4; color: #174e2a; font-size: 25rpx; }
+.focus-note text { display: block; margin-top: 3rpx; color: #62675e; font-size: 21rpx; line-height: 1.55; }
+.task-wrap { position: relative; }
+.focus-badge { position: absolute; z-index: 2; top: 6rpx; right: 0; color: #d93a22; font-size: 20rpx; }
+.floating { display: flex; align-items: center; justify-content: center; gap: 8rpx; margin: 32rpx 0 0; border-radius: 14rpx; background: #d93a22; color: #fffdf7; font-size: 27rpx; font-weight: 700; }

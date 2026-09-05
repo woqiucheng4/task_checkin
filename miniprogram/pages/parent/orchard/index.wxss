@@ -1,0 +1,10 @@
+@import "../../../styles/pages.wxss";
+.growth-card { display: grid; grid-template-columns: 130rpx 1fr; align-items: center; gap: 18rpx; margin-top: -20rpx; padding: 18rpx 22rpx; border-radius: 15rpx; background: #f2f3e4; color: #174e2a; font-size: 26rpx; }
+.growth-card image { width: 130rpx; height: 96rpx; }
+.growth-card text { display: block; color: #696e65; font-size: 21rpx; line-height: 1.5; }
+.record { display: grid; grid-template-columns: 90rpx 1fr 54rpx; gap: 14rpx; align-items: center; min-height: 100rpx; border-bottom: 2rpx solid #dedbd0; color: #6c7068; font-size: 21rpx; }
+.record view view { color: #20231e; font-size: 25rpx; }
+.record view text { display: block; }
+.record strong { color: #174e2a; font-size: 28rpx; text-align: right; }
+.wish { display: grid; grid-template-columns: 52rpx 1fr 36rpx; align-items: center; gap: 14rpx; width: 100%; margin: 34rpx 0 0; padding: 24rpx; border: 2rpx solid #dedbd0; border-radius: 16rpx; background: #fffdf7; color: #174e2a; font-size: 27rpx; text-align: left; }
+.wish text { display: block; color: #6c7068; font-size: 21rpx; }

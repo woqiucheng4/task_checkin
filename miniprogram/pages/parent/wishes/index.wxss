@@ -1,0 +1,16 @@
+.page { min-height: 100vh; padding: 38rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20rpx; }
+.title { color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 44rpx; font-weight: 700; }
+.note { margin-top: 6rpx; color: #6c7068; font-size: 23rpx; }
+.heading button { display: flex; align-items: center; gap: 4rpx; margin: 0; padding: 8rpx 14rpx; background: transparent; color: #174e2a; font-size: 24rpx; }
+.create { margin-top: 26rpx; padding: 26rpx; border-radius: 16rpx; background: #f2f3e4; }
+.label { margin: 12rpx 0 8rpx; color: #3f443d; font-size: 24rpx; font-weight: 700; }
+.create input { padding: 18rpx; border: 2rpx solid #d9d6ca; border-radius: 12rpx; background: #fffdf7; font-size: 25rpx; }
+.create button, .wish-card button { margin-top: 18rpx; border-radius: 12rpx; background: #d93a22; color: #fffdf7; font-size: 24rpx; }
+.wish-card { margin-top: 22rpx; padding: 28rpx; border: 2rpx solid #dedbd0; border-radius: 17rpx; background: #fffdf7; }
+.wish-card__top { display: flex; justify-content: space-between; gap: 20rpx; margin-bottom: 18rpx; }
+.wish-card__title { color: #20231e; font-size: 28rpx; font-weight: 700; }
+.wish-card__top text { color: #d93a22; font-size: 24rpx; }
+.wish-card__fruit { margin-top: 15rpx; color: #62675e; font-size: 22rpx; }
+.harvest { display: grid; grid-template-columns: 190rpx 1fr; align-items: center; gap: 16rpx; margin-top: 30rpx; color: #6c7068; font-size: 22rpx; line-height: 1.55; }
+.harvest image { width: 190rpx; height: 130rpx; }

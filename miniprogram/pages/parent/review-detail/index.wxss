@@ -1,0 +1,18 @@
+.page { min-height: 100vh; padding: 36rpx 36rpx 70rpx; box-sizing: border-box; background: #faf7ee; }
+.source { display: inline-flex; padding: 4rpx 12rpx; border-radius: 7rpx; background: #edf0dc; color: #174e2a; font-size: 21rpx; }
+.title { margin-top: 16rpx; color: #174e2a; font-family: "STKaiti", "KaiTi", serif; font-size: 42rpx; font-weight: 700; }
+.child { margin-top: 8rpx; color: #6c7068; font-size: 23rpx; }
+.evidence { overflow: hidden; margin-top: 28rpx; border: 2rpx solid #dedbd0; border-radius: 16rpx; background: #fffdf7; color: #6c7068; font-size: 21rpx; text-align: center; }
+.evidence image { display: block; width: 100%; height: 330rpx; }
+.evidence view { padding: 9rpx; }
+.section { margin-top: 26rpx; padding: 26rpx; border-radius: 16rpx; }
+.academic { background: #edf0dc; }
+.reward { border: 2rpx solid #e3d8ad; background: #fffdf7; }
+.section__label { margin-bottom: 14rpx; color: #20231e; font-size: 26rpx; font-weight: 700; }
+.status, .sun { display: grid; grid-template-columns: 50rpx 1fr; gap: 12rpx; align-items: center; color: #174e2a; font-size: 26rpx; }
+.status text, .sun text { display: block; color: #686c64; font-size: 21rpx; }
+textarea { box-sizing: border-box; width: 100%; min-height: 140rpx; margin-top: 20rpx; padding: 18rpx; border: 2rpx solid #dedbd0; border-radius: 12rpx; background: #faf7ee; font-size: 24rpx; }
+.primary, .secondary { margin-top: 28rpx; border-radius: 14rpx; font-size: 27rpx; font-weight: 700; }
+.primary { background: #d93a22; color: #fffdf7; }
+.secondary { border: 2rpx solid #174e2a; background: transparent; color: #174e2a; }
+.waive { margin-top: 18rpx; background: transparent; color: #8d3c2e; font-size: 23rpx; }

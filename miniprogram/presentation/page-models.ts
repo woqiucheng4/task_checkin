@@ -121,6 +121,31 @@ export function buildTeacherHomePage(input: {
   };
 }
 
+export function buildParentReviewPage(input: {
+  readonly academicState: "NOT_REQUIRED" | "PENDING" | "APPROVED" | "REVISION_REQUIRED" | "EXCUSED";
+  readonly rewardState:
+    | "NOT_ELIGIBLE"
+    | "PROTECTED"
+    | "PENDING_CONFIRMATION"
+    | "GRANTED"
+    | "WAIVED";
+  readonly source: "FAMILY" | "SCHOOL" | "TUTORING" | "LEARNING_GROUP";
+}): {
+  readonly sections: readonly {
+    readonly kind: "ACADEMIC_STATUS" | "FAMILY_REWARD";
+    readonly label: string;
+  }[];
+} {
+  return {
+    sections: [
+      ...(input.source === "FAMILY"
+        ? []
+        : [{ kind: "ACADEMIC_STATUS" as const, label: academicLabel(input.academicState) }]),
+      { kind: "FAMILY_REWARD" as const, label: rewardLabel(input.rewardState) },
+    ],
+  };
+}
+
 export function buildTodayProgress(today: TodaySummaryView): {
   readonly completed: number;
   readonly label: string;
@@ -202,4 +227,30 @@ function formatDueTime(value: string): string {
     minute: "2-digit",
     timeZone: "Asia/Shanghai",
   })}`;
+}
+
+function academicLabel(
+  state: "NOT_REQUIRED" | "PENDING" | "APPROVED" | "REVISION_REQUIRED" | "EXCUSED",
+): string {
+  const labels = {
+    APPROVED: "老师已通过",
+    EXCUSED: "老师已免除",
+    NOT_REQUIRED: "无需学习评价",
+    PENDING: "等待老师评价",
+    REVISION_REQUIRED: "老师要求订正",
+  } as const;
+  return labels[state];
+}
+
+function rewardLabel(
+  state: "NOT_ELIGIBLE" | "PROTECTED" | "PENDING_CONFIRMATION" | "GRANTED" | "WAIVED",
+): string {
+  const labels = {
+    GRANTED: "阳光已到账",
+    NOT_ELIGIBLE: "暂未提交",
+    PENDING_CONFIRMATION: "等待家长确认阳光",
+    PROTECTED: "阳光已保护",
+    WAIVED: "本次不发放阳光",
+  } as const;
+  return labels[state];
 }
