@@ -1,6 +1,14 @@
 <view class="page">
-  <view class="heading"><view><view class="title">小禾的愿望</view><view class="note">用实际收获的果实记录约定，不做现金兑换。</view></view><button bindtap="beginCreate"><t-icon name="add" size="34rpx" />新建</button></view>
-  <view wx:if="{{creating}}" class="create"><view class="label">愿望内容</view><input value="{{title}}" placeholder="和孩子商量一个具体的小愿望" bindinput="editTitle" /><view class="label">目标：3 个果实</view><button bindtap="createWish">保存愿望</button></view>
-  <view wx:for="{{wishes}}" wx:key="id" class="wish-card"><view class="wish-card__top"><view class="wish-card__title">{{item.title}}</view><text>{{item.progress}} / {{item.target}}</text></view><progress percent="{{item.progress / item.target * 100}}" stroke-width="7" activeColor="#D93A22" backgroundColor="#E7E3D8" /><view class="wish-card__fruit">已关联：{{item.fruit}}</view><button wx:if="{{item.progress >= item.target}}" bindtap="fulfill">标记已兑现</button></view>
+  <view class="heading"><view><view class="title">{{nickname}}的愿望</view><view class="note">用实际收获的果实记录约定，不做现金兑换。</view></view><button bindtap="beginCreate"><t-icon name="add" size="34rpx" />新建</button></view>
+  <view wx:if="{{creating}}" class="create"><view class="label">愿望内容</view><input value="{{title}}" maxlength="80" placeholder="和孩子商量一个具体的小愿望" bindinput="editTitle" /><button loading="{{working}}" disabled="{{working}}" bindtap="createWish">保存愿望</button></view>
+  <view wx:if="{{!wishes.length}}" class="note">还没有愿望，点击“新建”和孩子约定一件小事。</view>
+  <view wx:for="{{wishes}}" wx:key="id" class="wish-card">
+    <view class="wish-card__top"><view class="wish-card__title">{{item.title}}</view><text>{{item.status === 'FULFILLED' ? '已兑现' : '进行中'}}</text></view>
+    <view class="wish-card__fruit">当前关联 {{item.progress}} 个果实</view>
+    <block wx:if="{{item.status === 'ACTIVE'}}">
+      <view wx:for="{{item.fruits}}" wx:for-item="fruit" wx:key="id"><text>{{fruit.name}}：可关联 {{fruit.available}} · 已关联 {{fruit.reserved}}</text><button wx:if="{{fruit.available > 0}}" disabled="{{working}}" data-wish="{{item.id}}" data-fruit="{{fruit.id}}" bindtap="linkFruit">关联 1 个</button><button wx:if="{{fruit.reserved > 0}}" disabled="{{working}}" data-wish="{{item.id}}" data-fruit="{{fruit.id}}" data-release="{{true}}" bindtap="linkFruit">解除 1 个</button></view>
+      <button wx:if="{{item.progress > 0}}" disabled="{{working}}" data-id="{{item.id}}" bindtap="fulfill">标记已兑现</button>
+    </block>
+  </view>
   <view class="harvest"><image src="/assets/orchard/scene-harvest.png" mode="aspectFit" /><view>采摘后的果实会留在图鉴中，也可以由家长关联到愿望。</view></view>
 </view>

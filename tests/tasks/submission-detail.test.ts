@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import { createSubmittedTaskScenario } from "../helpers/task-scenario.js";
+import { createCoreApi } from "../../src/application/core-api.js";
+
+describe("submission detail access", () => {
+  it("revokes teacher access to detail after the child leaves the group", async () => {
+    const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
+    const membership = seed.memberships[0];
+    if (!membership) throw new Error("Membership missing");
+    await seed.invitations.withdrawChild(seed.guardian, {
+      childGroupMembershipId: membership.id,
+      requestId: "detail-withdraw-child-0001",
+    });
+    await expect(seed.submissions.detail(seed.teacher, seed.assignment.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(await seed.submissions.detail(seed.guardian, seed.assignment.id)).toMatchObject({
+      childLabel: "孩子1",
+    });
+  });
+  it("does not treat unassigned organization staff as a group reviewer", async () => {
+    const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
+    const member = (
+      await seed.harness.repository.query("organizationMembers", {
+        accountId: seed.teacher.accountId,
+      })
+    )[0];
+    if (!member) throw new Error("Member missing");
+    await seed.harness.repository.transaction((tx) =>
+      tx.update("organizationMembers", member.id, { organizationRole: "STAFF" }),
+    );
+    await expect(seed.submissions.detail(seed.teacher, seed.assignment.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+  it("does not cache private read results in command receipts", async () => {
+    const seed = await createSubmittedTaskScenario("FAMILY", "TEXT");
+    const api = createCoreApi(seed.harness);
+    const command = {
+      action: "GET_ASSIGNMENT_DETAIL",
+      payload: { assignmentId: seed.assignment.id },
+      requestId: "detail-read-request-0001",
+    };
+    expect(await api.handle(command, { openId: "wx-scenario-guardian" })).toMatchObject({
+      ok: true,
+    });
+    expect(await seed.harness.repository.query("commandReceipts")).toHaveLength(0);
+  });
+  it("returns actual submitted text to the guardian", async () => {
+    const seed = await createSubmittedTaskScenario("FAMILY", "TEXT");
+    expect(await seed.submissions.detail(seed.guardian, seed.assignment.id)).toMatchObject({
+      title: "整理书桌",
+      taskState: "SUBMITTED",
+      submission: { text: "已经完成", mediaAssetIds: [] },
+    });
+  });
+  it("does not let teachers read unrelated family submissions", async () => {
+    const seed = await createSubmittedTaskScenario("FAMILY", "TEXT");
+    await expect(seed.submissions.detail(seed.teacher, seed.assignment.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+  it("allows the assigned teacher without exposing private family identifiers", async () => {
+    const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
+    const result = await seed.submissions.detail(seed.teacher, seed.assignment.id);
+    expect(result).toMatchObject({ submission: { text: "已经完成" } });
+    expect(result).not.toHaveProperty("familyId");
+    expect(result).not.toHaveProperty("childId");
+  });
+});

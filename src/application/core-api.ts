@@ -20,10 +20,15 @@ import { commandFailure, commandSuccess, type CommandResult } from "../shared/re
 export const CORE_ACTIONS = [
   "BOOTSTRAP_ACCOUNT",
   "GET_ACCOUNT_SHELL",
+  "GET_FAMILY_SETTINGS",
+  "GET_CHILD_GROUPS",
   "GET_PARENT_DASHBOARD",
   "GET_PARENT_TASK_CENTER",
   "GET_REVIEW_QUEUE",
   "GET_TEACHER_DASHBOARD",
+  "GET_GROUP_SUBMISSIONS",
+  "GET_GROUP_JOIN_REQUESTS",
+  "GET_GROUP_TASK_TEMPLATES",
   "GET_GROUP_WORKSPACE",
   "GET_INSTITUTION_DASHBOARD",
   "GET_PLATFORM_DASHBOARD",
@@ -35,6 +40,7 @@ export const CORE_ACTIONS = [
   "BIND_GROUP_ROLE",
   "GET_ORGANIZATION_CHILD",
   "CREATE_GROUP_INVITATION",
+  "PREVIEW_GROUP_INVITATION",
   "CLAIM_INVITATION",
   "APPROVE_JOIN_REQUEST",
   "REJECT_JOIN_REQUEST",
@@ -71,6 +77,8 @@ export const CORE_ACTIONS = [
   "GET_GROUP_PROGRESS",
   "HARVEST_GROUP_TREE",
   "CREATE_UPLOAD_INTENT",
+  "UPLOAD_MEDIA_CONTENT",
+  "GET_ASSIGNMENT_DETAIL",
   "RECORD_UPLOAD",
   "RECOGNIZE_TASK_DRAFT",
   "EDIT_TASK_DRAFT",
@@ -96,7 +104,14 @@ export type CoreAction = (typeof CORE_ACTIONS)[number];
 
 const ACTION_SET = new Set<string>(CORE_ACTIONS);
 export const CORE_READ_ACTIONS = [
+  "GET_GROUP_TASK_TEMPLATES",
   "CHECK_ENTITLEMENT",
+  "GET_GROUP_SUBMISSIONS",
+  "GET_GROUP_JOIN_REQUESTS",
+  "PREVIEW_GROUP_INVITATION",
+  "GET_FAMILY_SETTINGS",
+  "GET_CHILD_GROUPS",
+  "GET_ASSIGNMENT_DETAIL",
   "GET_ACCOUNT_SHELL",
   "GET_CHILD_ORCHARD",
   "GET_CHILD_TODAY",
@@ -325,6 +340,10 @@ async function dispatch(
   switch (action) {
     case "GET_ACCOUNT_SHELL":
       return services.presentation.accountShell(actor);
+    case "GET_FAMILY_SETTINGS":
+      return services.presentation.familySettings(actor, requireString(payload.familyId));
+    case "GET_CHILD_GROUPS":
+      return services.presentation.childGroups(actor, requireString(payload.childId));
     case "GET_PARENT_DASHBOARD":
       return services.presentation.parentDashboard(actor, {
         childId: requireString(payload.childId),
@@ -344,6 +363,15 @@ async function dispatch(
       return services.presentation.groupWorkspace(actor, {
         groupId: requireString(payload.groupId),
       });
+    case "GET_GROUP_SUBMISSIONS":
+      return services.presentation.groupSubmissions(actor, {
+        groupId: requireString(payload.groupId),
+        ...(payload.taskId === undefined ? {} : { taskId: requireString(payload.taskId) }),
+      });
+    case "GET_GROUP_JOIN_REQUESTS":
+      return services.presentation.groupJoinRequests(actor, requireString(payload.groupId));
+    case "GET_GROUP_TASK_TEMPLATES":
+      return services.presentation.groupTaskTemplates(actor, requireString(payload.groupId));
     case "GET_INSTITUTION_DASHBOARD":
       return services.presentation.institutionDashboard(actor, {
         organizationId: requireString(payload.organizationId),
@@ -369,6 +397,8 @@ async function dispatch(
       );
     case "CREATE_GROUP_INVITATION":
       return services.invitations.createGroupInvitation(actor, castInput(input));
+    case "PREVIEW_GROUP_INVITATION":
+      return services.invitations.preview(actor, requireString(payload.code));
     case "CLAIM_INVITATION":
       return services.invitations.claimInvitation(actor, castInput(input));
     case "APPROVE_JOIN_REQUEST":
@@ -441,6 +471,10 @@ async function dispatch(
       return services.groupOrchard.harvestGroupTree(actor, castInput(input));
     case "CREATE_UPLOAD_INTENT":
       return requireMedia(services).createUploadIntent(actor, castInput(input));
+    case "UPLOAD_MEDIA_CONTENT":
+      return requireMedia(services).uploadContent(actor, castInput(input));
+    case "GET_ASSIGNMENT_DETAIL":
+      return services.submissions.detail(actor, requireString(payload.assignmentId));
     case "RECORD_UPLOAD":
       return requireMedia(services).recordUpload(actor, castInput(input));
     case "RECOGNIZE_TASK_DRAFT":

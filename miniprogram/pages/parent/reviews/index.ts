@@ -1,35 +1,50 @@
+import type { ReviewQueueView } from "../../../../src/application/presentation-models.js";
 import { navigate } from "../../../services/page-runtime.js";
-
+import {
+  accountShell,
+  command,
+  selectedChild,
+  selectChild,
+  showError,
+} from "../../../services/session-runtime.js";
+async function load(page: MiniPageInstance) {
+  try {
+    const shell = await accountShell();
+    const childId = await selectedChild();
+    const queue = await command<ReviewQueueView>("GET_REVIEW_QUEUE", { kind: "FAMILY", childId });
+    page.setData({
+      children: shell.families
+        .flatMap((f) => f.children)
+        .map((c) => ({ id: c.id, name: c.nickname })),
+      selected: childId,
+      items: queue.items.map((item) => ({
+        id: item.assignmentId,
+        title: item.title,
+        source: "source" in item && item.source === "FAMILY" ? "家庭" : "共育分组",
+        academic: item.academicState,
+        submittedAt: item.submittedAt || "",
+      })),
+    });
+  } catch (error) {
+    showError(error);
+  }
+}
 Page({
-  data: {
-    children: [
-      { id: "child-a", name: "小禾", count: 2 },
-      { id: "child-b", name: "小满", count: 1 },
-    ],
-    items: [
-      {
-        academic: "老师已通过",
-        id: "school-math",
-        source: "学校",
-        submittedAt: "09:48",
-        title: "数学 · 完成练习题 5 道",
-      },
-      {
-        academic: "无需学习评价",
-        id: "family-desk",
-        source: "家庭",
-        submittedAt: "10:12",
-        title: "整理自己的书桌",
-      },
-    ],
-    selected: "child-a",
+  data: { children: [], items: [], selected: "" },
+  onShow() {
+    void load(this);
   },
-  open(event: { readonly currentTarget: { readonly dataset: { readonly id?: string } } }) {
-    const id = event.currentTarget.dataset.id;
-    if (id !== undefined) navigate(`/pages/parent/review-detail/index?id=${id}`);
+  open(event: { currentTarget: { dataset: { id?: string } } }) {
+    if (event.currentTarget.dataset.id)
+      navigate(`/pages/parent/review-detail/index?id=${event.currentTarget.dataset.id}`);
   },
-  selectChild(event: { readonly currentTarget: { readonly dataset: { readonly id?: string } } }) {
-    const id = event.currentTarget.dataset.id;
-    if (id !== undefined) this.setData({ selected: id });
+  async selectChild(event: { currentTarget: { dataset: { id?: string } } }) {
+    if (!event.currentTarget.dataset.id) return;
+    try {
+      await selectChild(event.currentTarget.dataset.id);
+      await load(this);
+    } catch (error) {
+      showError(error);
+    }
   },
 });

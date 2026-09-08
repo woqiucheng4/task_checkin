@@ -1,8 +1,11 @@
-<app-shell title="我的班级" subtitle="教师和助教只管理被授权的分组" context-label="2 个分组">
-  <view class="group-tabs"><button class="group-tab {{selected === 'group-1' ? 'group-tab--selected' : ''}}" data-id="group-1" bindtap="selectGroup">三年级 2 班</button><button class="group-tab {{selected === 'group-2' ? 'group-tab--selected' : ''}}" data-id="group-2" bindtap="selectGroup">阅读提高组</button></view>
-  <view class="group-head"><view><text>春芽小学</text><view>三年级 2 班</view><text>32 名学生 · 2 位教师/助教</text></view><button bindtap="invite"><t-icon name="qrcode" size="36rpx" />邀请</button></view>
-  <view class="metric-grid"><view class="metric"><view class="metric__value">4</view><view class="metric__label">待审核</view></view><view class="metric"><view class="metric__value">88%</view><view class="metric__label">本周完成率</view></view><view class="metric"><view class="metric__value">2</view><view class="metric__label">待入组</view></view></view>
-  <button class="entry" bindtap="openTree"><image src="/assets/orchard/scene-group-tree.png" mode="aspectFit" /><view><view>班级共育果树</view><text>126 / 180 阳光 · 不展示个人排名</text></view><t-icon name="chevron-right" size="34rpx" /></button>
-  <button class="entry" bindtap="openMembers"><t-icon name="usergroup" size="54rpx" color="#174E2A" /><view><view>成员与权限</view><text>审批入组、认领席位、配置教师和助教</text></view><t-icon name="chevron-right" size="34rpx" /></button>
+<app-shell title="我的班级" subtitle="教师和助教只管理被授权的分组" context-label="{{groups.length}} 个分组">
+  <view wx:if="{{error}}" class="page-subtitle">{{error}}</view>
+  <view class="group-tabs"><button wx:for="{{groups}}" wx:key="id" class="group-tab {{selected === item.id ? 'group-tab--selected' : ''}}" data-id="{{item.id}}" bindtap="selectGroup">{{item.name}}</button></view>
+  <block wx:if="{{selected}}">
+    <view class="group-head"><view><text>{{organizationName}}</text><view>{{groupName}}</view><text>{{memberCount}} 名有效成员</text></view><button bindtap="invite">邀请加入</button></view>
+    <view class="metric-grid"><view class="metric"><view class="metric__value">{{reviewCount}}</view><view class="metric__label">待学习审核</view></view><view class="metric"><view class="metric__value">{{memberCount}}</view><view class="metric__label">有效成员</view></view><view class="metric"><view class="metric__value">{{pendingCount}}</view><view class="metric__label">待入组</view></view></view>
+    <button class="entry" bindtap="openTree"><image src="/assets/orchard/scene-group-tree.png" mode="aspectFit" /><view><view>班级共育果树</view><text>{{target ? current + ' / ' + target : '尚未种植'}} · 不展示个人排名</text></view><t-icon name="chevron-right" size="34rpx" /></button>
+    <button class="entry" bindtap="openMembers"><t-icon name="usergroup" size="54rpx" color="#174E2A" /><view><view>成员与权限</view><text>查看已授权成员、审批入组申请</text></view><t-icon name="chevron-right" size="34rpx" /></button>
+  </block>
 </app-shell>
 <bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

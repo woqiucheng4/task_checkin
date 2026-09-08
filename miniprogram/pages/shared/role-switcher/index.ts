@@ -1,13 +1,25 @@
+import { accountShell, showError } from "../../../services/session-runtime.js";
 Page({
-  data: {
-    roles: [
-      { label: "小禾 · 孩子", path: "/pages/child/today/index", selected: true },
-      { label: "小禾妈妈 · 家长", path: "/pages/parent/home/index", selected: false },
-      { label: "语文李老师 · 教师", path: "/pages/teacher/home/index", selected: false },
-    ],
+  data: { roles: [] },
+  async onShow() {
+    try {
+      const shell = await accountShell(true);
+      this.setData({
+        roles: [
+          ...(shell.families.some((f) => f.children.length)
+            ? [
+                { label: "孩子", path: "/pages/child/today/index" },
+                { label: "家长", path: "/pages/parent/home/index" },
+              ]
+            : [{ label: "创建我的家庭", path: "/pages/bootstrap/index" }]),
+          { label: "教师／助教", path: "/pages/teacher/home/index" },
+        ],
+      });
+    } catch (error) {
+      showError(error);
+    }
   },
-  choose(event: { readonly currentTarget: { readonly dataset: { readonly path?: string } } }) {
-    const path = event.currentTarget.dataset.path;
-    if (path !== undefined) wx.redirectTo({ url: path });
+  choose(event: { currentTarget: { dataset: { path?: string } } }) {
+    if (event.currentTarget.dataset.path) wx.redirectTo({ url: event.currentTarget.dataset.path });
   },
 });

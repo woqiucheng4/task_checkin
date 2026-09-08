@@ -20,8 +20,8 @@ describe("CloudBase repository adapter", () => {
   });
 
   it("maps logical collection names to stable snake-case names", () => {
-    expect(COLLECTIONS.sunlightLedgers).toBe("sunlight_ledgers");
-    expect(COLLECTIONS.childGroupMemberships).toBe("child_group_memberships");
+    expect(COLLECTIONS.sunlightLedgers).toBe("task_checkin_sunlight_ledgers");
+    expect(COLLECTIONS.childGroupMemberships).toBe("task_checkin_child_group_memberships");
     expect(Object.keys(COLLECTIONS)).toHaveLength(41);
   });
 
@@ -121,13 +121,6 @@ class FakeCollection {
   doc(id: string) {
     const records = this.ensureCollection();
     return {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        if (records.has(id)) {
-          throw Object.assign(new Error("duplicate key"), { code: "DATABASE_DUPLICATE_KEY" });
-        }
-        records.set(id, { ...structuredClone(data), _id: id });
-        return {};
-      },
       get: async () => ({ data: structuredClone(records.get(id)) }),
       remove: async () => {
         records.delete(id);
@@ -138,6 +131,16 @@ class FakeCollection {
         return {};
       },
     };
+  }
+
+  async add({ data }: { data: Readonly<Record<string, unknown>> }) {
+    const records = this.ensureCollection();
+    const id = String(data._id);
+    if (records.has(id)) {
+      throw Object.assign(new Error("duplicate key"), { code: "DATABASE_DUPLICATE_KEY" });
+    }
+    records.set(id, structuredClone(data));
+    return { _id: id };
   }
 
   where(equality: Readonly<Record<string, unknown>>) {

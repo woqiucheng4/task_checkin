@@ -10,15 +10,39 @@ declare const Page: (
 interface MiniComponentInstance {
   readonly properties: Readonly<Record<string, unknown>>;
   triggerEvent(name: string, detail?: unknown): void;
+  setData(data: object): void;
 }
 
 declare const Component: (options: {
+  readonly data?: Readonly<Record<string, unknown>>;
+  readonly lifetimes?: ThisType<MiniComponentInstance> & Readonly<Record<string, unknown>>;
   readonly properties?: Readonly<Record<string, unknown>>;
   readonly methods?: ThisType<MiniComponentInstance> & Readonly<Record<string, unknown>>;
 }) => void;
 
+interface MiniCloud {
+  callFunction(input: {
+    readonly data: Readonly<Record<string, unknown>>;
+    readonly name: string;
+  }): Promise<{ readonly result?: unknown }>;
+  uploadFile(input: {
+    readonly cloudPath: string;
+    readonly filePath: string;
+  }): Promise<{ readonly fileID: string }>;
+  init(): Promise<void>;
+}
 declare const wx: {
+  getFileSystemManager(): { readFileSync(path: string, encoding: "base64"): string };
+  getStorageSync(key: string): unknown;
+  setStorageSync(key: string, value: unknown): void;
+  getWindowInfo(): {
+    statusBarHeight: number;
+    safeArea?: { top: number; bottom: number };
+    windowWidth: number;
+  };
+  getMenuButtonBoundingClientRect(): { bottom: number; top: number; height: number };
   readonly cloud: {
+    Cloud: new (input: { resourceAppid: string; resourceEnv: string }) => MiniCloud;
     callFunction(input: {
       readonly data: Readonly<Record<string, unknown>>;
       readonly name: string;

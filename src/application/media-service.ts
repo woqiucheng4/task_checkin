@@ -54,7 +54,7 @@ export class MediaService {
     const now = this.dependencies.clock.now();
     const expiresAt = addDays(now, input.retentionDays);
     const uploadUrlExpiresAt = new Date(Date.parse(now) + 15 * 60 * 1000).toISOString();
-    const storageKey = `${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
+    const storageKey = `task-checkin/${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
     const asset: MediaAsset = {
       id: this.dependencies.ids.next("media"),
       byteSize: input.byteSize,
@@ -87,6 +87,69 @@ export class MediaService {
     return { asset, uploadUrl, uploadUrlExpiresAt };
   }
 
+  async uploadContent(
+    actor: ActorContext,
+    input: RequestBase & { readonly assetId: string; readonly base64: string },
+  ): Promise<MediaAsset> {
+    requireRequestId(input.requestId);
+    const asset = await this.requireUploader(actor, input.assetId);
+    if (!this.storage.upload || !asset.storageKey.startsWith("task-checkin/")) {
+      throw new DomainError("FORBIDDEN", "当前存储不允许此上传方式");
+    }
+    if (asset.status === "ACTIVE" && asset.fileId) return asset;
+    if (
+      asset.status !== "PENDING_UPLOAD" ||
+      Date.parse(asset.expiresAt) <= Date.parse(this.dependencies.clock.now())
+    ) {
+      throw new DomainError("CONFLICT", "上传申请无效或已过期");
+    }
+    if (
+      typeof input.base64 !== "string" ||
+      input.base64.length > 1_400_000 ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(input.base64)
+    ) {
+      throw new DomainError("INVALID_INPUT", "请选择小于 1 MB 的有效图片");
+    }
+    const content = Buffer.from(input.base64, "base64");
+    const mimeType =
+      content[0] === 255 && content[1] === 216 && content[2] === 255
+        ? "image/jpeg"
+        : content.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+          ? "image/png"
+          : content.toString("ascii", 0, 4) === "RIFF" &&
+              content.toString("ascii", 8, 12) === "WEBP"
+            ? "image/webp"
+            : "";
+    if (
+      content.length !== asset.byteSize ||
+      content.length > 1_000_000 ||
+      mimeType !== asset.mimeType ||
+      content.toString("base64") !== input.base64
+    ) {
+      throw new DomainError("INVALID_INPUT", "图片格式或大小与上传申请不一致");
+    }
+    const fileId = await this.storage.upload(asset.storageKey, content);
+    if (!fileId.startsWith("cloud://"))
+      throw new DomainError("CONFLICT", "云存储未返回有效文件 ID");
+    const now = this.dependencies.clock.now();
+    return this.dependencies.repository.transaction(async (tx) => {
+      const active = await tx.update("mediaAssets", asset.id, {
+        fileId,
+        status: "ACTIVE",
+        updatedAt: now,
+      });
+      await this.audit(
+        tx,
+        actor,
+        input.requestId,
+        "MEDIA_UPLOAD_VERIFIED",
+        asset.ownerScope,
+        asset.id,
+      );
+      return active;
+    });
+  }
+
   async recordUpload(
     actor: ActorContext,
     input: RequestBase & {
@@ -96,6 +159,7 @@ export class MediaService {
     },
   ): Promise<MediaAsset> {
     requireRequestId(input.requestId);
+    if (this.storage.upload) throw new DomainError("FORBIDDEN", "必须上传实际文件，由服务端验证");
     const asset = await this.requireUploader(actor, input.assetId);
     if (asset.status !== "PENDING_UPLOAD") {
       throw new DomainError("CONFLICT", "图片上传状态无效");
@@ -299,7 +363,18 @@ export class MediaService {
     });
   }
 
-  async readAsset(actor: ActorContext, assetId: string): Promise<MediaAsset> {
+  async readAsset(
+    actor: ActorContext,
+    assetId: string,
+  ): Promise<MediaAsset & { downloadUrl?: string }> {
+    const asset = await this.authorizeReadableAsset(actor, assetId);
+    if (asset.fileId && this.storage.downloadUrl) {
+      return { ...asset, downloadUrl: await this.storage.downloadUrl(asset.fileId) };
+    }
+    return asset;
+  }
+
+  private async authorizeReadableAsset(actor: ActorContext, assetId: string): Promise<MediaAsset> {
     const asset = await this.dependencies.repository.read("mediaAssets", assetId);
     if (asset === undefined || asset.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "图片不存在或已删除");
@@ -335,6 +410,13 @@ export class MediaService {
       }
     }
     if (assignment.groupId !== undefined && assignment.organizationId !== undefined) {
+      const memberships = await this.dependencies.repository.query("childGroupMemberships", {
+        childId: assignment.childId,
+        groupId: assignment.groupId,
+        status: "ACTIVE",
+      });
+      if (!memberships.length)
+        throw new DomainError("FORBIDDEN", "孩子已退出分组，不能读取作业图片");
       await this.authorizeGroupReviewer(actor, assignment.groupId, assignment.organizationId);
       return asset;
     }
@@ -356,7 +438,7 @@ export class MediaService {
     );
     let deletedCount = 0;
     for (const asset of assets) {
-      await this.storage.delete(asset.storageKey);
+      await this.storage.delete(asset.fileId ?? asset.storageKey);
       await this.dependencies.repository.transaction(async (tx) => {
         await tx.update("mediaAssets", asset.id, {
           deletedAt: now,
@@ -465,7 +547,7 @@ export class MediaService {
     organizationId: string,
   ): Promise<void> {
     try {
-      await this.policy.requireOrganizationRole(actor, organizationId);
+      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
     } catch (error) {
       if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
         throw error;

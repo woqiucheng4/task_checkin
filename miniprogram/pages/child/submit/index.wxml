@@ -13,11 +13,11 @@
   </view>
   <view wx:if="{{mode === 'PHOTO' || mode === 'TEXT_AND_PHOTO'}}" class="field">
     <view class="field__label">上传完成结果</view>
-    <button class="photo" bindtap="choosePhoto">
+    <button class="photo" loading="{{uploading}}" disabled="{{uploading || submitting}}" bindtap="choosePhoto">
       <image wx:if="{{previewImage}}" src="{{previewImage}}" mode="aspectFill" />
       <block wx:else><t-icon name="camera" size="52rpx" color="#174E2A" /><text>拍照或从相册选择</text></block>
     </button>
   </view>
   <view class="protected"><t-icon name="shield" size="38rpx" color="#174E2A" /><text>提交成功后，阳光立即进入保护状态</text></view>
-  <button class="primary" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">{{submitting ? '正在提交' : '确认提交'}}</button>
+  <button class="primary" loading="{{submitting}}" disabled="{{submitting || uploading}}" bindtap="submit">{{uploading ? '图片上传中' : submitting ? '正在提交' : '确认提交'}}</button>
 </view>

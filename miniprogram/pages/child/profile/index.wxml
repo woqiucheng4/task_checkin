@@ -1,9 +1,9 @@
-<app-shell title="我的" subtitle="小禾 · 三年级" show-role-switch="{{false}}">
-  <view class="profile-card"><image src="/assets/orchard/apple-sprout.png" mode="aspectFit" /><view><view class="profile-card__name">小禾</view><view class="profile-card__note">已坚持 18 天 · 收获 3 个果实</view></view></view>
+<app-shell title="我的" subtitle="{{nickname}} {{grade ? '· ' + grade + '年级' : ''}}" show-role-switch="{{false}}">
+  <view class="profile-card"><image src="/assets/orchard/apple-sprout.png" mode="aspectFit" /><view><view class="profile-card__name">{{nickname}}</view><view class="profile-card__note">收获 {{fruitCount}} 个果实</view></view></view>
   <view class="page-section">
     <view class="page-title">我的分组</view>
-    <button class="setting-row" bindtap="openGroup"><view class="setting-row__copy"><view class="setting-row__title">三年级 2 班</view><view class="setting-row__note">春芽小学 · 语文李老师</view></view><t-icon name="chevron-right" size="34rpx" color="#777A72" /></button>
-    <button class="setting-row" bindtap="openGroup"><view class="setting-row__copy"><view class="setting-row__title">周六阅读小组</view><view class="setting-row__note">青禾辅导中心</view></view><t-icon name="chevron-right" size="34rpx" color="#777A72" /></button>
+    <view wx:if="{{!groups.length}}" class="setting-row__note">还没有加入分组，请家长使用老师提供的邀请码申请加入。</view>
+    <button wx:for="{{groups}}" wx:key="id" class="setting-row" bindtap="openGroup"><view class="setting-row__copy"><view class="setting-row__title">{{item.name}}</view><view class="setting-row__note">查看共同成长</view></view><t-icon name="chevron-right" size="34rpx" color="#777A72" /></button>
   </view>
   <view class="page-section">
     <view class="page-title">显示和账户</view>

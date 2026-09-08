@@ -1,23 +1,33 @@
 import { ChildController } from "../../../controllers/child-controller.js";
-import { coreApiClient } from "../../../services/page-runtime.js";
+import { childClient, taskDetail, showError } from "../../../services/session-runtime.js";
+import { uploadEvidence } from "../../../services/upload-evidence.js";
 
-const controller = new ChildController(coreApiClient);
+const controller = new ChildController(childClient);
 
 Page({
   data: {
-    assignmentId: "school-reading",
+    assignmentId: "",
     mediaAssetIds: [] as string[],
     mode: "CONFIRM",
     previewImage: "",
     revision: false,
     submitting: false,
+    uploading: false,
     text: "",
   },
-  onLoad(query: { readonly id?: string; readonly revision?: string }) {
+  async onLoad(query: { readonly id?: string; readonly revision?: string }) {
     this.setData({
       ...(query.id === undefined ? {} : { assignmentId: query.id }),
       revision: query.revision === "1",
     });
+    if (query.id) {
+      try {
+        const task = await taskDetail(query.id);
+        this.setData({ mode: task.submissionMode });
+      } catch (error) {
+        showError(error);
+      }
+    }
   },
   chooseMode(event: { readonly currentTarget: { readonly dataset: { readonly mode?: string } } }) {
     const mode = event.currentTarget.dataset.mode;
@@ -27,21 +37,27 @@ Page({
     this.setData({ text: event.detail.value ?? "" });
   },
   async choosePhoto() {
-    const selection = await wx.chooseMedia({
-      count: 1,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"],
-    });
-    const filePath = selection.tempFiles[0]?.tempFilePath;
-    if (filePath === undefined) return;
-    this.setData({ previewImage: filePath });
-    const uploaded = await wx.cloud.uploadFile({
-      cloudPath: `submissions/${Date.now().toString()}-evidence.jpg`,
-      filePath,
-    });
-    this.setData({ mediaAssetIds: [uploaded.fileID] });
+    if (this.data.uploading || this.data.submitting) return;
+    this.setData({ uploading: true });
+    try {
+      const selection = await wx.chooseMedia({
+        count: 1,
+        mediaType: ["image"],
+        sourceType: ["album", "camera"],
+      });
+      const filePath = selection.tempFiles[0]?.tempFilePath;
+      if (filePath === undefined) return;
+      const base64 = wx.getFileSystemManager().readFileSync(filePath, "base64");
+      const mediaId = await uploadEvidence(childClient, String(this.data.assignmentId), base64);
+      this.setData({ previewImage: filePath, mediaAssetIds: [mediaId] });
+    } catch (error) {
+      showError(error);
+    } finally {
+      this.setData({ uploading: false });
+    }
   },
   async submit() {
+    if (this.data.submitting || this.data.uploading) return;
     this.setData({ submitting: true });
     const mode = String(this.data.mode) as "CONFIRM" | "TEXT" | "PHOTO" | "TEXT_AND_PHOTO";
     const input = {

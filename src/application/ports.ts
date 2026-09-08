@@ -53,6 +53,8 @@ export interface OcrProvider {
 }
 
 export interface MediaStorage {
+  upload?(storageKey: string, content: Uint8Array): Promise<string>;
+  downloadUrl?(fileId: string): Promise<string>;
   createUploadUrl(storageKey: string, expiresAt: string): Promise<string>;
   delete(storageKey: string): Promise<void>;
 }

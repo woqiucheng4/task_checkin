@@ -39,6 +39,78 @@ export class SubmissionService {
     return this.createSubmission(actor, input, "REVISION_REQUIRED");
   }
 
+  async detail(actor: ActorContext, assignmentId: string) {
+    const { assignment, task } = await this.loadAssignment(assignmentId);
+    let childLabel = "";
+    let teacherAccess = false;
+    if (actor.mode === "CHILD") {
+      await this.requireChildActor(actor, assignment.childId);
+    } else if (actor.mode === "ACCOUNT") {
+      try {
+        await this.policy.requireGuardian(actor, assignment.childId);
+      } catch (error) {
+        if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
+        if (!assignment.groupId || !assignment.organizationId) throw error;
+        try {
+          await this.policy.requireOrganizationRole(actor, assignment.organizationId, [
+            "ORGANIZATION_ADMIN",
+          ]);
+        } catch (organizationError) {
+          if (!(organizationError instanceof DomainError) || organizationError.code !== "FORBIDDEN")
+            throw organizationError;
+          await this.policy.requireGroupRole(actor, assignment.groupId);
+        }
+        const memberships = await this.dependencies.repository.query("childGroupMemberships", {
+          childId: assignment.childId,
+          groupId: assignment.groupId,
+          status: "ACTIVE",
+        });
+        if (!memberships.length)
+          throw new DomainError("FORBIDDEN", "孩子已退出分组，不能继续读取提交内容");
+        const organizationMemberId = assignment.organizationMemberId;
+        if (!organizationMemberId) throw new DomainError("FORBIDDEN", "机构成员不存在");
+        const member = (
+          await this.dependencies.repository.query("organizationMembers", {
+            organizationId: assignment.organizationId,
+            organizationMemberId,
+            status: "ACTIVE",
+          })
+        )[0];
+        if (!member) throw new DomainError("FORBIDDEN", "机构授权已失效");
+        teacherAccess = true;
+        childLabel = member.displayName;
+      }
+    } else throw new DomainError("FORBIDDEN", "当前身份不能读取孩子提交内容");
+    if (!teacherAccess)
+      childLabel =
+        (await this.dependencies.repository.read("children", assignment.childId))?.nickname ||
+        "孩子";
+    const latest = (await this.dependencies.repository.query("submissions", { assignmentId })).sort(
+      (a, b) => b.revision - a.revision,
+    )[0];
+    return {
+      title: task.title,
+      childLabel,
+      source: task.source,
+      description: task.description ?? "",
+      submissionMode: task.submissionMode,
+      taskState: assignment.taskState,
+      academicState: assignment.academicState,
+      rewardState: assignment.rewardState,
+      ...(latest
+        ? {
+            submission: {
+              id: latest.id,
+              text: latest.text ?? "",
+              mediaAssetIds: latest.mediaAssetIds,
+              submittedAt: latest.submittedAt,
+              revision: latest.revision,
+            },
+          }
+        : {}),
+    };
+  }
+
   async markExcused(
     actor: ActorContext,
     input: RequestBase & { readonly assignmentId: string },
@@ -154,6 +226,8 @@ export class SubmissionService {
     expectedState: "PENDING" | "REVISION_REQUIRED",
   ): Promise<SubmissionResult> {
     requireRequestId(input.requestId);
+    const { assignment, task } = await this.loadAssignment(input.assignmentId);
+    await this.requireChildActor(actor, assignment.childId);
     const repeated = (
       await this.dependencies.repository.query("submissions", {
         assignmentId: input.assignmentId,
@@ -170,8 +244,6 @@ export class SubmissionService {
       }
       return { assignment, submission: repeated };
     }
-    const { assignment, task } = await this.loadAssignment(input.assignmentId);
-    await this.requireChildActor(actor, assignment.childId);
     if (assignment.taskState !== expectedState) {
       throw new DomainError("CONFLICT", "当前任务状态不能提交");
     }
@@ -198,6 +270,35 @@ export class SubmissionService {
       ...(input.text === undefined ? {} : { text: input.text.trim() }),
     };
     return this.dependencies.repository.transaction(async (tx) => {
+      for (const assetId of new Set(input.mediaAssetIds)) {
+        const asset = await tx.read("mediaAssets", assetId);
+        const inScope =
+          asset?.ownerScope.kind === "FAMILY"
+            ? assignment.organizationId === undefined &&
+              asset.ownerScope.familyId === assignment.familyId
+            : asset?.ownerScope.kind === "ORGANIZATION" &&
+              asset.ownerScope.organizationId === assignment.organizationId;
+        if (
+          !asset ||
+          !inScope ||
+          asset.uploaderAccountId !== actor.accountId ||
+          asset.status !== "ACTIVE" ||
+          asset.purpose !== "SUBMISSION_EVIDENCE" ||
+          !asset.storageKey.startsWith("task-checkin/") ||
+          Date.parse(asset.expiresAt) <= Date.parse(now)
+        ) {
+          throw new DomainError("FORBIDDEN", "图片未上传完成、已过期或不属于当前任务空间");
+        }
+        await tx.insert("submissionEvidenceLinks", {
+          id: this.dependencies.ids.next("submission_evidence"),
+          assignmentId: assignment.id,
+          childId: assignment.childId,
+          createdAt: now,
+          mediaAssetId: asset.id,
+          requestId: input.requestId,
+          submissionId: submission.id,
+        });
+      }
       await tx.insert("submissions", submission);
       const updated = await tx.update("taskAssignments", assignment.id, {
         ...(expectedState === "REVISION_REQUIRED" && task.requiresAcademicReview

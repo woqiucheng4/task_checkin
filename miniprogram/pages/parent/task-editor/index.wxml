@@ -6,9 +6,9 @@
   <view wx:if="{{mode !== 'TEMPLATE' || uploaded}}" class="form">
     <view wx:if="{{uploaded}}" class="ocr-result">已从照片生成草稿，请逐项确认</view>
     <view class="field"><view class="field__label">任务名称</view><input class="field__input" value="{{title}}" placeholder="例如：整理自己的书桌" bindinput="editTitle" /></view>
-    <view class="field"><view class="field__label">截止时间</view><view class="field__input">{{dueAt}}</view></view>
-    <view class="field"><view class="field__label">提交方式</view><radio-group><label><radio checked color="#174E2A" />确认完成</label><label><radio color="#174E2A" />拍照上传</label></radio-group></view>
-    <view class="field"><view class="field__label">阳光规则</view><view class="reward">按家庭默认规则：必做任务 6 阳光</view></view>
-    <button class="primary-button" bindtap="publish">确认并发布</button>
+    <view class="field"><view class="field__label">截止时间</view><picker mode="date" value="{{date}}" bindchange="editDate"><view class="field__input">{{date}}</view></picker><picker mode="time" value="{{time}}" bindchange="editTime"><view class="field__input">{{time}}</view></picker></view>
+    <view class="field"><view class="field__label">提交方式</view><radio-group bindchange="editSubmissionMode"><label><radio value="CONFIRM" checked color="#174E2A" />确认完成</label><label><radio value="TEXT" color="#174E2A" />文字说明</label><label><radio value="PHOTO" color="#174E2A" />拍照上传</label></radio-group></view>
+    <view class="field"><view class="field__label">阳光规则</view><view class="reward">完成并经家长确认后，按家庭规则发放阳光</view></view>
+    <button class="primary-button" loading="{{publishing}}" disabled="{{publishing}}" bindtap="publish">确认并发布</button>
   </view>
 </view>

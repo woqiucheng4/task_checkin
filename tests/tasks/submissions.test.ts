@@ -41,6 +41,71 @@ async function submissionScenario(submissionMode: SubmissionMode = "CONFIRM") {
 }
 
 describe("submission lifecycle", () => {
+  it("rejects a cloud file ID without an authorized media record before saving", async () => {
+    const seed = await submissionScenario("PHOTO");
+    await expect(
+      seed.submissions.submit(seed.childActor, {
+        assignmentId: seed.assignment.id,
+        mediaAssetIds: ["cloud://rental-env/tenant-private.jpg"],
+        requestId: "submission-invalid-photo",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await seed.harness.repository.query("submissions")).toHaveLength(0);
+    expect(await seed.harness.repository.read("taskAssignments", seed.assignment.id)).toMatchObject(
+      { taskState: "PENDING" },
+    );
+  });
+
+  it("authorizes the caller before returning a repeated submission", async () => {
+    const seed = await submissionScenario();
+    const request = {
+      assignmentId: seed.assignment.id,
+      mediaAssetIds: [],
+      requestId: "submission-private-repeat",
+    };
+    await seed.submissions.submit(seed.childActor, request);
+    await expect(
+      seed.submissions.submit(
+        { accountId: "outsider", childId: seed.firstChild.id, mode: "CHILD" },
+        request,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("links a verified in-scope photo to its submission atomically", async () => {
+    const seed = await submissionScenario("PHOTO");
+    const now = seed.harness.clock.now();
+    await seed.harness.repository.transaction((tx) =>
+      tx.insert("mediaAssets", {
+        id: "media-owned-photo",
+        byteSize: 1024,
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: "2026-10-05T00:00:00.000Z",
+        mimeType: "image/jpeg",
+        ownerScope: { kind: "FAMILY", familyId: seed.family.id },
+        purpose: "SUBMISSION_EVIDENCE",
+        status: "ACTIVE",
+        storageKey: "task-checkin/family/owned-photo",
+        uploaderAccountId: seed.guardian.accountId,
+        visibleRoles: ["GUARDIAN"],
+      }),
+    );
+    const result = await seed.submissions.submit(seed.childActor, {
+      assignmentId: seed.assignment.id,
+      mediaAssetIds: ["media-owned-photo"],
+      requestId: "submission-owned-photo",
+    });
+    expect(await seed.harness.repository.query("submissionEvidenceLinks")).toMatchObject([
+      {
+        submissionId: result.submission.id,
+        assignmentId: seed.assignment.id,
+        mediaAssetId: "media-owned-photo",
+        childId: seed.firstChild.id,
+      },
+    ]);
+  });
+
   it("protects reward eligibility immediately after a valid submission", async () => {
     const seed = await submissionScenario();
 

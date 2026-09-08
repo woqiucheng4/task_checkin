@@ -84,12 +84,39 @@ describe("core API authentication", () => {
           return { data: { accepted: true }, ok: true };
         },
       },
-      () => ({ OPENID: "trusted-runtime-openid" }),
+      () => ({ APPID: "checkin-app", OPENID: "trusted-runtime-openid" }),
+      () => false,
+      (appId) => appId === "checkin-app",
     );
 
     await handler({ action: "CREATE_FAMILY", openId: "attacker-openid", payload: {} }, {});
 
     expect(capturedOpenId).toBe("trusted-runtime-openid");
+  });
+
+  it("rejects a shared-environment request from an unapproved source app", async () => {
+    let invoked = false;
+    const handler = createCloudFunctionHandler(
+      {
+        handle: async () => {
+          invoked = true;
+          return { data: { accepted: true }, ok: true };
+        },
+      },
+      () => ({
+        APPID: "resource-owner-appid",
+        FROM_APPID: "unapproved-consumer-appid",
+        FROM_OPENID: "consumer-openid",
+        OPENID: "trusted-runtime-openid",
+      }),
+      () => false,
+      (appId) => appId === "wx7f63176424216ee8",
+    );
+
+    const result = await handler({ action: "CREATE_FAMILY", payload: {} }, {});
+
+    expect(result).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });
+    expect(invoked).toBe(false);
   });
 
   it("routes a parent dashboard read through the authenticated guardian account", async () => {

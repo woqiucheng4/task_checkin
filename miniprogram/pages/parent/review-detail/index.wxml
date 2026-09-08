@@ -1,9 +1,9 @@
 <view class="page">
-  <view class="heading"><text class="source">{{source === 'FAMILY' ? '家庭' : '学校 · 三年级 2 班'}}</text><view class="title">数学 · 完成练习题 5 道</view><view class="child">小禾 · 今天 09:48 提交</view></view>
-  <view class="evidence"><image src="/assets/orchard/scene-empty-tasks.png" mode="aspectFill" aria-label="孩子提交的作业照片示意" /><view>孩子提交的照片</view></view>
-  <view wx:if="{{source !== 'FAMILY'}}" class="section academic"><view class="section__label">教师学习评价</view><view class="status"><t-icon name="check-circle" size="40rpx" color="#174E2A" /><view><view>老师已通过</view><text>家长只能查看，不能更改教师评价</text></view></view></view>
-  <view class="section reward"><view class="section__label">家庭阳光确认</view><view class="sun"><t-icon name="sunny" size="46rpx" color="#EE9A25" /><view><view>建议 6 阳光</view><text>已按家庭默认规则计算</text></view></view><textarea maxlength="120" placeholder="可填写鼓励或说明（选填）" bindinput="editNote" /></view>
-  <button class="primary" bindtap="approve">确认完成并发放 6 阳光</button>
-  <button wx:if="{{source === 'FAMILY'}}" class="secondary" bindtap="revise">请孩子订正</button>
-  <button class="waive" bindtap="waive">仅保留完成记录，本次不发阳光</button>
+  <view class="heading"><text class="source">{{source === 'FAMILY' ? '家庭' : '共育分组'}}</text><view class="title">{{title}}</view><view class="child">{{childLabel}} · {{state}}</view></view>
+  <view class="section"><view class="section__label">孩子的提交</view><view>{{submissionText}}</view><image wx:for="{{images}}" wx:key="*this" src="{{item}}" mode="widthFix" style="width:100%;margin-top:20rpx;" /></view>
+  <view wx:if="{{source !== 'FAMILY'}}" class="section academic"><view class="section__label">教师学习评价</view><view class="status"><t-icon name="check-circle" size="40rpx" color="#174E2A" /><view><view>{{academicLabel}}</view><text>家长只能查看，不能更改教师评价</text></view></view></view>
+  <view wx:if="{{canReview}}" class="section reward"><view class="section__label">家庭阳光确认</view><view class="sun"><t-icon name="sunny" size="46rpx" color="#EE9A25" /><view><view>按家庭规则发放阳光</view><text>由服务端计算并记录，重复确认不会重复发放</text></view></view><textarea maxlength="120" placeholder="可填写鼓励或说明（选填）" bindinput="editNote" /></view>
+  <button wx:if="{{canReview}}" class="primary" loading="{{working}}" disabled="{{working}}" bindtap="approve">确认完成并发放阳光</button>
+  <button wx:if="{{canReview && source === 'FAMILY'}}" class="secondary" disabled="{{working}}" bindtap="revise">请孩子订正</button>
+  <button wx:if="{{canReview}}" class="waive" disabled="{{working}}" bindtap="waive">仅保留完成记录，本次不发阳光</button>
 </view>

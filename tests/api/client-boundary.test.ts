@@ -72,7 +72,7 @@ class FakeCloudCaller {
     readonly name: string;
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<{ readonly result?: unknown }> {
-    expect(input.name).toBe("coreApi");
+    expect(input.name).toBe("taskCheckinCoreApi");
     this.lastPayload = structuredClone(input.data);
     return this.response;
   }

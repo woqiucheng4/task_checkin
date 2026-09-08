@@ -1,5 +1,5 @@
 <view class="shell">
-  <view class="shell__header">
+  <view class="shell__header" style="padding-top: {{headerTop}}px;">
     <view class="shell__heading">
       <view class="shell__title">{{title}}</view>
       <view wx:if="{{subtitle}}" class="shell__subtitle">{{subtitle}}</view>

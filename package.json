@@ -8,6 +8,7 @@
     "admin:dev": "npm --prefix admin-web run dev --",
     "admin:test": "npm --prefix admin-web run test --",
     "build": "tsc -p tsconfig.build.json",
+    "build:deploy": "npm run build && node scripts/build-deployment.mjs",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
@@ -19,6 +20,7 @@
     "@biomejs/biome": "2.5.12",
     "@types/node": "26.4.1",
     "@vitest/coverage-v8": "4.1.11",
+    "esbuild": "0.28.2",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
   },

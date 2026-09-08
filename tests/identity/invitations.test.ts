@@ -47,6 +47,47 @@ async function invitationScenario(now = "2026-09-05T10:00:00.000Z") {
 }
 
 describe("group invitation lifecycle", () => {
+  it("previews the real destination without granting consent or consuming an invitation", async () => {
+    const seed = await invitationScenario();
+    const created = await seed.invitations.createGroupInvitation(seed.teacher, {
+      groupId: seed.group.id,
+      expiresAt: "2026-09-06T10:00:00.000Z",
+      maxClaims: 10,
+      requestId: "preview-invitation-0001",
+    });
+    const result = await seed.invitations.preview(seed.guardian, created.code);
+    expect(result).toMatchObject({
+      groupName: "三年级一班",
+      organizationName: "青禾学校",
+      type: "SCHOOL",
+    });
+    expect(result).not.toHaveProperty("codeHash");
+    expect(await seed.harness.repository.query("consentRecords")).toHaveLength(0);
+    expect(await seed.harness.repository.read("invitations", created.id)).toMatchObject({
+      claimCount: 0,
+    });
+  });
+  it("does not let child mode grant guardian consent", async () => {
+    const seed = await invitationScenario();
+    const created = await seed.invitations.createGroupInvitation(seed.teacher, {
+      groupId: seed.group.id,
+      expiresAt: "2026-09-06T10:00:00.000Z",
+      maxClaims: 10,
+      requestId: "consent-invitation-0001",
+    });
+    await expect(
+      seed.invitations.claimInvitation(
+        { ...seed.guardian, mode: "CHILD", childId: seed.child.id },
+        {
+          childId: seed.child.id,
+          code: created.code,
+          disclosure: { avatar: false, displayName: true, grade: true },
+          requestId: "child-consent-denied-0001",
+        },
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await seed.harness.repository.query("consentRecords")).toHaveLength(0);
+  });
   it("records guardian consent but creates no membership before approval", async () => {
     const seed = await invitationScenario();
     const created = await seed.invitations.createGroupInvitation(seed.teacher, {

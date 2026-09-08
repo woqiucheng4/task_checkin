@@ -57,5 +57,14 @@ describe("submission evidence", () => {
     await expect(media.readAsset(outsider, upload.asset.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+    const membership = seed.memberships[0];
+    if (!membership) throw new Error("Membership missing");
+    await seed.invitations.withdrawChild(seed.guardian, {
+      childGroupMembershipId: membership.id,
+      requestId: "evidence-withdraw-child-0001",
+    });
+    await expect(media.readAsset(seed.teacher, upload.asset.id)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });

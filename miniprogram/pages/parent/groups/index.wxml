@@ -1,6 +1,11 @@
 <view class="page">
-  <view class="heading"><view><view class="title">分组与授权</view><view class="note">学校和机构只能看到各自分组内的信息。</view></view><button bindtap="openInvitation"><t-icon name="scan" size="34rpx" />扫码加入</button></view>
-  <view class="group"><view class="group__top"><view><text class="type">学校</text><view class="group__title">春芽小学 · 三年级 2 班</view></view><text class="active">已加入</text></view><view class="group__meta">语文李老师 · 2026年9月1日加入</view><view class="scope"><view>已授权查看</view><text>小禾在本班级的姓名、年级、任务状态和提交内容</text><view class="scope__private">家庭任务、愿望和其他分组记录不共享</view></view><button class="withdraw" bindtap="requestWithdraw">退出并撤回授权</button></view>
-  <view class="group"><view class="group__top"><view><text class="type type--tutor">辅导班</text><view class="group__title">周六阅读小组</view></view><text class="active">已加入</text></view><view class="group__meta">青禾辅导中心 · 王老师</view><view class="scope"><view>已授权查看</view><text>小禾在阅读小组的任务状态和提交内容</text></view></view>
-  <view wx:if="{{showWithdraw}}" class="mask"><view class="dialog"><view class="dialog__title">确认退出三年级 2 班？</view><view class="dialog__copy">退出后老师不能再查看新的任务和提交；既有审计记录按规则保留。</view><button class="danger" bindtap="confirmWithdraw">确认退出</button><button class="cancel" bindtap="cancelWithdraw">暂不退出</button></view></view>
+  <view class="heading"><view><view class="title">{{nickname}}的分组与授权</view><view class="note">学校和机构只能看到各自分组内的信息。</view></view><button bindtap="openInvitation">输入邀请码</button></view>
+  <view wx:if="{{!groups.length && !pending.length}}" class="note">还没有加入分组。获取老师的邀请码后，可以申请加入。</view>
+  <view wx:for="{{groups}}" wx:key="id" class="group">
+    <view class="group__top"><view><text class="type">{{item.type === 'SCHOOL' ? '学校' : '辅导班'}}</text><view class="group__title">{{item.organizationName}} · {{item.name}}</view></view><text class="active">已加入</text></view>
+    <view class="scope"><view>已授权查看</view><text>本组任务状态和提交内容{{item.disclosure.displayName ? '、昵称' : ''}}{{item.disclosure.grade ? '、年级' : ''}}</text><view class="scope__private">家庭任务、愿望和其他分组记录不共享</view></view>
+    <button class="withdraw" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="requestWithdraw">退出并撤回授权</button>
+  </view>
+  <view wx:for="{{pending}}" wx:key="id" class="group"><view class="group__title">{{item.organizationName}} · {{item.name}}</view><view class="note">申请已提交，等待老师审核；尚未成为正式成员。</view></view>
+  <view wx:if="{{showWithdraw}}" class="mask"><view class="dialog"><view class="dialog__title">确认退出{{withdrawName}}？</view><view class="dialog__copy">退出后撤回该组授权；既有审计记录按规则保留。</view><button class="danger" loading="{{working}}" disabled="{{working}}" bindtap="confirmWithdraw">确认退出</button><button class="cancel" disabled="{{working}}" bindtap="cancelWithdraw">暂不退出</button></view></view>
 </view>

@@ -1,23 +1,61 @@
-import { childFixtures } from "../../../presentation/fixtures.js";
 import { buildChildTodayPage } from "../../../presentation/page-models.js";
 import { navigate, replace } from "../../../services/page-runtime.js";
+import { dashboard, today } from "../../../services/session-runtime.js";
 
-const page = buildChildTodayPage(childFixtures.ready);
-
+const empty = () =>
+  buildChildTodayPage({
+    date: today(),
+    nickname: "",
+    screenState: "loading",
+    sunlight: { current: 0, target: 30 },
+    tasks: [],
+    tree: { asset: "/assets/orchard/apple-seed.png", level: 1, name: "我的果树" },
+  });
+async function load(page: MiniPageInstance) {
+  page.setData({ screenState: "loading" });
+  try {
+    const view = await dashboard();
+    const tree = view.currentTree;
+    page.setData(
+      buildChildTodayPage({
+        date: today(),
+        nickname: view.selectedChild.nickname,
+        screenState: view.today.items.length ? "ready" : "empty",
+        tasks: view.today.items,
+        sunlight: { current: tree?.progress || 0, target: tree?.threshold || 30 },
+        tree: {
+          name: tree?.name || "去果园种下第一棵树",
+          level: 1,
+          asset:
+            tree?.status === "MATURE"
+              ? "/assets/orchard/apple-mature.png"
+              : "/assets/orchard/apple-seedling.png",
+        },
+      }),
+    );
+  } catch (error) {
+    page.setData({
+      screenState: "error",
+      notice: error instanceof Error ? error.message : "加载失败",
+    });
+  }
+}
 Page({
-  data: page,
-  activateTask(event: { readonly detail: { readonly assignmentId?: string } }) {
-    const assignmentId = event.detail.assignmentId;
-    if (assignmentId !== undefined) navigate(`/pages/child/task/index?id=${assignmentId}`);
+  data: empty(),
+  onShow() {
+    void load(this);
   },
-  navigateTab(event: { readonly detail: { readonly path?: string } }) {
-    const path = event.detail.path;
-    if (path !== undefined) replace(path);
+  activateTask(event: { detail: { assignmentId?: string } }) {
+    if (event.detail.assignmentId)
+      navigate(`/pages/child/task/index?id=${event.detail.assignmentId}`);
+  },
+  navigateTab(event: { detail: { path?: string } }) {
+    if (event.detail.path) replace(event.detail.path);
   },
   openRoles() {
     navigate("/pages/shared/role-switcher/index");
   },
   retry() {
-    this.setData(buildChildTodayPage(childFixtures.ready));
+    void load(this);
   },
 });

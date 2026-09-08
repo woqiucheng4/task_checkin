@@ -36,7 +36,7 @@ export interface GroupRoleView {
   readonly name: string;
   readonly organizationId: string;
   readonly organizationName: string;
-  readonly role: "TEACHER" | "ASSISTANT";
+  readonly role: "TEACHER" | "ASSISTANT" | "ORGANIZATION_ADMIN";
 }
 
 export interface AccountShellView {

@@ -4,6 +4,7 @@ import type {
   CoreCommand,
 } from "../../src/application/core-api.js";
 import type { CommandResult } from "../../src/shared/result.js";
+import { TASK_CHECKIN_CLOUD_FUNCTION } from "../config/env.js";
 
 export interface CloudFunctionCaller {
   callFunction(input: {
@@ -32,9 +33,12 @@ export class CoreApiClient {
       payload,
       requestId: this.requestIds(),
     };
-    const response = await this.cloud.callFunction({ data: { ...command }, name: "coreApi" });
+    const response = await this.cloud.callFunction({
+      data: { ...command },
+      name: TASK_CHECKIN_CLOUD_FUNCTION,
+    });
     if (!isCommandResult(response.result)) {
-      throw new Error("coreApi 返回格式无效");
+      throw new Error("taskCheckinCoreApi 返回格式无效");
     }
     return response.result;
   }

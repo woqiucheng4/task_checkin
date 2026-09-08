@@ -1,8 +1,43 @@
 import { buildNavigation } from "../../../presentation/page-models.js";
-import { coreApiClient, navigate, replace } from "../../../services/page-runtime.js";
+import { navigate, replace } from "../../../services/page-runtime.js";
+import { command, selectedFamily, showError } from "../../../services/session-runtime.js";
+import type { PresentationService } from "../../../../src/application/presentation-service.js";
 
 Page({
-  data: { navigation: buildNavigation("parent", "profile"), notifications: true },
+  data: {
+    navigation: buildNavigation("parent", "profile"),
+    notifications: false,
+    familyName: "",
+    childCount: 0,
+    memberCount: 0,
+    members: [],
+    rewards: {},
+    roleLabel: "",
+    working: false,
+  },
+  async onShow() {
+    try {
+      const family = await selectedFamily();
+      const view = await command<Awaited<ReturnType<PresentationService["familySettings"]>>>(
+        "GET_FAMILY_SETTINGS",
+        { familyId: family.id },
+      );
+      this.setData({
+        familyName: view.name,
+        childCount: view.childCount,
+        memberCount: view.members.length,
+        members: view.members.map((member) => ({
+          ...member,
+          label: member.role === "FAMILY_ADMIN" ? "家庭管理员" : "监护人",
+        })),
+        rewards: view.defaultRewards,
+        roleLabel: view.role === "FAMILY_ADMIN" ? "家庭管理员" : "监护人",
+        notifications: wx.getStorageSync("task_checkin_notification_preference") === true,
+      });
+    } catch (error) {
+      showError(error);
+    }
+  },
   navigateTab(event: { readonly detail: { readonly path?: string } }) {
     const path = event.detail.path;
     if (path !== undefined) replace(path);
@@ -15,15 +50,21 @@ Page({
   },
   toggleNotifications(event: { readonly detail: { readonly value: boolean } }) {
     this.setData({ notifications: event.detail.value });
+    wx.setStorageSync("task_checkin_notification_preference", event.detail.value);
   },
   async requestExport() {
-    const result = await coreApiClient.execute("REQUEST_EXPORT", {
-      exportType: "FAMILY_DATA",
-      familyId: "family-1",
-    });
-    wx.showToast({
-      icon: result.ok ? "success" : "none",
-      title: result.ok ? "导出申请已提交" : result.error.message,
-    });
+    if (this.data.working) return;
+    this.setData({ working: true });
+    try {
+      await command("REQUEST_EXPORT", {
+        kind: "FAMILY_DATA",
+        tenantScope: { kind: "FAMILY", familyId: (await selectedFamily()).id },
+      });
+      wx.showToast({ icon: "success", title: "导出申请已提交" });
+    } catch (error) {
+      showError(error);
+    } finally {
+      this.setData({ working: false });
+    }
   },
 });

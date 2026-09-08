@@ -2,49 +2,8 @@ import type { QueryPredicate, RecordPatch, Repository, Transaction } from "../ap
 import type { AuditLog, CollectionName, DomainSchema } from "../domain/model.js";
 import { DomainError } from "../shared/errors.js";
 
-export const COLLECTIONS = {
-  accounts: "accounts",
-  auditLogs: "audit_logs",
-  childGroupMemberships: "child_group_memberships",
-  childTrees: "child_trees",
-  children: "children",
-  commandReceipts: "command_receipts",
-  consentRecords: "consent_records",
-  contentProviders: "content_providers",
-  exportRequests: "export_requests",
-  families: "families",
-  familyMembers: "family_members",
-  fruitCollections: "fruit_collections",
-  fruitWishLinks: "fruit_wish_links",
-  groupContributions: "group_contributions",
-  groupMemorials: "group_memorials",
-  groupRoleBindings: "group_role_bindings",
-  groupTrees: "group_trees",
-  groups: "groups",
-  growthCards: "growth_cards",
-  guardianLinks: "guardian_links",
-  invitations: "invitations",
-  joinRequests: "join_requests",
-  mediaAssets: "media_assets",
-  organizationMembers: "organization_members",
-  organizations: "organizations",
-  plans: "plans",
-  publicPoolEvents: "public_pool_events",
-  reviewRecords: "review_records",
-  rosterSeats: "roster_seats",
-  submissionEvidenceLinks: "submission_evidence_links",
-  submissions: "submissions",
-  sunlightLedgers: "sunlight_ledgers",
-  supportAccessGrants: "support_access_grants",
-  taskAssignments: "task_assignments",
-  taskDrafts: "task_drafts",
-  taskTemplates: "task_templates",
-  tasks: "tasks",
-  tenantEntitlements: "tenant_entitlements",
-  treeCatalog: "tree_catalog",
-  usageCounters: "usage_counters",
-  wishes: "wishes",
-} as const satisfies Record<CollectionName, string>;
+import { COLLECTIONS } from "./collections.js";
+export { COLLECTIONS } from "./collections.js";
 
 export const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
   "auditLogs",
@@ -62,13 +21,13 @@ export const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
 ]);
 
 export interface CloudDocumentReference {
-  create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
   get(): Promise<{ readonly data?: unknown }>;
   remove(): Promise<unknown>;
   set(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
 }
 
 export interface CloudCollectionReference {
+  add(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
   doc(id: string): CloudDocumentReference;
   get(): Promise<{ readonly data?: unknown }>;
   limit(count: number): CloudCollectionReference;
@@ -171,8 +130,7 @@ class CloudBaseTransaction extends CloudBaseReadRepository implements Transactio
     try {
       await this.database
         .collection(COLLECTIONS[collection])
-        .doc(record.id)
-        .create({ data: toCloudData(record) });
+        .add({ data: { ...toCloudData(record), _id: record.id } });
       return structuredClone(record);
     } catch (error) {
       throw translateCloudError(error);

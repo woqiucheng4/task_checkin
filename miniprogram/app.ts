@@ -1,7 +1,10 @@
-import { assertConfiguredEnvironment, CLOUD_ENV_ID } from "./config/env.js";
+import "./services/compat.js";
+import { cloudReady } from "./services/cloud-runtime.js";
 
 App({
   onLaunch() {
-    wx.cloud.init({ env: assertConfiguredEnvironment(CLOUD_ENV_ID), traceUser: true });
+    void cloudReady().catch(() => {
+      wx.showToast({ icon: "none", title: "云服务暂不可用，请稍后重试" });
+    });
   },
 });

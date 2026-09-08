@@ -1,6 +1,22 @@
 <view class="page">
-  <view class="title">发布到三年级 2 班</view><view class="note">任务会同步出现在孩子和家长端；家长可查看学习评价并确认阳光。</view>
-  <view class="modes"><button class="mode {{mode === 'MANUAL' ? 'mode--selected' : ''}}" data-mode="MANUAL" bindtap="chooseMode">手动填写</button><button class="mode {{mode === 'TEMPLATE' ? 'mode--selected' : ''}}" data-mode="TEMPLATE" bindtap="chooseMode">复用模板</button><button class="mode {{mode === 'OCR' ? 'mode--selected' : ''}}" data-mode="OCR" bindtap="chooseMode">拍照识别</button></view>
-  <button wx:if="{{mode === 'OCR' && !uploaded}}" class="ocr" bindtap="recognizePhoto"><t-icon name="camera" size="60rpx" color="#174E2A" /><view>拍摄作业单生成草稿</view><text>发布前由教师逐项确认</text></button>
-  <view wx:else class="form"><view class="field"><view class="label">任务名称</view><input value="{{title}}" placeholder="例如：朗读《秋天的雨》" bindinput="editTitle" /></view><view class="field"><view class="label">学科</view><view class="select">语文</view></view><view class="grid"><view class="field"><view class="label">开始</view><view class="select">今天 16:00</view></view><view class="field"><view class="label">截止</view><view class="select">今天 20:00</view></view></view><view class="field"><view class="label">提交方式</view><view class="select">确认完成</view></view><view class="review"><switch checked color="#174E2A" /><view><view>需要教师学习审核</view><text>审核结果与家庭阳光确认分别记录</text></view></view><button class="primary" bindtap="publish">确认发布</button></view>
+ <view class="title">发布到{{groupName || '已授权分组'}}</view><view class="note">任务同步到孩子和家长端；学习评价与家庭阳光分别记录。</view>
+ <view class="modes"><button class="mode {{mode === 'MANUAL' ? 'mode--selected' : ''}}" data-mode="MANUAL" bindtap="chooseMode">手动填写</button><button class="mode {{mode === 'TEMPLATE' ? 'mode--selected' : ''}}" data-mode="TEMPLATE" bindtap="chooseMode">复用模板</button><button class="mode {{mode === 'OCR' ? 'mode--selected' : ''}}" data-mode="OCR" bindtap="chooseMode">拍照识别</button></view>
+ <view wx:if="{{mode === 'TEMPLATE'}}" class="note">
+  <view wx:if="{{templatesLoading}}">正在加载本机构模板…</view>
+  <view wx:elif="{{templatesError}}">{{templatesError}}<button data-mode="TEMPLATE" bindtap="chooseMode">重新加载</button></view>
+  <view wx:elif="{{!templates.length}}">本机构暂无可用模板，可先手动填写任务。</view>
+  <button wx:for="{{templates}}" wx:key="id" data-id="{{item.id}}" bindtap="useTemplate">{{selectedTemplate === item.id ? '已选：' : ''}}{{item.title}}</button>
+  <view>复用任务内容，发布日期仍以当前表单为准。</view>
+ </view>
+ <button wx:if="{{mode === 'OCR'}}" class="ocr" bindtap="recognizePhoto"><t-icon name="camera" size="60rpx" color="#174E2A" /><view>图片识别服务尚未配置</view><text>不会生成虚假识别结果，请先手动填写</text></button>
+ <view class="form">
+  <view class="field"><view class="label">任务名称</view><input maxlength="100" value="{{title}}" placeholder="例如：朗读课文" bindinput="editTitle" /></view>
+  <view class="field"><view class="label">任务说明</view><textarea maxlength="1000" value="{{description}}" placeholder="填写具体要求" bindinput="editDescription" /></view>
+  <view class="field"><view class="label">学科</view><picker range="{{categories}}" range-key="label" value="{{categoryIndex}}" bindchange="editCategory"><view class="select">{{categories[categoryIndex].label}}</view></picker></view>
+  <view class="note">预计 {{estimatedMinutes}} 分钟 · {{importance === 'CHALLENGE' ? '挑战任务' : importance === 'FOCUS' ? '重点任务' : '必做任务'}} · {{allowLateSubmission ? '允许补交' : '不允许补交'}}</view>
+  <view class="grid"><view class="field"><view class="label">任务日期</view><picker mode="date" value="{{date}}" bindchange="editDate"><view class="select">{{date}}</view></picker></view><view class="field"><view class="label">当天截止</view><picker mode="time" value="{{time}}" bindchange="editTime"><view class="select">{{time}}</view></picker></view></view>
+  <view class="field"><view class="label">提交方式</view><radio-group bindchange="editSubmissionMode"><label><radio value="CONFIRM" checked="{{submissionMode === 'CONFIRM'}}" />确认完成</label><label><radio value="TEXT" checked="{{submissionMode === 'TEXT'}}" />文字</label><label><radio value="PHOTO" checked="{{submissionMode === 'PHOTO'}}" />照片</label><label><radio value="TEXT_AND_PHOTO" checked="{{submissionMode === 'TEXT_AND_PHOTO'}}" />图文</label></radio-group></view>
+  <view class="review"><switch checked="{{requireReview}}" color="#174E2A" bindchange="editReview" /><view><view>需要教师学习审核</view><text>审核结果与家庭阳光确认分别记录</text></view></view>
+  <button class="primary" loading="{{working}}" disabled="{{working || !groupName}}" bindtap="publish">确认发布</button>
+ </view>
 </view>

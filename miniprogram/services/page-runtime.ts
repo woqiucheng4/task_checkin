@@ -1,7 +1,8 @@
 import { CoreApiClient } from "./core-api.js";
+import { cloudReady } from "./cloud-runtime.js";
 
 export const coreApiClient = new CoreApiClient({
-  callFunction: (input) => wx.cloud.callFunction(input),
+  callFunction: async (input) => (await cloudReady()).callFunction(input),
 });
 
 export function navigate(path: string): void {

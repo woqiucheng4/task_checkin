@@ -1,32 +1,37 @@
 import { navigate } from "../../../services/page-runtime.js";
-
+import { taskDetail, showError } from "../../../services/session-runtime.js";
 Page({
-  data: {
-    assignmentId: "school-reading",
-    feedback: "",
-    source: "学校 · 三年级 2 班",
-    state: "pending",
-    task: {
-      category: "语文",
-      description: "认真朗读《秋天的雨》，注意停顿和语气，完成后确认提交。",
-      due: "今天 20:00",
-      mode: "确认提交",
-      reward: "完成并经家长确认，可获得 6 阳光",
-      title: "朗读《秋天的雨》",
-    },
-  },
-  onLoad(query: { readonly id?: string; readonly state?: string }) {
-    this.setData({
-      ...(query.id === undefined ? {} : { assignmentId: query.id }),
-      ...(query.state === undefined ? {} : { state: query.state }),
-    });
+  data: { assignmentId: "", feedback: "", source: "", state: "pending", task: {} },
+  async onLoad(query: { id?: string }) {
+    if (!query.id) return;
+    this.setData({ assignmentId: query.id });
+    try {
+      const item = await taskDetail(query.id);
+      this.setData({
+        source: item.source === "FAMILY" ? "家庭" : "共育分组",
+        state:
+          item.taskState === "PENDING"
+            ? "pending"
+            : item.taskState === "REVISION_REQUIRED"
+              ? "revision"
+              : "submitted",
+        task: {
+          title: item.title,
+          description: item.description || "",
+          category: item.category,
+          due: item.dueAt,
+          mode: item.submissionMode,
+          reward: "完成并经家长确认后，按家庭规则获得阳光",
+        },
+      });
+    } catch (error) {
+      showError(error);
+    }
   },
   openSubmit() {
-    const assignmentId = String(this.data.assignmentId ?? "");
-    navigate(`/pages/child/submit/index?id=${assignmentId}`);
+    navigate(`/pages/child/submit/index?id=${this.data.assignmentId}`);
   },
   revise() {
-    const assignmentId = String(this.data.assignmentId ?? "");
-    navigate(`/pages/child/submit/index?id=${assignmentId}&revision=1`);
+    navigate(`/pages/child/submit/index?id=${this.data.assignmentId}&revision=1`);
   },
 });

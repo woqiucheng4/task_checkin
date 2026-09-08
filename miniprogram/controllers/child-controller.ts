@@ -59,8 +59,15 @@ export class ChildController {
     await this.perform("HARVEST_TREE", { treeId }, "采摘成功，去选择下一棵果树吧");
   }
 
-  async startTree(fruitTypeId: string, name: string): Promise<void> {
-    await this.perform("START_TREE", { fruitTypeId, name }, "新果树已经种下");
+  async startTree(fruitTypeId: string, _name: string): Promise<void> {
+    const catalogId =
+      (
+        { apple: "starter-apple", pear: "ordinary-pear", orange: "rare-orange" } as Record<
+          string,
+          string
+        >
+      )[fruitTypeId] ?? fruitTypeId;
+    await this.perform("START_TREE", { catalogId }, "新果树已经种下");
   }
 
   private async perform(

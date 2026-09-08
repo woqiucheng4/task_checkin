@@ -1,39 +1,94 @@
 import { ChildController } from "../../../controllers/child-controller.js";
 import { buildNavigation } from "../../../presentation/page-models.js";
-import { coreApiClient, navigate, replace } from "../../../services/page-runtime.js";
+import { navigate, replace } from "../../../services/page-runtime.js";
+import {
+  childClient,
+  command,
+  selectedChild,
+  dashboard,
+  showError,
+} from "../../../services/session-runtime.js";
+import type { OrchardView } from "../../../../src/application/orchard-service.js";
 
-const controller = new ChildController(coreApiClient);
+const controller = new ChildController(childClient);
+
+async function load(page: MiniPageInstance) {
+  page.setData({ loading: true, ready: false, selecting: false });
+  try {
+    const childId = await selectedChild();
+    const view = await command<OrchardView>("GET_CHILD_ORCHARD", {}, { mode: "CHILD", childId });
+    const home = await dashboard();
+    const current = view.currentTree;
+    const target = home.currentTree?.threshold || 6;
+    page.setData({
+      ready: true,
+      treeId: current?.id || "",
+      current: current?.progress || 0,
+      target,
+      progress: current ? Math.min(100, (current.progress / target) * 100) : 0,
+      selecting: !current,
+      mature: current?.status === "MATURE",
+      nickname: home.selectedChild.nickname,
+      treeName: home.currentTree?.name || "选择第一棵果树",
+      stage: current?.stage || "等待种植",
+      asset:
+        current?.status === "MATURE"
+          ? "/assets/orchard/apple-mature.png"
+          : "/assets/orchard/apple-seedling.png",
+      collection: [
+        { id: "starter-apple", name: "苹果", asset: "/assets/orchard/apple-mature.png" },
+        { id: "ordinary-pear", name: "梨", asset: "/assets/orchard/pear-mature.png" },
+        { id: "rare-orange", name: "橙子", asset: "/assets/orchard/orange-mature.png" },
+      ].map((c) => ({ ...c, count: view.fruits.find((f) => f.catalogId === c.id)?.quantity || 0 })),
+      stages: (page.data.stages as { asset: string; label: string }[]).map((s, index) => ({
+        ...s,
+        done: !!current && current.progress / target >= index / 9,
+      })),
+    });
+  } catch (error) {
+    showError(error);
+  } finally {
+    page.setData({ loading: false });
+  }
+}
 
 Page({
+  async onShow() {
+    await load(this);
+  },
   data: {
     collection: [
-      { asset: "/assets/orchard/apple-mature.png", count: 2, name: "苹果" },
-      { asset: "/assets/orchard/pear-mature.png", count: 1, name: "梨" },
+      { asset: "/assets/orchard/apple-mature.png", count: 0, name: "苹果" },
+      { asset: "/assets/orchard/pear-mature.png", count: 0, name: "梨" },
       { asset: "/assets/orchard/orange-mature.png", count: 0, name: "橙子" },
     ],
-    current: 30,
+    loading: true,
+    ready: false,
+    working: false,
+    current: 0,
     navigation: buildNavigation("child", "orchard"),
-    progress: 100,
+    progress: 0,
     selecting: false,
     stages: [
-      { asset: "/assets/orchard/apple-seed.png", done: true, label: "种子" },
-      { asset: "/assets/orchard/apple-sprout.png", done: true, label: "发芽" },
-      { asset: "/assets/orchard/apple-seedling.png", done: true, label: "幼苗" },
-      { asset: "/assets/orchard/apple-trunk.png", done: true, label: "树干" },
-      { asset: "/assets/orchard/apple-leaves.png", done: true, label: "长叶" },
-      { asset: "/assets/orchard/apple-bud.png", done: true, label: "花苞" },
-      { asset: "/assets/orchard/apple-blossom.png", done: true, label: "开花" },
-      { asset: "/assets/orchard/apple-fruit-small.png", done: true, label: "幼果" },
-      { asset: "/assets/orchard/apple-fruit-growing.png", done: true, label: "长大" },
-      { asset: "/assets/orchard/apple-mature.png", done: true, label: "成熟" },
+      { asset: "/assets/orchard/apple-seed.png", done: false, label: "种子" },
+      { asset: "/assets/orchard/apple-sprout.png", done: false, label: "发芽" },
+      { asset: "/assets/orchard/apple-seedling.png", done: false, label: "幼苗" },
+      { asset: "/assets/orchard/apple-trunk.png", done: false, label: "树干" },
+      { asset: "/assets/orchard/apple-leaves.png", done: false, label: "长叶" },
+      { asset: "/assets/orchard/apple-bud.png", done: false, label: "花苞" },
+      { asset: "/assets/orchard/apple-blossom.png", done: false, label: "开花" },
+      { asset: "/assets/orchard/apple-fruit-small.png", done: false, label: "幼果" },
+      { asset: "/assets/orchard/apple-fruit-growing.png", done: false, label: "长大" },
+      { asset: "/assets/orchard/apple-mature.png", done: false, label: "成熟" },
     ],
-    target: 30,
+    target: 0,
   },
   async harvest() {
-    await controller.harvest("tree-apple-1");
+    if (!this.data.ready || this.data.working || !this.data.treeId || !this.data.mature) return;
+    await controller.harvest(String(this.data.treeId));
     const result = controller.current();
     wx.showToast({ icon: result.status === "success" ? "success" : "none", title: result.notice });
-    if (result.status === "success") this.setData({ selecting: true });
+    if (result.status === "success") await load(this);
   },
   navigateTab(event: { readonly detail: { readonly path?: string } }) {
     const path = event.detail.path;
@@ -50,12 +105,13 @@ Page({
       readonly dataset: { readonly fruit?: string; readonly name?: string };
     };
   }) {
+    if (!this.data.ready || this.data.working || !this.data.selecting) return;
     const fruitTypeId = event.currentTarget.dataset.fruit;
     const name = event.currentTarget.dataset.name;
     if (fruitTypeId === undefined || name === undefined) return;
     await controller.startTree(fruitTypeId, name);
     const result = controller.current();
     wx.showToast({ icon: result.status === "success" ? "success" : "none", title: result.notice });
-    if (result.status === "success") this.setData({ current: 0, progress: 0, selecting: false });
+    if (result.status === "success") await load(this);
   },
 });

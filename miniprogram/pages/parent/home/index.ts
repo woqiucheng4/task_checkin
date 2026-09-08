@@ -1,39 +1,49 @@
-import { ParentController } from "../../../controllers/parent-controller.js";
-import { childTaskFixtures } from "../../../presentation/fixtures.js";
 import { buildNavigation, buildTaskRow } from "../../../presentation/page-models.js";
-import { coreApiClient, navigate, replace } from "../../../services/page-runtime.js";
+import { navigate, replace } from "../../../services/page-runtime.js";
+import { dashboard, selectChild, showError, today } from "../../../services/session-runtime.js";
 
-const children = [
-  {
-    id: "child-a",
-    nickname: "小禾",
-    tasks: childTaskFixtures.map((task) => ({ childLabel: "小禾", id: task.assignmentId })),
-  },
-  {
-    id: "child-b",
-    nickname: "小满",
-    tasks: childTaskFixtures
-      .slice(0, 2)
-      .map((task) => ({ childLabel: "小满", id: task.assignmentId })),
-  },
-];
-const controller = new ParentController(coreApiClient, children, "child-a");
-
+async function load(page: MiniPageInstance) {
+  try {
+    const view = await dashboard();
+    page.setData({
+      children: view.children,
+      selectedChildId: view.selectedChild.id,
+      selectedName: view.selectedChild.nickname,
+      tasks: view.today.items.map(buildTaskRow),
+      pendingReviews: view.today.pendingReviewCount,
+      current: view.currentTree?.progress || 0,
+      target: view.currentTree?.threshold || 30,
+      treeName: view.currentTree?.name || "还没有种树",
+      date: today(),
+      notice: "",
+    });
+  } catch (error) {
+    showError(error);
+    page.setData({ notice: error instanceof Error ? error.message : "加载失败" });
+  }
+}
 Page({
   data: {
-    children,
+    children: [],
     navigation: buildNavigation("parent", "home"),
-    pendingReviews: 2,
-    selectedChildId: "child-a",
-    selectedName: "小禾",
-    tasks: childTaskFixtures.map(buildTaskRow),
+    pendingReviews: 0,
+    selectedChildId: "",
+    selectedName: "",
+    tasks: [],
+    current: 0,
+    target: 30,
+    treeName: "",
+    date: today(),
+    notice: "",
+  },
+  onShow() {
+    void load(this);
   },
   createTask() {
     navigate("/pages/parent/task-editor/index");
   },
-  navigateTab(event: { readonly detail: { readonly path?: string } }) {
-    const path = event.detail.path;
-    if (path !== undefined) replace(path);
+  navigateTab(event: { detail: { path?: string } }) {
+    if (event.detail.path) replace(event.detail.path);
   },
   openReview() {
     navigate("/pages/parent/reviews/index");
@@ -41,24 +51,17 @@ Page({
   openRoles() {
     navigate("/pages/shared/role-switcher/index");
   },
-  openTask(event: { readonly detail: { readonly assignmentId?: string } }) {
-    const id = event.detail.assignmentId;
-    if (id !== undefined) navigate(`/pages/parent/review-detail/index?id=${id}`);
+  openTask(event: { detail: { assignmentId?: string } }) {
+    if (event.detail.assignmentId)
+      navigate(`/pages/parent/review-detail/index?id=${event.detail.assignmentId}`);
   },
-  selectChild(event: {
-    readonly currentTarget: { readonly dataset: { readonly id?: string; readonly name?: string } };
-  }) {
-    const id = event.currentTarget.dataset.id;
-    const name = event.currentTarget.dataset.name;
-    if (id === undefined || name === undefined) return;
-    controller.selectChild(id);
-    this.setData({
-      selectedChildId: id,
-      selectedName: name,
-      tasks:
-        id === "child-a"
-          ? childTaskFixtures.map(buildTaskRow)
-          : childTaskFixtures.slice(0, 2).map(buildTaskRow),
-    });
+  async selectChild(event: { currentTarget: { dataset: { id?: string } } }) {
+    if (!event.currentTarget.dataset.id) return;
+    try {
+      await selectChild(event.currentTarget.dataset.id);
+      await load(this);
+    } catch (error) {
+      showError(error);
+    }
   },
 });

@@ -1,38 +1,57 @@
 import { buildNavigation } from "../../../presentation/page-models.js";
 import { navigate, replace } from "../../../services/page-runtime.js";
-
+import { showError } from "../../../services/session-runtime.js";
+import { teacherWorkspace } from "../../../services/teacher-runtime.js";
 Page({
   data: {
-    filter: "ACTIVE",
     navigation: buildNavigation("teacher", "tasks"),
-    tasks: [
-      {
-        completed: 23,
-        due: "今天 20:00",
-        id: "task-1",
-        status: "进行中",
-        title: "语文 · 朗读《秋天的雨》",
-        total: 32,
-      },
-      {
-        completed: 28,
-        due: "今天 21:00",
-        id: "task-2",
-        status: "进行中",
-        title: "数学 · 完成练习题 5 道",
-        total: 32,
-      },
-    ],
+    tasks: [],
+    groupName: "",
+    activeCount: 0,
+    completedCount: 0,
+    error: "",
+  },
+  async onShow() {
+    try {
+      const view = await teacherWorkspace();
+      const tasks = view.tasks.map((task) => ({
+        ...task,
+        statusLabel:
+          task.status === "PUBLISHED"
+            ? "进行中"
+            : task.status === "CANCELLED"
+              ? "已取消"
+              : "已归档",
+        due: new Date(Date.parse(task.dueAt) + 8 * 3600000)
+          .toISOString()
+          .slice(0, 16)
+          .replace("T", " "),
+        completed: task.completedCount,
+        total: task.assignmentCount,
+        percent: task.assignmentCount
+          ? Math.round((task.completedCount / task.assignmentCount) * 100)
+          : 0,
+      }));
+      this.setData({
+        groupName: view.group.name,
+        tasks,
+        activeCount: view.tasks.filter((task) => task.status === "PUBLISHED").length,
+        completedCount: view.tasks.reduce((sum, task) => sum + task.completedCount, 0),
+        error: "",
+      });
+    } catch (error) {
+      this.setData({ tasks: [], error: error instanceof Error ? error.message : "加载失败" });
+      showError(error);
+    }
   },
   create() {
     navigate("/pages/teacher/task-editor/index");
   },
-  navigateTab(event: { readonly detail: { readonly path?: string } }) {
-    const path = event.detail.path;
-    if (path !== undefined) replace(path);
+  navigateTab(event: { detail: { path?: string } }) {
+    if (event.detail.path) replace(event.detail.path);
   },
-  openReviews(event: { readonly currentTarget: { readonly dataset: { readonly id?: string } } }) {
+  openReviews(event: { currentTarget: { dataset: { id?: string } } }) {
     const id = event.currentTarget.dataset.id;
-    if (id !== undefined) navigate(`/pages/teacher/reviews/index?task=${id}`);
+    if (id) navigate(`/pages/teacher/reviews/index?task=${id}`);
   },
 });

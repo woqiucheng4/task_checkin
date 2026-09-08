@@ -1,4 +1,4 @@
-<app-shell title="{{date}}" subtitle="你好，小禾" context-label="孩子端" bindroleswitch="openRoles">
+<app-shell title="{{date}}" subtitle="你好，{{nickname}}" context-label="孩子端" bindroleswitch="openRoles">
   <orchard-hero
     asset="{{tree.asset}}"
     current="{{sunlight.current}}"

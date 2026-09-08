@@ -84,6 +84,8 @@ export class InvitationService {
     },
   ): Promise<JoinRequest> {
     requireRequestId(input.requestId);
+    if (actor.mode !== "ACCOUNT")
+      throw new DomainError("FORBIDDEN", "只有成人监护人可以提交授权申请");
     const guardian = await this.policy.requireGuardian(actor, input.childId);
     const invitation = (
       await this.dependencies.repository.query("invitations", { codeHash: hashCode(input.code) })
@@ -136,6 +138,30 @@ export class InvitationService {
       );
       return joinRequest;
     });
+  }
+
+  async preview(actor: ActorContext, code: string) {
+    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请家长查看和确认邀请");
+    if (typeof code !== "string" || code.length < 1 || code.length > 200)
+      throw new DomainError("INVALID_INPUT", "邀请码格式无效");
+    const invitation = (
+      await this.dependencies.repository.query("invitations", { codeHash: hashCode(code.trim()) })
+    )[0];
+    if (!invitation) throw new DomainError("NOT_FOUND", "邀请码不存在");
+    this.assertInvitationUsable(invitation);
+    const group = await this.dependencies.repository.read("groups", invitation.groupId);
+    const organization = await this.dependencies.repository.read(
+      "organizations",
+      invitation.organizationId,
+    );
+    if (group?.status !== "ACTIVE" || organization?.status !== "ACTIVE")
+      throw new DomainError("NOT_FOUND", "分组已停用");
+    return {
+      groupName: group.name,
+      organizationName: organization.name,
+      type: organization.type,
+      expiresAt: invitation.expiresAt,
+    };
   }
 
   async approveJoinRequest(

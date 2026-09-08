@@ -1,12 +1,14 @@
 <view class="page">
   <view class="title">大家一起培育的果树</view>
   <view class="note">只展示共同进度，不做个人排名</view>
-  <scroll-view class="tabs" scroll-x><button wx:for="{{groups}}" wx:key="name" class="tab {{index === selected ? 'tab--selected' : ''}}" data-index="{{index}}" bindtap="selectGroup">{{item.name}}</button></scroll-view>
-  <image class="group-tree" src="/assets/orchard/scene-group-tree.png" mode="aspectFit" aria-label="同学们共同培育的苹果树" />
-  <view class="progress-card">
-    <view class="progress-card__top"><view><view class="progress-card__title">{{groups[selected].name}}共育树</view><view class="progress-card__note">全组已收集 {{groups[selected].current}} / {{groups[selected].target}} 阳光</view></view><t-icon name="sunny" size="46rpx" color="#EE9A25" /></view>
-    <progress percent="70" stroke-width="8" activeColor="#D93A22" backgroundColor="#E7E3D8" border-radius="8" />
-    <view class="mine">你贡献了 {{groups[selected].contribution}} 阳光，每一份都很重要。</view>
-  </view>
-  <view class="section"><view class="section__title">本周共同目标</view><view class="goal"><t-icon name="book-open" size="42rpx" color="#174E2A" /><view><view>完成班级阅读任务</view><text>已有 23 位同学参加</text></view></view><view class="goal"><t-icon name="check-double" size="42rpx" color="#174E2A" /><view><view>认真订正本周作业</view><text>一起让小树开花</text></view></view></view>
+  <view wx:if="{{loading}}" class="note">正在加载分组…</view>
+  <view wx:elif="{{!groups.length}}" class="note">还没有加入分组，请家长使用老师的邀请码申请加入。</view>
+  <block wx:else>
+    <scroll-view class="tabs" scroll-x><button wx:for="{{groups}}" wx:key="id" class="tab {{index === selected ? 'tab--selected' : ''}}" data-index="{{index}}" bindtap="selectGroup">{{item.name}}</button></scroll-view>
+    <image class="group-tree" src="/assets/orchard/scene-group-tree.png" mode="aspectFit" aria-label="共同培育的果树" />
+    <view class="progress-card">
+      <view class="progress-card__top"><view><view class="progress-card__title">{{groups[selected].name}}共育树</view><view class="progress-card__note">{{groups[selected].error || '每一份努力都很重要'}}</view></view><t-icon name="sunny" size="46rpx" color="#EE9A25" /></view>
+      <block wx:if="{{!groups[selected].error}}"><view>共同成长 {{groups[selected].current}} / {{groups[selected].target}}</view><progress percent="{{groups[selected].percent}}" stroke-width="8" activeColor="#D93A22" backgroundColor="#E7E3D8" border-radius="8" /></block>
+    </view>
+  </block>
 </view>

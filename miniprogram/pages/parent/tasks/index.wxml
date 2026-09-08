@@ -1,7 +1,7 @@
-<app-shell title="任务中心" subtitle="小禾 · 全部来源" context-label="本周">
+<app-shell title="任务中心" subtitle="{{child}} · 全部来源" context-label="{{date}}">
   <scroll-view class="filters" scroll-x><button class="filter {{filter === 'ALL' ? 'filter--selected' : ''}}" data-filter="ALL" bindtap="chooseFilter">全部</button><button class="filter {{filter === 'FAMILY' ? 'filter--selected' : ''}}" data-filter="FAMILY" bindtap="chooseFilter">家庭</button><button class="filter {{filter === 'SCHOOL' ? 'filter--selected' : ''}}" data-filter="SCHOOL" bindtap="chooseFilter">学校</button><button class="filter {{filter === 'TUTORING' ? 'filter--selected' : ''}}" data-filter="TUTORING" bindtap="chooseFilter">辅导班</button></scroll-view>
   <view class="focus-note"><t-icon name="pin" size="38rpx" color="#174E2A" /><view><view>今日重点默认开启</view><text>你没空时，系统会按必做任务和截止时间自动加入；之后可调整。</text></view></view>
-  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">9月5日 · 今天</view><view class="page-subtitle">重点任务排在前面</view></view><button class="text-link" bindtap="createTask">新增</button></view><view wx:for="{{tasks}}" wx:key="assignmentId" class="task-wrap"><view wx:if="{{item.focus}}" class="focus-badge">今日重点</view><task-row item="{{item}}" bindactivate="openTask" /></view></view>
+  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">任务列表</view><view class="page-subtitle">{{loading ? '加载中' : error ? error : tasks.length ? '当前来源的任务' : '还没有任务，可以新增家庭任务'}}</view></view><button class="text-link" bindtap="createTask">新增</button></view><view wx:for="{{tasks}}" wx:key="assignmentId" class="task-wrap"><view wx:if="{{item.focus}}" class="focus-badge">必做任务</view><task-row item="{{item}}" bindactivate="openTask" /></view></view>
   <button class="floating" bindtap="createTask"><t-icon name="add" size="36rpx" color="#FFFDF7" />布置家庭任务</button>
 </app-shell>
 <bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

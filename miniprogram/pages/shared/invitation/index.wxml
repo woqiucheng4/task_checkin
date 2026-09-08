@@ -1,15 +1,11 @@
 <view class="page">
-  <status-view wx:if="{{state === 'expired'}}" kind="error" title="邀请已失效" description="请联系老师重新生成邀请" asset="/assets/orchard/scene-invitation-expired.png" bindretry="retry" />
-  <block wx:else>
-    <view class="eyebrow">来自 春芽小学</view>
-    <view class="title">邀请小禾加入三年级 2 班</view>
-    <view class="teacher">邀请人：语文李老师</view>
-    <view class="scope">
-      <view class="scope__title">加入后，分组可看到</view>
-      <view>孩子在本分组的姓名、年级、任务完成状态和提交内容</view>
-      <view class="scope__exclude">不会看到家庭任务、个人愿望和其他分组记录</view>
-    </view>
-    <label class="consent"><checkbox checked color="#174E2A" /> 我已了解以上披露范围，并同意提交入组申请</label>
-    <button class="primary" bindtap="confirmJoin">提交申请</button>
+  <view class="title">申请加入分组</view>
+  <view class="teacher">当前孩子：{{nickname}}</view>
+  <view class="scope"><view class="scope__title">老师提供的邀请码</view><input maxlength="200" value="{{code}}" placeholder="粘贴邀请码后先核验邀请" bindinput="editCode" /><button disabled="{{working}}" loading="{{working}}" bindtap="preview">核验邀请</button><view wx:if="{{error}}">{{error}}</view></view>
+  <block wx:if="{{ready}}">
+    <view class="eyebrow">来自 {{organizationName}}</view><view class="title">邀请加入{{groupName}}</view>
+    <view class="scope"><view class="scope__title">同意后，分组可看到</view><view>孩子在本分组的昵称、年级、任务完成状态和提交内容</view><view class="scope__exclude">不会看到家庭任务、个人愿望和其他分组记录；不授权头像。</view></view>
+    <checkbox-group bindchange="editConsent"><label class="consent"><checkbox value="agree" checked="{{consent}}" color="#174E2A" />我是孩子的监护人，已了解披露范围，并同意提交入组申请</label></checkbox-group>
+    <button class="primary" disabled="{{working || !consent}}" loading="{{working}}" bindtap="confirmJoin">提交申请，等待老师审核</button>
   </block>
 </view>
