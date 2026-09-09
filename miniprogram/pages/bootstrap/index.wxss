@@ -89,10 +89,11 @@
   text-align: left;
 }
 
-.role--primary {
+.role--active {
   border-color: #d93a22;
   background: #d93a22;
   color: #fffdf7;
+  transform: translateY(2rpx);
 }
 
 .role__hint {
@@ -103,7 +104,7 @@
   font-weight: 400;
 }
 
-.role--primary .role__hint {
+.role--active .role__hint {
   color: rgba(255, 253, 247, 0.82);
 }
 
