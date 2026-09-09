@@ -61,5 +61,6 @@ declare const wx: {
   navigateBack(input?: { readonly delta?: number }): void;
   navigateTo(input: { readonly url: string }): void;
   redirectTo(input: { readonly url: string }): void;
+  reLaunch(input: { readonly url: string }): void;
   showToast(input: { readonly icon?: "none" | "success"; readonly title: string }): void;
 };

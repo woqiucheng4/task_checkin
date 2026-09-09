@@ -14,6 +14,9 @@ Page({
   editChild(event: { detail: { value: string } }) {
     this.setData({ nickname: event.detail.value });
   },
+  cancelSetup() {
+    this.setData({ notice: "", setup: false });
+  },
   async createFamily() {
     if (this.data.loading) return;
     if (!String(this.data.nickname).trim()) return showError(new Error("请填写孩子昵称"));

@@ -7,10 +7,11 @@
   <image class="tree" src="/assets/orchard/apple-mature.webp" mode="aspectFit" aria-label="成熟的苹果树" />
   <view wx:if="{{notice}}" class="privacy">{{notice}}</view>
   <view wx:if="{{setup}}" class="roles">
+    <button class="setup__back" bindtap="cancelSetup">‹ 返回选择身份</button>
     <view>由家长创建家庭，添加孩子后即可布置任务。</view>
     <input placeholder="家庭名称" value="{{familyName}}" bindinput="editFamily" />
     <input placeholder="孩子昵称（不必填真实姓名）" value="{{nickname}}" bindinput="editChild" maxlength="30" />
-    <button class="role role--primary" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
+    <button class="setup__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
   </view>
   <view wx:else class="roles">
     <button class="role role--primary" disabled="{{loading}}" data-role="child" bindtap="chooseRole">

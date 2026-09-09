@@ -14,6 +14,26 @@
   min-width: 0;
 }
 
+.shell__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  min-height: 48rpx;
+  margin: 0 0 10rpx;
+  padding: 0 8rpx 0 0;
+  border: 0;
+  background: transparent;
+  color: #174e2a;
+  font-size: 24rpx;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.shell__back-icon {
+  font-size: 38rpx;
+  font-weight: 500;
+}
+
 .shell__title {
   color: #174e2a;
   font-family: "STKaiti", "KaiTi", serif;
@@ -30,6 +50,7 @@
 
 .shell__actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 12rpx;
 }
@@ -46,6 +67,7 @@
   background: #fffdf7;
   color: #174e2a;
   font-size: 26rpx;
+  white-space: nowrap;
 }
 
 .shell__switch {
