@@ -66,7 +66,35 @@ npm run admin:build
 
 ## 微信小程序
 
-使用微信开发者工具导入仓库内的 `miniprogram/` 目录。`miniprogram/app.json` 已注册公共 3 页、孩子 6 页、家长 9 页和教师/助教 9 页。实际接入时需要配置小程序 AppID、CloudBase 环境 ID，并部署 `coreApi`；不要让客户端直接访问业务集合。
+使用微信开发者工具导入**仓库根目录**，不要单独导入 `miniprogram/`。根目录的 `project.config.json` 已将小程序目录指向 `dist/miniprogram/`、云函数目录指向 `dist/deploy/`。`miniprogram/app.json` 已注册公共 3 页、孩子 6 页、家长 9 页和教师/助教 9 页。不要让客户端直接访问业务集合。
+
+### 在另一台电脑继续开发
+
+当前开发分支统一使用共享 CloudBase 环境 `zufang`。首次在另一台电脑运行时执行：
+
+```bash
+git clone --branch feature/growth-orchard-business --single-branch \
+  https://github.com/woqiucheng4/task_checkin.git
+cd task_checkin
+npm ci
+cp .task-checkin.local.example.json .task-checkin.local.json
+npm run build:deploy
+```
+
+`.task-checkin.local.example.json` 已包含当前共享环境配置：
+
+```json
+{
+  "envId": "zufang-9g5z3mbf127882aa",
+  "appId": "wx7f63176424216ee8",
+  "resourceAppId": "wx0d22b0cfcfa8f232",
+  "mode": "shared"
+}
+```
+
+构建完成后，在微信开发者工具中导入克隆得到的 `task_checkin` 根目录。登录微信必须拥有 AppID `wx7f63176424216ee8` 的开发权限；环境 ID 和 AppID 不是登录凭据，CloudBase 仍会校验调用方身份和白名单。
+
+本机文件 `.task-checkin.local.json` 已被 Git 忽略，不会随提交覆盖其他开发者的本地配置。若以后更换 CloudBase 环境，只修改本地文件并重新运行 `npm run build:deploy`。
 
 原生页面和 Web 同构预览共享业务 ViewModel、语义设计令牌和以下果园资产体系：
 
