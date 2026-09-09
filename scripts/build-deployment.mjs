@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
@@ -57,6 +57,7 @@ async function walk(dir) {
 }
 const miniRoot = join(root, "miniprogram");
 const miniOut = join(root, "dist/miniprogram");
+await rm(miniOut, { recursive: true, force: true });
 const miniFiles = await walk(miniRoot);
 // Compile each Mini Program module to CommonJS with wx-compatible syntax.
 await build({
@@ -76,16 +77,13 @@ await build({
   format: "cjs",
   target: "es2019",
 });
-for (const path of miniFiles.filter((p) => !p.endsWith(".ts"))) {
+for (const path of miniFiles.filter(
+  (p) => !p.endsWith(".ts") && !(p.includes("/assets/orchard/") && p.endsWith(".png")),
+)) {
   const target = join(miniOut, path.slice(miniRoot.length + 1));
   await mkdir(dirname(target), { recursive: true });
   await cp(path, target);
 }
-await cp(
-  join(root, "node_modules/tdesign-miniprogram/miniprogram_dist"),
-  join(miniOut, "miniprogram_npm/tdesign-miniprogram"),
-  { recursive: true },
-);
 await writeFile(
   join(miniOut, "config/env.js"),
   `exports.CLOUD_ENV_ID = ${JSON.stringify(envId)};\n` +

@@ -2,5 +2,5 @@
   <view class="title">待审核中心</view><view class="note">按孩子和等待时间整理；提交后阳光已处于保护状态。</view>
   <scroll-view class="children" scroll-x><button wx:for="{{children}}" wx:key="id" class="child {{item.id === selected ? 'child--selected' : ''}}" data-id="{{item.id}}" bindtap="selectChild">{{item.name}} <text>{{item.count}}</text></button></scroll-view>
   <view wx:if="{{items.length}}" class="list"><button wx:for="{{items}}" wx:key="id" class="review" data-id="{{item.id}}" bindtap="open"><view class="review__top"><text class="source">{{item.source}}</text><text class="time">提交于 {{item.submittedAt}}</text></view><view class="review__title">{{item.title}}</view><view class="review__bottom"><text>{{item.academic}}</text><view>查看提交 <t-icon name="chevron-right" size="30rpx" /></view></view></button></view>
-  <status-view wx:else kind="empty" title="暂时没有待审核" description="孩子的新提交会出现在这里" asset="/assets/orchard/scene-empty-tasks.png" />
+  <status-view wx:else kind="empty" title="暂时没有待审核" description="孩子的新提交会出现在这里" asset="/assets/orchard/scene-empty-tasks.webp" />
 </view>

@@ -33,12 +33,12 @@ async function load(page: MiniPageInstance) {
       stage: current?.stage || "等待种植",
       asset:
         current?.status === "MATURE"
-          ? "/assets/orchard/apple-mature.png"
-          : "/assets/orchard/apple-seedling.png",
+          ? "/assets/orchard/apple-mature.webp"
+          : "/assets/orchard/apple-seedling.webp",
       collection: [
-        { id: "starter-apple", name: "苹果", asset: "/assets/orchard/apple-mature.png" },
-        { id: "ordinary-pear", name: "梨", asset: "/assets/orchard/pear-mature.png" },
-        { id: "rare-orange", name: "橙子", asset: "/assets/orchard/orange-mature.png" },
+        { id: "starter-apple", name: "苹果", asset: "/assets/orchard/apple-mature.webp" },
+        { id: "ordinary-pear", name: "梨", asset: "/assets/orchard/pear-mature.webp" },
+        { id: "rare-orange", name: "橙子", asset: "/assets/orchard/orange-mature.webp" },
       ].map((c) => ({ ...c, count: view.fruits.find((f) => f.catalogId === c.id)?.quantity || 0 })),
       stages: (page.data.stages as { asset: string; label: string }[]).map((s, index) => ({
         ...s,
@@ -58,9 +58,9 @@ Page({
   },
   data: {
     collection: [
-      { asset: "/assets/orchard/apple-mature.png", count: 0, name: "苹果" },
-      { asset: "/assets/orchard/pear-mature.png", count: 0, name: "梨" },
-      { asset: "/assets/orchard/orange-mature.png", count: 0, name: "橙子" },
+      { asset: "/assets/orchard/apple-mature.webp", count: 0, name: "苹果" },
+      { asset: "/assets/orchard/pear-mature.webp", count: 0, name: "梨" },
+      { asset: "/assets/orchard/orange-mature.webp", count: 0, name: "橙子" },
     ],
     loading: true,
     ready: false,
@@ -70,16 +70,16 @@ Page({
     progress: 0,
     selecting: false,
     stages: [
-      { asset: "/assets/orchard/apple-seed.png", done: false, label: "种子" },
-      { asset: "/assets/orchard/apple-sprout.png", done: false, label: "发芽" },
-      { asset: "/assets/orchard/apple-seedling.png", done: false, label: "幼苗" },
-      { asset: "/assets/orchard/apple-trunk.png", done: false, label: "树干" },
-      { asset: "/assets/orchard/apple-leaves.png", done: false, label: "长叶" },
-      { asset: "/assets/orchard/apple-bud.png", done: false, label: "花苞" },
-      { asset: "/assets/orchard/apple-blossom.png", done: false, label: "开花" },
-      { asset: "/assets/orchard/apple-fruit-small.png", done: false, label: "幼果" },
-      { asset: "/assets/orchard/apple-fruit-growing.png", done: false, label: "长大" },
-      { asset: "/assets/orchard/apple-mature.png", done: false, label: "成熟" },
+      { asset: "/assets/orchard/apple-seed.webp", done: false, label: "种子" },
+      { asset: "/assets/orchard/apple-sprout.webp", done: false, label: "发芽" },
+      { asset: "/assets/orchard/apple-seedling.webp", done: false, label: "幼苗" },
+      { asset: "/assets/orchard/apple-trunk.webp", done: false, label: "树干" },
+      { asset: "/assets/orchard/apple-leaves.webp", done: false, label: "长叶" },
+      { asset: "/assets/orchard/apple-bud.webp", done: false, label: "花苞" },
+      { asset: "/assets/orchard/apple-blossom.webp", done: false, label: "开花" },
+      { asset: "/assets/orchard/apple-fruit-small.webp", done: false, label: "幼果" },
+      { asset: "/assets/orchard/apple-fruit-growing.webp", done: false, label: "长大" },
+      { asset: "/assets/orchard/apple-mature.webp", done: false, label: "成熟" },
     ],
     target: 0,
   },

@@ -10,5 +10,5 @@
       <button wx:if="{{item.progress > 0}}" disabled="{{working}}" data-id="{{item.id}}" bindtap="fulfill">标记已兑现</button>
     </block>
   </view>
-  <view class="harvest"><image src="/assets/orchard/scene-harvest.png" mode="aspectFit" /><view>采摘后的果实会留在图鉴中，也可以由家长关联到愿望。</view></view>
+  <view class="harvest"><image src="/assets/orchard/scene-harvest.webp" mode="aspectFit" /><view>采摘后的果实会留在图鉴中，也可以由家长关联到愿望。</view></view>
 </view>

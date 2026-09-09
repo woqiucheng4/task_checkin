@@ -9,7 +9,7 @@ const empty = () =>
     screenState: "loading",
     sunlight: { current: 0, target: 30 },
     tasks: [],
-    tree: { asset: "/assets/orchard/apple-seed.png", level: 1, name: "我的果树" },
+    tree: { asset: "/assets/orchard/apple-seed.webp", level: 1, name: "我的果树" },
   });
 async function load(page: MiniPageInstance) {
   page.setData({ screenState: "loading" });
@@ -28,8 +28,8 @@ async function load(page: MiniPageInstance) {
           level: 1,
           asset:
             tree?.status === "MATURE"
-              ? "/assets/orchard/apple-mature.png"
-              : "/assets/orchard/apple-seedling.png",
+              ? "/assets/orchard/apple-mature.webp"
+              : "/assets/orchard/apple-seedling.webp",
         },
       }),
     );

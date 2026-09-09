@@ -14,7 +14,7 @@ Page({
     treeName: "尚未种树",
     lifetimeSunlight: 0,
     growthCards: [],
-    asset: "/assets/orchard/apple-seed.png",
+    asset: "/assets/orchard/apple-seed.webp",
     loading: true,
     error: "",
   },
@@ -43,8 +43,8 @@ Page({
         })),
         asset:
           home.currentTree?.status === "MATURE"
-            ? "/assets/orchard/apple-mature.png"
-            : "/assets/orchard/apple-seedling.png",
+            ? "/assets/orchard/apple-mature.webp"
+            : "/assets/orchard/apple-seedling.webp",
       });
     } catch (error) {
       this.setData({ error: error instanceof Error ? error.message : "加载失败" });

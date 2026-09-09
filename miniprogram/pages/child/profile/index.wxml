@@ -1,5 +1,5 @@
 <app-shell title="我的" subtitle="{{nickname}} {{grade ? '· ' + grade + '年级' : ''}}" show-role-switch="{{false}}">
-  <view class="profile-card"><image src="/assets/orchard/apple-sprout.png" mode="aspectFit" /><view><view class="profile-card__name">{{nickname}}</view><view class="profile-card__note">收获 {{fruitCount}} 个果实</view></view></view>
+  <view class="profile-card"><image src="/assets/orchard/apple-sprout.webp" mode="aspectFit" /><view><view class="profile-card__name">{{nickname}}</view><view class="profile-card__note">收获 {{fruitCount}} 个果实</view></view></view>
   <view class="page-section">
     <view class="page-title">我的分组</view>
     <view wx:if="{{!groups.length}}" class="setting-row__note">还没有加入分组，请家长使用老师提供的邀请码申请加入。</view>

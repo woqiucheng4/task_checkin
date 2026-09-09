@@ -1,4 +1,4 @@
 {
   "navigationBarTitleText": "确认提交",
-  "usingComponents": { "t-icon": "tdesign-miniprogram/icon/icon" }
+  "usingComponents": { "t-icon": "/components/ui-icon/index" }
 }

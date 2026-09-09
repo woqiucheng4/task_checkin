@@ -1,0 +1,29 @@
+<text
+  class="ui-icon"
+  style="font-size: {{size}}; color: {{color}};"
+  aria-hidden="true"
+>
+  <block wx:if="{{name === 'activity'}}">⌁</block>
+  <block wx:elif="{{name === 'add'}}">+</block>
+  <block wx:elif="{{name === 'book-open'}}">▤</block>
+  <block wx:elif="{{name === 'calculation'}}">√</block>
+  <block wx:elif="{{name === 'camera'}}">▣</block>
+  <block wx:elif="{{name === 'check-circle'}}">✓</block>
+  <block wx:elif="{{name === 'check-circle-filled'}}">●</block>
+  <block wx:elif="{{name === 'chevron-down'}}">⌄</block>
+  <block wx:elif="{{name === 'chevron-right'}}">›</block>
+  <block wx:elif="{{name === 'download'}}">⇩</block>
+  <block wx:elif="{{name === 'edit'}}">✎</block>
+  <block wx:elif="{{name === 'education'}}">▥</block>
+  <block wx:elif="{{name === 'gift'}}">◇</block>
+  <block wx:elif="{{name === 'home'}}">⌂</block>
+  <block wx:elif="{{name === 'image-edit'}}">▧</block>
+  <block wx:elif="{{name === 'info-circle'}}">ⓘ</block>
+  <block wx:elif="{{name === 'pin'}}">⌖</block>
+  <block wx:elif="{{name === 'shield'}}">♢</block>
+  <block wx:elif="{{name === 'sunny'}}">☀</block>
+  <block wx:elif="{{name === 'user'}}">○</block>
+  <block wx:elif="{{name === 'user-switch'}}">⇄</block>
+  <block wx:elif="{{name === 'usergroup'}}">◎</block>
+  <block wx:else>·</block>
+</text>

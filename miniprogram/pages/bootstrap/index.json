@@ -1,6 +1,6 @@
 {
   "navigationBarTitleText": "进入成长果园",
   "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon"
+    "t-icon": "/components/ui-icon/index"
   }
 }

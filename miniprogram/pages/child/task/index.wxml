@@ -17,5 +17,5 @@
   <view class="reward"><t-icon name="sunny" size="42rpx" color="#EE9A25" /><text>{{task.reward}}</text></view>
   <button wx:if="{{state === 'pending'}}" class="primary" bindtap="openSubmit">开始完成</button>
   <button wx:elif="{{state === 'revision'}}" class="primary" bindtap="revise">再次提交</button>
-  <status-view wx:else kind="success" title="已经安全提交" description="你可以先去完成下一项任务" asset="/assets/orchard/scene-watering.png" />
+  <status-view wx:else kind="success" title="已经安全提交" description="你可以先去完成下一项任务" asset="/assets/orchard/scene-watering.webp" />
 </view>

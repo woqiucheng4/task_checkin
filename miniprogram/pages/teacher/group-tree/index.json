@@ -1,4 +1,4 @@
 {
   "navigationBarTitleText": "班级共育树",
-  "usingComponents": { "t-icon": "tdesign-miniprogram/icon/icon" }
+  "usingComponents": { "t-icon": "/components/ui-icon/index" }
 }

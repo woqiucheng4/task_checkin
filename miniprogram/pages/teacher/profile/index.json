@@ -3,6 +3,6 @@
   "usingComponents": {
     "app-shell": "/components/app-shell/index",
     "bottom-nav": "/components/bottom-nav/index",
-    "t-icon": "tdesign-miniprogram/icon/icon"
+    "t-icon": "/components/ui-icon/index"
   }
 }

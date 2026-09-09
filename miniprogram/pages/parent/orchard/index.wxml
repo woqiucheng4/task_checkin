@@ -1,7 +1,7 @@
 <app-shell title="孩子的果园" subtitle="查看成长，不代替孩子采摘" context-label="{{child}}">
   <view wx:if="{{loading || error}}" class="page-subtitle">{{loading ? '加载中' : error}}</view>
   <orchard-hero title="{{treeName}}" subtitle="孩子的每一次努力都被记录" asset="{{asset}}" current="{{current}}" target="{{target}}" remaining="{{remaining}}" progress-percent="{{progressPercent}}" name="{{treeName}}" />
-  <view class="growth-card"><image src="/assets/orchard/scene-watering.png" mode="aspectFit" /><view><view>累计成长阳光</view><text>{{lifetimeSunlight}} 阳光</text></view></view>
+  <view class="growth-card"><image src="/assets/orchard/scene-watering.webp" mode="aspectFit" /><view><view>累计成长阳光</view><text>{{lifetimeSunlight}} 阳光</text></view></view>
   <view class="page-section"><view class="page-section__heading"><view><view class="page-title">收获记录</view><view class="page-subtitle">每次采摘的成长纪念</view></view></view><view wx:if="{{!growthCards.length}}" class="page-subtitle">还没有采摘记录，和孩子一起培育第一棵树吧。</view><view wx:for="{{growthCards}}" wx:key="id" class="record"><text>{{item.date}}</text><view><view>{{item.title}}</view><text>已采摘</text></view></view></view>
   <button class="wish" bindtap="openWishes"><t-icon name="gift" size="42rpx" color="#174E2A" /><view><view>愿望与果实</view><text>将收获的果实关联到孩子的小愿望</text></view><t-icon name="chevron-right" size="34rpx" color="#6C7068" /></button>
 </app-shell>

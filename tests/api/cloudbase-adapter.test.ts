@@ -43,6 +43,31 @@ describe("CloudBase repository adapter", () => {
     ).resolves.toEqual([auditFixture]);
   });
 
+  it("queries when the cloud runtime does not provide structuredClone", async () => {
+    const originalStructuredClone = globalThis.structuredClone;
+    Object.defineProperty(globalThis, "structuredClone", {
+      configurable: true,
+      value: undefined,
+    });
+    try {
+      const database = new FakeCloudDatabase();
+      database.records.set(
+        COLLECTIONS.auditLogs,
+        new Map([[auditFixture.id, { ...auditFixture, _id: auditFixture.id }]]),
+      );
+      const repository = new CloudBaseRepository(database);
+
+      await expect(repository.query("auditLogs", { action: "TESTED" })).resolves.toEqual([
+        auditFixture,
+      ]);
+    } finally {
+      Object.defineProperty(globalThis, "structuredClone", {
+        configurable: true,
+        value: originalStructuredClone,
+      });
+    }
+  });
+
   it("paginates beyond the CloudBase default query window", async () => {
     const repository = new CloudBaseRepository(new FakeCloudDatabase());
     await repository.transaction(async (transaction) => {

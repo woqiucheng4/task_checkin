@@ -10,9 +10,9 @@
   <view wx:if="{{selecting}}" class="select-next">
     <view class="page-title">选择下一棵果树</view>
     <view class="choices">
-      <button data-fruit="apple" data-name="{{nickname}}的苹果树" bindtap="startNext"><image src="/assets/orchard/apple-seed.png" mode="aspectFit" /><text>苹果树</text></button>
-      <button data-fruit="pear" data-name="{{nickname}}的梨树" bindtap="startNext"><image src="/assets/orchard/pear-mature.png" mode="aspectFit" /><text>梨树</text></button>
-      <button data-fruit="orange" data-name="{{nickname}}的橙子树" bindtap="startNext"><image src="/assets/orchard/orange-mature.png" mode="aspectFit" /><text>橙子树</text></button>
+      <button data-fruit="apple" data-name="{{nickname}}的苹果树" bindtap="startNext"><image src="/assets/orchard/apple-seed.webp" mode="aspectFit" /><text>苹果树</text></button>
+      <button data-fruit="pear" data-name="{{nickname}}的梨树" bindtap="startNext"><image src="/assets/orchard/pear-mature.webp" mode="aspectFit" /><text>梨树</text></button>
+      <button data-fruit="orange" data-name="{{nickname}}的橙子树" bindtap="startNext"><image src="/assets/orchard/orange-mature.webp" mode="aspectFit" /><text>橙子树</text></button>
     </view>
   </view>
   <view class="page-section">

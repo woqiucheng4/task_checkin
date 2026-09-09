@@ -4,7 +4,7 @@
     <view class="brand__title">成长果园</view>
     <view class="brand__subtitle">选择本次要进入的身份</view>
   </view>
-  <image class="tree" src="/assets/orchard/apple-mature.png" mode="aspectFit" aria-label="成熟的苹果树" />
+  <image class="tree" src="/assets/orchard/apple-mature.webp" mode="aspectFit" aria-label="成熟的苹果树" />
   <view wx:if="{{notice}}" class="privacy">{{notice}}</view>
   <view wx:if="{{setup}}" class="roles">
     <view>由家长创建家庭，添加孩子后即可布置任务。</view>

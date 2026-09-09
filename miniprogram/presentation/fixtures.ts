@@ -55,7 +55,7 @@ function fixture(screenState: ScreenState): ChildTodayInput {
     screenState,
     sunlight: { current: 18, target: 30 },
     tasks: screenState === "empty" ? [] : tasks,
-    tree: { asset: "/assets/orchard/apple-mature.png", level: 1, name: "苹果树" },
+    tree: { asset: "/assets/orchard/apple-mature.webp", level: 1, name: "苹果树" },
   };
 }
 
