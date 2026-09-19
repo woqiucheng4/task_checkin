@@ -124,3 +124,37 @@ New/updated focused coverage includes:
 - Real CloudBase guardian revocation, storage signed URLs, OCR/AI provider, and cross-device behavior are not certified by local tests; no external deployment or configuration change occurred.
 - Task 5 still owns removing child entry/role-switcher/navigation affordances. These files were intentionally left untouched; legacy child navigation is safe even before that task lands.
 - No remaining Task 4 local code/test blocker was found during self-review.
+
+## Fix round 1/5 — task status and submitted results
+
+### Status / findings addressed
+
+Both Important findings are addressed within the parent task-detail page and its focused regression tests. No bootstrap, role-switcher, server, or configuration files were edited.
+
+1. Task detail preserves the exact server `TaskInstanceState` across all seven values. EXPIRED, CANCELLED and EXCUSED each have distinct terminal labels/descriptions; only SUBMITTED and COMPLETED use the success presentation. Only PENDING and REVISION_REQUIRED allow submission, including the imperative route handler.
+2. Every home/task-center assignment row continues to reach its childId-pinned parent task detail, which now displays the latest submission text, submission time/revision, authorized signed evidence images, and teacher academic evaluation state. Group task results no longer depend on the family review queue. The page offers no teacher review mutation. Source images and evidence images use the same account/child authorization helper; all result data is cleared on selection drift or read failure.
+
+### Changed files
+
+- `miniprogram/pages/parent/task-detail/index.ts`
+- `miniprogram/pages/parent/task-detail/index.wxml`
+- `tests/miniprogram/parent-child-workflows.test.ts`
+
+### Tests and results
+
+- Added 15 focused cases covering all seven task states, both home/task-center entry paths for FAMILY and LEARNING_GROUP submitted results, teacher approved/revision/excused states, and revoked evidence authorization. Submitted-result tests also verify child-scoped signed reads and clearing result text/images/evaluation after switching children.
+- Covering tests: `npm test -- tests/miniprogram/parent-child-workflows.test.ts tests/miniprogram/live-task-page.test.ts tests/miniprogram/live-review-page.test.ts` — PASS, 3 files / 41 tests.
+- `npm run typecheck` — PASS.
+- `npm test -- --reporter=dot` — PASS, 99 files / 517 tests.
+- `npm run build` — PASS.
+- Focused Biome check and unstaged/staged diff checks — PASS.
+
+### Repair commit
+
+- `8ea881ec4c0733e414dcd9a805d2650299b519c8` — `fix: preserve parent task status and results`
+
+### Remaining boundaries
+
+- The existing detail API returns `academicState`, but does not return free-text teacher review notes. The page displays the returned evaluation state accurately; no server change or invented review note was introduced.
+- WeChat manual compilation, real-device layout and CloudBase verification remain unperformed, as required by this task's local-only boundary.
+- The pre-existing `project.config.json` edit remains untouched and unstaged.
