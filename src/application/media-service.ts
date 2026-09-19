@@ -357,6 +357,7 @@ export class MediaService {
     input: RequestBase & { readonly submissionId: string; readonly assetId: string },
   ): Promise<SubmissionEvidenceLink> {
     requireRequestId(input.requestId);
+    const assetId = requireNonBlankString(input.assetId, "图片 ID");
     const submission = await this.dependencies.repository.read("submissions", input.submissionId);
     if (submission === undefined) {
       throw new DomainError("NOT_FOUND", "提交记录不存在");
@@ -365,7 +366,7 @@ export class MediaService {
     return this.dependencies.repository.transaction(async (tx) => {
       const currentSubmission = await tx.read("submissions", submission.id);
       const assignment = await tx.read("taskAssignments", submission.assignmentId);
-      const asset = await tx.read("mediaAssets", input.assetId);
+      const asset = await tx.read("mediaAssets", assetId);
       const links = await tx.query("submissionEvidenceLinks", { submissionId: submission.id });
       if (
         currentSubmission === undefined ||
@@ -678,6 +679,13 @@ function normalizeAssetIds(value: unknown, label: string): readonly string[] {
     throw new DomainError("INVALID_INPUT", `${label}不能重复`);
   }
   return ids;
+}
+
+function requireNonBlankString(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new DomainError("INVALID_INPUT", `${label}不能为空`);
+  }
+  return value.trim();
 }
 
 function isAssignmentScope(

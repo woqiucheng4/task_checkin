@@ -25,3 +25,11 @@
 - The public attachment action queries links inside its transaction, returns an existing link idempotently for the same asset, and rejects a fourth distinct attachment before insert. Submission creation rejects duplicate IDs and persists the same normalized IDs it validates; task source IDs are likewise validated as an array of unique nonempty strings before use.
 - Added adversarial tests for malformed and duplicate source IDs, assignment reuse within a group, cross-group reviewer denial, and the public attachment action's three-image limit.
 - Verification: focused media/submission/acceptance suites passed (21 tests); full suite passed (77 files / 283 tests); typecheck and `git diff --check` passed.
+
+## Review fix round 2
+
+- Added a runtime boundary check for public `ATTACH_SUBMISSION_EVIDENCE`: `assetId` must be a nonblank string and is trimmed before any repository access. Null, objects, and whitespace-only input now produce `INVALID_INPUT` without writing links.
+- Commands run: focused `npm test -- --run tests/acceptance/media-governance.test.ts tests/media/evidence.test.ts`; `npm run typecheck`; `git diff --check`; full `npm test`.
+- Results: focused suites passed (7 tests), typecheck and diff check passed, full suite passed (77 files / 283 tests).
+- Commit: current HEAD, `fix: validate evidence attachment asset ids`.
+- Remaining issue: repository-wide format drift outside Task 4 remains noted above; no production configuration or remote resource was changed.

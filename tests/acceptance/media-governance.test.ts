@@ -144,6 +144,26 @@ describe("media governance acceptance", () => {
       { assetId: upload.asset.id, submissionId: submitted.submission.id },
       { actor: childActor },
     );
+    const linkCount = (
+      await scenario.harness.repository.query("submissionEvidenceLinks", {
+        submissionId: submitted.submission.id,
+      })
+    ).length;
+    for (const assetId of [null, {}, "   "]) {
+      await expect(
+        scenario.result(
+          family.openId,
+          "ATTACH_SUBMISSION_EVIDENCE",
+          { assetId, submissionId: submitted.submission.id },
+          { actor: childActor },
+        ),
+      ).resolves.toMatchObject({ error: { code: "INVALID_INPUT" }, ok: false });
+    }
+    expect(
+      await scenario.harness.repository.query("submissionEvidenceLinks", {
+        submissionId: submitted.submission.id,
+      }),
+    ).toHaveLength(linkCount);
 
     await expect(
       scenario.call<MediaAsset>(family.openId, "READ_MEDIA_ASSET", { assetId: upload.asset.id }),
