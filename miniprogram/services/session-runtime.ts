@@ -32,8 +32,9 @@ export async function command<T>(
   action: CoreAction,
   payload: Readonly<Record<string, unknown>> = {},
   actor?: CoreActorSelection,
+  requestId?: string,
 ): Promise<T> {
-  const result = await client.execute(action, payload, actor);
+  const result = await client.execute(action, payload, actor, requestId);
   if (!result.ok) throw new Error(result.error.message);
   return result.data as T;
 }

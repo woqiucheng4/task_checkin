@@ -50,6 +50,34 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("reachable existing-family add-child flow", () => {
+  it("reuses its creation request after a successful response is lost", async () => {
+    const seed = await createIdentityScenario(1);
+    const api = createCoreApi(seed.harness);
+    let discardFirstCreateResponse = true;
+    cloud.callFunction.mockImplementation(async ({ data }) => {
+      const result = await api.handle(data, { openId: "wx-scenario-guardian" });
+      if (data.action === "ADD_CHILD" && discardFirstCreateResponse) {
+        discardFirstCreateResponse = false;
+        throw new Error("创建响应丢失");
+      }
+      return { result };
+    });
+    const profile = await loadPage("profile");
+    await profile.onShow();
+    profile.editChildNickname({ detail: { value: "第二个孩子" } });
+
+    await profile.addChild();
+    await profile.addChild();
+
+    const children = await seed.harness.repository.query("children");
+    expect(children).toHaveLength(2);
+    const creates = cloud.callFunction.mock.calls.filter(
+      ([request]) => request.data.action === "ADD_CHILD",
+    );
+    expect(creates).toHaveLength(2);
+    expect(creates[0]?.[0].data.requestId).toBe(creates[1]?.[0].data.requestId);
+  });
+
   it.each([false, true])(
     "adds child two through the profile and selects it from refreshed home (refresh retry: %s)",
     async (failRefresh) => {

@@ -25,13 +25,14 @@ export class CoreApiClient {
     action: CoreAction,
     rawPayload: Readonly<Record<string, unknown>>,
     actor?: CoreActorSelection,
+    requestId = this.requestIds(),
   ): Promise<CommandResult<unknown>> {
     const payload = removeCallerIdentity(rawPayload);
     const command: CoreCommand = {
       action,
       ...(actor === undefined ? {} : { actor: structuredClone(actor) }),
       payload,
-      requestId: this.requestIds(),
+      requestId,
     };
     const response = await this.cloud.callFunction({
       data: { ...command },

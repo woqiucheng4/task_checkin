@@ -8,6 +8,14 @@ import {
 } from "../../../services/session-runtime.js";
 import type { PresentationService } from "../../../../src/application/presentation-service.js";
 
+const PENDING_ADD_CHILD_KEY = "task_checkin_pending_add_child_v1";
+
+type PendingAddChild = {
+  readonly familyId: string;
+  readonly nickname: string;
+  readonly requestId: string;
+};
+
 Page({
   data: {
     navigation: buildNavigation("parent", "profile"),
@@ -62,13 +70,26 @@ Page({
     this.setData({ addingChild: true, childNotice: "" });
     try {
       if (!this.data.createdChildId) {
+        const pending = readPendingAddChild();
+        if (pending && (pending.familyId !== this.data.familyId || pending.nickname !== nickname)) {
+          throw new Error("上次添加孩子请求尚未确认，请使用原昵称重试");
+        }
+        const requestId = pending?.requestId || createRequestId();
+        if (!pending) {
+          wx.setStorageSync(PENDING_ADD_CHILD_KEY, {
+            familyId: String(this.data.familyId),
+            nickname,
+            requestId,
+          } satisfies PendingAddChild);
+        }
         const child = await command<{ id: string }>("ADD_CHILD", {
           familyId: String(this.data.familyId),
           nickname,
-        });
+        }, undefined, requestId);
         this.setData({ createdChildId: child.id, childNickname: "" });
       }
       await accountShell(true);
+      wx.setStorageSync(PENDING_ADD_CHILD_KEY, {});
       this.setData({ createdChildId: "" });
       replace("/pages/parent/home/index");
     } catch (error) {
@@ -99,3 +120,22 @@ Page({
     wx.setStorageSync("task_checkin_notification_preference", event.detail.value);
   },
 });
+
+function readPendingAddChild(): PendingAddChild | undefined {
+  const value = wx.getStorageSync(PENDING_ADD_CHILD_KEY) as Partial<PendingAddChild> | undefined;
+  if (
+    typeof value?.familyId !== "string" ||
+    typeof value.nickname !== "string" ||
+    typeof value.requestId !== "string" ||
+    !value.familyId ||
+    !value.nickname ||
+    !value.requestId
+  ) {
+    return undefined;
+  }
+  return value as PendingAddChild;
+}
+
+function createRequestId(): string {
+  return globalThis.crypto?.randomUUID?.() || `add-child-${Date.now()}-${Math.random()}`;
+}
