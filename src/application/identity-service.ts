@@ -273,6 +273,16 @@ export class IdentityService {
     },
   ): Promise<Group> {
     await this.policy.requireOrganizationRole(actor, input.organizationId, ["ORGANIZATION_ADMIN"]);
+    const organization = await this.dependencies.repository.read("organizations", input.organizationId);
+    if (organization?.status !== "ACTIVE") {
+      throw new DomainError("NOT_FOUND", "机构不存在或已停用");
+    }
+    if (organization.type === "TEACHER_WORKSPACE" && input.type !== "LEARNING_GROUP") {
+      throw new DomainError("FORBIDDEN", "教师工作空间只能创建学习小组");
+    }
+    if (organization.type !== "TEACHER_WORKSPACE" && input.type === "LEARNING_GROUP") {
+      throw new DomainError("FORBIDDEN", "学习小组只能在教师工作空间创建");
+    }
     requireName(input.name, "分组名称");
     requireRequestId(input.requestId);
     const now = this.dependencies.clock.now();

@@ -1,16 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { IdentityService } from "../../src/application/identity-service.js";
 import { InvitationService } from "../../src/application/invitation-service.js";
+import { TeacherActivationService } from "../../src/application/teacher-activation-service.js";
 import type { ActorContext } from "../../src/domain/model.js";
 import { createHarness } from "../helpers/harness.js";
 
 const platform: ActorContext = { accountId: "platform-operator", mode: "PLATFORM" };
+const teacherActivationPepper = "invitation-test-teacher-activation-pepper";
 
 async function invitationScenario(now = "2026-09-05T10:00:00.000Z") {
   const harness = createHarness({}, now);
   const identity = new IdentityService(harness);
   const invitations = new InvitationService(harness);
+  const activations = new TeacherActivationService(harness);
   const guardianAccount = await identity.createAccount({
     openId: "wx-guardian",
     requestId: "account-guardian",
@@ -31,22 +34,27 @@ async function invitationScenario(now = "2026-09-05T10:00:00.000Z") {
     nickname: "果果",
     requestId: "child-guardian",
   });
-  const organization = await identity.createOrganization(platform, {
-    adminAccountId: teacher.accountId,
-    name: "青禾学校",
-    requestId: "organization-teacher",
-    type: "SCHOOL",
+  const activation = await activations.issue(platform, {
+    expiresAt: "2026-09-06T10:00:00.000Z",
+    requestId: "activation-issue-teacher",
+  });
+  const organization = await identity.activateTeacherWorkspace(teacher, {
+    code: activation.code,
+    requestId: "activation-redeem-teacher",
+    workspaceName: "青禾老师",
   });
   const group = await identity.createGroup(teacher, {
-    name: "三年级一班",
+    name: "三年级学习小组",
     organizationId: organization.id,
     requestId: "group-teacher",
-    type: "SCHOOL_CLASS",
+    type: "LEARNING_GROUP",
   });
   return { child, family, group, guardian, harness, invitations, organization, teacher };
 }
 
 describe("group invitation lifecycle", () => {
+  beforeEach(() => vi.stubEnv("TEACHER_ACTIVATION_PEPPER", teacherActivationPepper));
+  afterEach(() => vi.unstubAllEnvs());
   it("previews the real destination without granting consent or consuming an invitation", async () => {
     const seed = await invitationScenario();
     const created = await seed.invitations.createGroupInvitation(seed.teacher, {
@@ -57,9 +65,9 @@ describe("group invitation lifecycle", () => {
     });
     const result = await seed.invitations.preview(seed.guardian, created.code);
     expect(result).toMatchObject({
-      groupName: "三年级一班",
-      organizationName: "青禾学校",
-      type: "SCHOOL",
+      groupName: "三年级学习小组",
+      organizationName: "青禾老师",
+      type: "TEACHER_WORKSPACE",
     });
     expect(result).not.toHaveProperty("codeHash");
     expect(await seed.harness.repository.query("consentRecords")).toHaveLength(0);

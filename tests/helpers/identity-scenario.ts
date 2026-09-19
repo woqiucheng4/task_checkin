@@ -1,5 +1,6 @@
 import { IdentityService } from "../../src/application/identity-service.js";
 import { InvitationService } from "../../src/application/invitation-service.js";
+import { TeacherActivationService } from "../../src/application/teacher-activation-service.js";
 import type { ActorContext } from "../../src/domain/model.js";
 import { createHarness } from "./harness.js";
 
@@ -10,6 +11,7 @@ export async function createIdentityScenario(childCount = 2) {
   const harness = createHarness();
   const identity = new IdentityService(harness);
   const invitations = new InvitationService(harness);
+  const activations = new TeacherActivationService(harness);
   const platform: ActorContext = { accountId: "platform-operator", mode: "PLATFORM" };
   const guardianAccount = await identity.createAccount({
     openId: "wx-scenario-guardian",
@@ -36,17 +38,21 @@ export async function createIdentityScenario(childCount = 2) {
       }),
     );
   }
-  const organization = await identity.createOrganization(platform, {
-    adminAccountId: teacher.accountId,
-    name: "青禾学校",
-    requestId: "scenario-organization",
-    type: "SCHOOL",
+  process.env.TEACHER_ACTIVATION_PEPPER ??= "identity-scenario-test-pepper";
+  const activation = await activations.issue(platform, {
+    expiresAt: "2026-09-06T10:00:00.000Z",
+    requestId: "scenario-activation-issue",
+  });
+  const organization = await identity.activateTeacherWorkspace(teacher, {
+    code: activation.code,
+    requestId: "scenario-activation-redeem",
+    workspaceName: "青禾学校",
   });
   const group = await identity.createGroup(teacher, {
     name: "三年级一班",
     organizationId: organization.id,
     requestId: "scenario-group",
-    type: "SCHOOL_CLASS",
+    type: "LEARNING_GROUP",
   });
   const invitation = await invitations.createGroupInvitation(teacher, {
     expiresAt: "2026-09-06T10:00:00.000Z",
