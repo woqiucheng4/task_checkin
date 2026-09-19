@@ -213,7 +213,12 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
         // returning their own idempotent result. Cached write receipts cannot do that.
         if (
           (TEACHER_ACTIVATION_ACTIONS as readonly string[]).includes(command.action) ||
-          ["ACADEMIC_REVIEW", "COMPLETE_REVISION", "CLAIM_INVITATION"].includes(command.action)
+          [
+            "ACADEMIC_REVIEW",
+            "COMPLETE_REVISION",
+            "CLAIM_INVITATION",
+            "RECOGNIZE_TASK_DRAFT",
+          ].includes(command.action)
         ) {
           return commandSuccess(
             await dispatch(services, command.action, actor, command.payload, command.requestId),

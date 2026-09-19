@@ -26,12 +26,23 @@ AI 审计新增唯一索引 `actorAccountId, requestId, status`，预算按固�
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm test` | PASS：90 个测试文件、386 条用例 |
+| `npm test` | PASS：复审修复后 90 个测试文件、391 条用例 |
 | `npm run typecheck` | PASS |
 | `npx biome lint`（本批修改的 16 个 TS/MJS 文件） | PASS，无警告；未以此冒充整个仓库 lint |
 | `npx biome format --write`（本批修改的 TS/MJS 文件） | 已格式化 |
 | `npm run build:deploy` | PASS，构建 taskCheckinCoreApi 与 43 个隔离集合 manifest；cloud configured: false |
 | `git diff --check` | PASS |
+
+## 复审修复轮次 1：API 通用成功回执绕过 Gateway
+
+复审发现原 C3 的 Gateway 幂等防线仍可被 `createCoreApi` 的通用 `commandReceipts` 成功缓存绕过：相同 requestId 换图或撤销发布权限后，API 直接返回缓存草稿。
+
+- 将 `RECOGNIZE_TASK_DRAFT` 加入 service-owned idempotency 分流；该动作不再查询或写入通用成功回执，旧回执保留但永不参与识别返回。
+- Gateway 在成人身份检查后校验原 requestId 与 assetId 的绑定，换成不存在的假 assetId 也返回 `CONFLICT`；原图重试仍先按当前成员/角色鉴权，再读取草稿终态，因此撤权返回 `FORBIDDEN`，不泄露原草稿。
+- 新增 5 条直接 `createCoreApi` 回归，均先 RED 复现后 GREEN：成功后换假图、撤销 organization membership、撤销 teacher binding、合法重试不重复 provider/预算且不写通用回执、忽略已有旧成功回执。
+- 复审验证：AI 测试 22 条通过；全量 90 文件/391 用例通过；typecheck、3 个修改代码文件的 Biome lint、git diff --check 均通过。
+
+本轮仅修改 core-api、AI Gateway、对应测试及本报告，单独提交；不改 media/review/invitation 服务。
 
 ## 验证边界
 

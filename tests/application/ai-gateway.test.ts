@@ -37,6 +37,154 @@ async function sourceScenario() {
 }
 
 describe("AiGateway", () => {
+  it("reauthorizes API retries and rejects a different nonexistent asset for the same request", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const api = createCoreApi({
+      ...seed.harness,
+      mediaStorage: seed.storage,
+      taskDraftProvider: provider,
+    });
+    const command = {
+      action: "RECOGNIZE_TASK_DRAFT",
+      requestId: "api-retry-different-asset",
+      payload: { assetId: seed.upload.asset.id },
+    };
+    expect(await api.handle(command, { openId: "wx-scenario-teacher" })).toMatchObject({
+      ok: true,
+    });
+    const retry = await api.handle(
+      { ...command, payload: { assetId: "nonexistent-asset" } },
+      { openId: "wx-scenario-teacher" },
+    );
+    expect(retry).toMatchObject({ ok: false, error: { code: "CONFLICT" } });
+    expect(retry).not.toHaveProperty("data");
+    expect(provider.calls).toHaveLength(1);
+  });
+
+  it.each(["membership", "binding"])(
+    "does not return a cached draft after the publisher's %s is withdrawn",
+    async (authority) => {
+      const seed = await sourceScenario();
+      let actor = seed.teacher;
+      let openId = "wx-scenario-teacher";
+      let assetId = seed.upload.asset.id;
+      if (authority === "binding") {
+        openId = "wx-api-retry-bound-teacher";
+        const account = await seed.identity.createAccount({
+          openId,
+          requestId: "api-retry-bound-account",
+        });
+        actor = { accountId: account.id, mode: "ACCOUNT" };
+        await seed.identity.bindGroupRole(seed.teacher, {
+          accountId: actor.accountId,
+          groupId: seed.group.id,
+          role: "TEACHER",
+          requestId: "api-retry-teacher-binding",
+        });
+        const source = await seed.harness.repository.read("mediaAssets", assetId);
+        if (!source) throw new Error("source missing");
+        assetId = "bound-teacher-source";
+        await seed.harness.repository.transaction((tx) =>
+          tx.insert("mediaAssets", { ...source, id: assetId, uploaderAccountId: actor.accountId }),
+        );
+      }
+      const provider = new FakeOcrProvider({
+        confidence: 1,
+        provider: "fake",
+        providerVersion: "1",
+        title: "private-draft-title",
+      });
+      const api = createCoreApi({
+        ...seed.harness,
+        mediaStorage: seed.storage,
+        taskDraftProvider: provider,
+      });
+      const command = {
+        action: "RECOGNIZE_TASK_DRAFT",
+        requestId: "api-retry-withdrawn-publisher",
+        payload: { assetId },
+      };
+      expect(await api.handle(command, { openId })).toMatchObject({ ok: true });
+      await seed.harness.repository.transaction(async (tx) => {
+        if (authority === "membership")
+          for (const member of await tx.query("organizationMembers", {
+            accountId: actor.accountId,
+          })) {
+            await tx.update("organizationMembers", member.id, { status: "WITHDRAWN" });
+          }
+        for (const binding of await tx.query("groupRoleBindings", { accountId: actor.accountId })) {
+          await tx.update("groupRoleBindings", binding.id, { status: "WITHDRAWN" });
+        }
+      });
+      const retry = await api.handle(command, { openId });
+      expect(retry).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
+      expect(retry).not.toHaveProperty("data");
+      expect(JSON.stringify(retry)).not.toContain("private-draft-title");
+      expect(provider.calls).toHaveLength(1);
+    },
+  );
+
+  it("owns successful API retry idempotency without writing generic command receipts", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const api = createCoreApi({
+      ...seed.harness,
+      mediaStorage: seed.storage,
+      taskDraftProvider: provider,
+    });
+    const command = {
+      action: "RECOGNIZE_TASK_DRAFT",
+      requestId: "api-retry-original-source",
+      payload: { assetId: seed.upload.asset.id },
+    };
+    const first = await api.handle(command, { openId: "wx-scenario-teacher" });
+    expect(first).toMatchObject({ ok: true });
+    expect(await api.handle(command, { openId: "wx-scenario-teacher" })).toEqual(first);
+    expect(provider.calls).toHaveLength(1);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([1, 1]);
+    expect(
+      await seed.harness.repository.query("commandReceipts", { action: "RECOGNIZE_TASK_DRAFT" }),
+    ).toHaveLength(0);
+  });
+
+  it("ignores legacy generic success receipts when recognizing a task draft", async () => {
+    const seed = await sourceScenario();
+    const requestId = "api-ignore-legacy-receipt";
+    await seed.harness.repository.transaction((tx) =>
+      tx.insert("commandReceipts", {
+        id: "legacy-recognition-receipt",
+        accountId: seed.teacher.accountId,
+        action: "RECOGNIZE_TASK_DRAFT",
+        requestId,
+        createdAt: seed.harness.clock.now(),
+        result: { id: "legacy-private-draft" },
+      }),
+    );
+    const provider = new FakeOcrProvider({
+      confidence: 1,
+      provider: "fake",
+      providerVersion: "1",
+      title: "fresh-authorized-draft",
+    });
+    const api = createCoreApi({
+      ...seed.harness,
+      mediaStorage: seed.storage,
+      taskDraftProvider: provider,
+    });
+    const result = await api.handle(
+      { action: "RECOGNIZE_TASK_DRAFT", requestId, payload: { assetId: seed.upload.asset.id } },
+      { openId: "wx-scenario-teacher" },
+    );
+    expect(result).toMatchObject({ ok: true, data: { title: "fresh-authorized-draft" } });
+    expect(provider.calls).toHaveLength(1);
+    expect(
+      await seed.harness.repository.query("commandReceipts", { action: "RECOGNIZE_TASK_DRAFT" }),
+    ).toHaveLength(1);
+  });
+
   it("uses private bytes once, records only a digest, and leaves an editable draft", async () => {
     const seed = await sourceScenario();
     const provider = new FakeOcrProvider({

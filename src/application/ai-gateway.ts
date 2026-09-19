@@ -57,6 +57,15 @@ export class AiGateway {
     if (!this.enabled) {
       throw new DomainError("FEATURE_DISABLED", "AI 任务草稿功能暂未开启");
     }
+    if (actor.mode !== "ACCOUNT") {
+      throw new DomainError("FORBIDDEN", "只有具备任务发布权限的成人可以识别任务图片");
+    }
+    const invocationId = `ai_${digest([actor.accountId, input.requestId])}`;
+    const priorReservation = await this.dependencies.repository.read("aiInvocations", invocationId);
+    if (priorReservation && priorReservation.assetId !== input.assetId) {
+      throw new DomainError("CONFLICT", "requestId 已用于其他题图");
+    }
+    // Reauthorize the original asset before reading or returning any saved draft.
     const asset = await this.requirePublishableSourceAsset(actor, input.assetId);
     if (asset.fileId === undefined) {
       throw new DomainError("CONFLICT", "任务图片尚未可供服务端读取");
@@ -64,7 +73,7 @@ export class AiGateway {
 
     const now = this.dependencies.clock.now();
     const invocation: AiInvocation = {
-      id: `ai_${digest([actor.accountId, input.requestId])}`,
+      id: invocationId,
       status: "RESERVED",
       actorAccountId: actor.accountId,
       assetId: asset.id,
@@ -184,9 +193,6 @@ export class AiGateway {
     actor: ActorContext,
     assetId: string,
   ): Promise<MediaAsset> {
-    if (actor.mode !== "ACCOUNT") {
-      throw new DomainError("FORBIDDEN", "只有具备任务发布权限的成人可以识别任务图片");
-    }
     const asset = await this.dependencies.repository.read("mediaAssets", assetId);
     if (asset?.status !== "ACTIVE" || asset.purpose !== "TASK_SOURCE") {
       throw new DomainError("NOT_FOUND", "任务图片不存在或不可识别");
