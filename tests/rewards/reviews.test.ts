@@ -116,6 +116,7 @@ describe("family and academic review", () => {
       requestId: "review-needs-revision",
     });
     await seed.submissions.supplement(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       mediaAssetIds: [],
       requestId: "review-corrected-submit",

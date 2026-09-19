@@ -41,11 +41,12 @@ describe("submission, review, and sunlight boundaries", () => {
     if (assignment === undefined) throw new Error("assignment missing");
     const childActor = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD" as const,
+
+      mode: "ACCOUNT" as const,
     };
     await expect(
-      submissions.submit(seed.guardian, {
+      submissions.submit(seed.teacher, {
+        childId: seed.firstChild.id,
         assignmentId: assignment.id,
         mediaAssetIds: [],
         requestId: "workflow-submit-adult",
@@ -53,21 +54,25 @@ describe("submission, review, and sunlight boundaries", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: "missing",
         mediaAssetIds: [],
         requestId: "workflow-submit-missing",
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     await submissions.acceptLateChallenge(childActor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       requestId: "workflow-accept-late",
     });
     await submissions.markExcused(seed.guardian, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       requestId: "workflow-excuse-valid",
     });
     await expect(
       submissions.markExcused(seed.guardian, {
+        childId: seed.firstChild.id,
         assignmentId: assignment.id,
         requestId: "workflow-excuse-repeat",
       }),
@@ -88,6 +93,7 @@ describe("submission, review, and sunlight boundaries", () => {
     if (photoAssignment === undefined) throw new Error("photo assignment missing");
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: photoAssignment.id,
         mediaAssetIds: [],
         requestId: "workflow-photo-empty",
@@ -109,6 +115,7 @@ describe("submission, review, and sunlight boundaries", () => {
     if (textAssignment === undefined) throw new Error("text assignment missing");
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: textAssignment.id,
         mediaAssetIds: [],
         requestId: "workflow-text-empty",
@@ -131,6 +138,7 @@ describe("submission, review, and sunlight boundaries", () => {
     if (combinedAssignment === undefined) throw new Error("combined assignment missing");
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: combinedAssignment.id,
         mediaAssetIds: ["photo"],
         requestId: "workflow-combined-no-text",
@@ -138,6 +146,7 @@ describe("submission, review, and sunlight boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: combinedAssignment.id,
         mediaAssetIds: [],
         requestId: "workflow-combined-no-photo",
@@ -162,6 +171,7 @@ describe("submission, review, and sunlight boundaries", () => {
     seed.harness.clock.set("2026-09-05T10:00:00.000Z");
     await expect(
       submissions.submit(childActor, {
+        childId: seed.firstChild.id,
         assignmentId: lateAssignment.id,
         mediaAssetIds: [],
         requestId: "workflow-late-submit",

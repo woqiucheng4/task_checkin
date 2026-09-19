@@ -26,13 +26,13 @@ describe("child-teacher AI MVP acceptance", () => {
 
     const childAActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: childA.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     const childBActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: childB.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     const storage = new FakeVerifiedMediaStorage();
     const media = new MediaService(
@@ -85,6 +85,7 @@ describe("child-teacher AI MVP acceptance", () => {
     if (assignmentA === undefined) throw new Error("child A assignment missing");
 
     await new SubmissionService(seed.harness).submit(childAActor, {
+      childId: childA.id,
       assignmentId: assignmentA.id,
       mediaAssetIds: [],
       requestId: "acceptance-child-a-submit",
@@ -105,7 +106,7 @@ describe("child-teacher AI MVP acceptance", () => {
     expect(seed.memberships).toHaveLength(1);
     expect(seed.memberships[0]).toMatchObject({ childId: childA.id, status: "ACTIVE" });
     expect(
-      await new ViewModelService(seed.harness).childToday(childAActor, "2026-09-05"),
+      await new ViewModelService(seed.harness).childToday(childAActor, "2026-09-05", childA.id),
     ).toMatchObject({
       mustDo: [expect.objectContaining({ assignmentId: assignmentA.id, taskState: "COMPLETED" })],
     });
@@ -115,7 +116,7 @@ describe("child-teacher AI MVP acceptance", () => {
     ).toHaveLength(1);
 
     expect(
-      await new ViewModelService(seed.harness).childToday(childBActor, "2026-09-05"),
+      await new ViewModelService(seed.harness).childToday(childBActor, "2026-09-05", childB.id),
     ).toMatchObject({
       mustDo: [],
     });
@@ -123,7 +124,7 @@ describe("child-teacher AI MVP acceptance", () => {
       [],
     );
     expect(await sunlight.balanceForChild(childB.id)).toBe(0);
-    await expect(media.readAsset(childBActor, upload.asset.id)).rejects.toMatchObject({
+    await expect(media.readAsset(childBActor, upload.asset.id, childB.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(

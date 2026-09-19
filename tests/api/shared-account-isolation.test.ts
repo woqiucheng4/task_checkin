@@ -58,8 +58,8 @@ async function setup() {
     storage,
     new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" }),
   );
-  const childA = { mode: "CHILD" as const, childId: seed.firstChild.id };
-  const childB = { mode: "CHILD" as const, childId: required(seed.children[1]).id };
+  const childA = { mode: "ACCOUNT" as const, childId: seed.firstChild.id };
+  const childB = { mode: "ACCOUNT" as const, childId: required(seed.children[1]).id };
   async function call(
     action: string,
     payload: object,
@@ -67,7 +67,12 @@ async function setup() {
     actor = childA,
   ) {
     return api.handle(
-      { action, payload, requestId: requestId.replaceAll("_", "-"), actor },
+      {
+        action,
+        payload: { ...payload, childId: actor.childId },
+        requestId: requestId.replaceAll("_", "-"),
+        actor: { mode: actor.mode },
+      },
       { openId: "wx-scenario-guardian" },
     );
   }
@@ -160,7 +165,11 @@ describe("final shared-account and withdrawal boundaries", () => {
       ),
     ).toMatchObject({ ok: false });
     const guardianIntent = await s.api.handle(
-      { action: "CREATE_UPLOAD_INTENT", payload, requestId: "guardian-evidence-intent" },
+      {
+        action: "CREATE_UPLOAD_INTENT",
+        payload: { ...payload, childId: s.firstChild.id },
+        requestId: "guardian-evidence-intent",
+      },
       { openId: "wx-scenario-guardian" },
     );
     expect(guardianIntent).toMatchObject({ ok: true });
@@ -169,7 +178,7 @@ describe("final shared-account and withdrawal boundaries", () => {
       await s.api.handle(
         {
           action: "UPLOAD_MEDIA_CONTENT",
-          payload: { assetId: guardianAsset.id, base64: jpeg },
+          payload: { childId: s.firstChild.id, assetId: guardianAsset.id, base64: jpeg },
           requestId: "guardian-evidence-upload",
         },
         { openId: "wx-scenario-guardian" },

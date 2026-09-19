@@ -13,6 +13,7 @@ describe("family wishes", () => {
       title: "周末去动物园",
     });
     await wishes.linkFruit(seed.guardian, {
+      childId: seed.firstChild.id,
       fruitCollectionId: seed.harvest.fruit.id,
       quantity: 1,
       requestId: "wish-link-1",
@@ -20,6 +21,7 @@ describe("family wishes", () => {
     });
 
     const fulfilled = await wishes.fulfillWish(seed.guardian, {
+      childId: seed.firstChild.id,
       requestId: "wish-fulfill-1",
       wishId: wish.id,
     });
@@ -44,6 +46,7 @@ describe("family wishes", () => {
 
     await expect(
       wishes.linkFruit(seed.guardian, {
+        childId: seed.firstChild.id,
         fruitCollectionId: seed.harvest.fruit.id,
         quantity: 2,
         requestId: "wish-link-overflow",
@@ -61,6 +64,7 @@ describe("family wishes", () => {
       title: "做一次烘焙",
     });
     await wishes.linkFruit(seed.guardian, {
+      childId: seed.firstChild.id,
       fruitCollectionId: seed.harvest.fruit.id,
       quantity: 1,
       requestId: "wish-link-release",
@@ -68,6 +72,7 @@ describe("family wishes", () => {
     });
 
     await wishes.unlinkFruit(seed.guardian, {
+      childId: seed.firstChild.id,
       fruitCollectionId: seed.harvest.fruit.id,
       quantity: 1,
       requestId: "wish-unlink-release",
@@ -89,11 +94,13 @@ describe("family wishes", () => {
     });
 
     const updated = await wishes.updateWish(seed.guardian, {
+      childId: seed.firstChild.id,
       requestId: "wish-update-edit",
       title: "新愿望",
       wishId: wish.id,
     });
     const archived = await wishes.archiveWish(seed.guardian, {
+      childId: seed.firstChild.id,
       requestId: "wish-archive-edit",
       wishId: wish.id,
     });

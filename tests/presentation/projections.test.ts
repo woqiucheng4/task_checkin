@@ -108,10 +108,11 @@ describe("UI presentation projections", () => {
     await submissions.submit(
       {
         accountId: seed.guardian.accountId,
-        childId: seed.firstChild.id,
-        mode: "CHILD",
+
+        mode: "ACCOUNT",
       },
       {
+        childId: seed.firstChild.id,
         assignmentId: assignment?.id ?? "missing",
         mediaAssetIds: [],
         requestId: "presentation-review-submit",
@@ -131,10 +132,11 @@ describe("UI presentation projections", () => {
     await submissions.submit(
       {
         accountId: seed.guardian.accountId,
-        childId: seed.firstChild.id,
-        mode: "CHILD",
+
+        mode: "ACCOUNT",
       },
       {
+        childId: seed.firstChild.id,
         assignmentId: familyAssignment?.id ?? "missing-family",
         mediaAssetIds: [],
         requestId: "presentation-family-review-submit",

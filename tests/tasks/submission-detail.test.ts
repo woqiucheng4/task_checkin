@@ -14,7 +14,9 @@ describe("submission detail access", () => {
     await expect(seed.submissions.detail(seed.teacher, seed.assignment.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    expect(await seed.submissions.detail(seed.guardian, seed.assignment.id)).toMatchObject({
+    expect(
+      await seed.submissions.detail(seed.guardian, seed.assignment.id, seed.firstChild.id),
+    ).toMatchObject({
       childLabel: "孩子1",
     });
   });
@@ -43,7 +45,7 @@ describe("submission detail access", () => {
     const api = createCoreApi(seed.harness);
     const command = {
       action: "GET_ASSIGNMENT_DETAIL",
-      payload: { assignmentId: seed.assignment.id },
+      payload: { assignmentId: seed.assignment.id, childId: seed.firstChild.id },
       requestId: "detail-read-request-0001",
     };
     const receiptsBeforeRead = await seed.harness.repository.query("commandReceipts");
@@ -59,7 +61,9 @@ describe("submission detail access", () => {
   });
   it("returns actual submitted text to the guardian", async () => {
     const seed = await createSubmittedTaskScenario("FAMILY", "TEXT");
-    expect(await seed.submissions.detail(seed.guardian, seed.assignment.id)).toMatchObject({
+    expect(
+      await seed.submissions.detail(seed.guardian, seed.assignment.id, seed.firstChild.id),
+    ).toMatchObject({
       title: "整理书桌",
       taskState: "SUBMITTED",
       submission: { text: "已经完成", mediaAssetIds: [] },

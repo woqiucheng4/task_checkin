@@ -23,7 +23,11 @@ describe("group orchard child privacy", () => {
       },
     );
 
-    const view = await groupOrchard.groupProgressForChild(seed.childActor, seed.group.id);
+    const view = await groupOrchard.groupProgressForChild(
+      seed.childActor,
+      seed.group.id,
+      seed.firstChild.id,
+    );
 
     expect(view).toEqual({
       progress: 0,
@@ -51,7 +55,7 @@ describe("group orchard child privacy", () => {
     );
 
     await expect(
-      groupOrchard.groupProgressForChild(seed.childActor, seed.group.id),
+      groupOrchard.groupProgressForChild(seed.childActor, seed.group.id, seed.firstChild.id),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

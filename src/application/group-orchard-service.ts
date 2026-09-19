@@ -129,13 +129,11 @@ export class GroupOrchardService {
   async groupProgressForChild(
     actor: ActorContext,
     groupId: string,
+    childId: string,
   ): Promise<ChildGroupProgressView> {
-    if (actor.mode !== "CHILD" || actor.childId === undefined) {
-      throw new DomainError("FORBIDDEN", "需要选择孩子身份");
-    }
-    await this.policy.requireGuardian(actor, actor.childId);
+    await this.policy.requireChildScope(actor, childId);
     const memberships = await this.dependencies.repository.query("childGroupMemberships", {
-      childId: actor.childId,
+      childId,
       groupId,
       status: "ACTIVE",
     });

@@ -155,7 +155,10 @@ describe("one-time teacher activation", () => {
     };
     for (const actor of [
       platform,
-      { ...h.actor, mode: "CHILD" as const },
+      {
+        ...h.actor,
+        mode: "CHILD" as const,
+      } as unknown as import("../../src/domain/model.js").ActorContext,
       { accountId: "missing", mode: "ACCOUNT" as const },
     ]) {
       await expect(h.identity.activateTeacherWorkspace(actor, input)).rejects.toBeDefined();

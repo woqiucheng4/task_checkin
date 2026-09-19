@@ -67,9 +67,7 @@ export class MvpPolicy {
   constructor(private readonly config: MvpPolicyConfig) {}
 
   assertAllowed(action: CoreAction, actor: ActorContext): void {
-    // ActorContext still includes CHILD while service migration is in progress,
-    // but it is never a valid Core API request identity.
-    if (actor.mode === "CHILD") {
+    if (!["ACCOUNT", "PLATFORM", "CONTENT_PROVIDER"].includes(actor.mode)) {
       throw new DomainError("INVALID_COMMAND", "孩子不能作为登录或请求身份");
     }
     if (!this.config.enabled) return;

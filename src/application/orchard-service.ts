@@ -13,6 +13,7 @@ import { DomainError } from "../shared/errors.js";
 
 interface RequestBase {
   readonly requestId: string;
+  readonly childId: string;
 }
 
 export interface OrchardView {
@@ -86,7 +87,7 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly catalogId: string },
   ): Promise<ChildTree> {
-    const childId = await this.requireSelectedChild(actor);
+    const { childId } = await this.policy.requireChildScope(actor, input.childId);
     requireRequestId(input.requestId);
     const audits = await this.dependencies.repository.query("auditLogs", {
       actorAccountId: actor.accountId,
@@ -121,7 +122,7 @@ export class OrchardService {
         }
       }
       await tx.insert("childTrees", tree);
-      await this.audit(tx, actor, input.requestId, "CHILD_TREE_STARTED", tree.id);
+      await this.audit(tx, actor, input.requestId, "CHILD_TREE_STARTED", tree.id, childId);
       return tree;
     });
   }
@@ -146,7 +147,7 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly treeId: string; readonly name: string },
   ): Promise<ChildTree> {
-    const childId = await this.requireSelectedChild(actor);
+    const { childId } = await this.policy.requireChildScope(actor, input.childId);
     requireRequestId(input.requestId);
     const name = input.name.trim();
     if (name.length < 1 || name.length > 20) {
@@ -166,7 +167,7 @@ export class OrchardService {
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
       const renamed = await tx.update("childTrees", tree.id, { name, updatedAt: now });
-      await this.audit(tx, actor, input.requestId, "CHILD_TREE_RENAMED", tree.id);
+      await this.audit(tx, actor, input.requestId, "CHILD_TREE_RENAMED", tree.id, childId);
       return renamed;
     });
   }
@@ -191,7 +192,7 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly treeId: string; readonly name?: string },
   ): Promise<HarvestResult> {
-    const childId = await this.requireSelectedChild(actor);
+    const { childId } = await this.policy.requireChildScope(actor, input.childId);
     requireRequestId(input.requestId);
     const authorizedTree = await this.dependencies.repository.read("childTrees", input.treeId);
     if (authorizedTree?.childId !== childId)
@@ -267,13 +268,13 @@ export class OrchardService {
         title,
         treeId: tree.id,
       });
-      await this.audit(tx, actor, input.requestId, "CHILD_TREE_HARVESTED", tree.id);
+      await this.audit(tx, actor, input.requestId, "CHILD_TREE_HARVESTED", tree.id, childId);
       return { fruit, growthCard, tree: harvested };
     });
   }
 
-  async orchardForChild(actor: ActorContext): Promise<OrchardView> {
-    const childId = await this.requireSelectedChild(actor);
+  async orchardForChild(actor: ActorContext, childId: string): Promise<OrchardView> {
+    await this.policy.requireChildScope(actor, childId);
     const trees = await this.dependencies.repository.query("childTrees", { childId });
     const ledgers = await this.dependencies.repository.query("sunlightLedgers", { childId });
     const fruits = await this.dependencies.repository.query("fruitCollections", { childId });
@@ -320,25 +321,15 @@ export class OrchardService {
     };
   }
 
-  private async requireSelectedChild(actor: ActorContext): Promise<string> {
-    if (actor.mode !== "CHILD" || actor.childId === undefined) {
-      throw new DomainError("FORBIDDEN", "需要选择孩子身份");
-    }
-    await this.policy.requireGuardian(actor, actor.childId);
-    return actor.childId;
-  }
-
   private async audit(
     tx: Transaction,
     actor: ActorContext,
     requestId: string,
     action: string,
     resourceId: string,
+    childId: string,
   ): Promise<void> {
-    const guardian =
-      actor.childId === undefined
-        ? undefined
-        : await this.policy.requireGuardian(actor, actor.childId);
+    const guardian = await new AccessPolicy(tx).requireChildScope(actor, childId);
     await tx.appendAudit({
       id: this.dependencies.ids.next("audit"),
       action,
@@ -348,10 +339,7 @@ export class OrchardService {
       requestId,
       resourceId,
       resourceType: action,
-      tenantScope:
-        guardian === undefined
-          ? { kind: "PLATFORM" }
-          : { kind: "FAMILY", familyId: guardian.familyId },
+      tenantScope: { kind: "FAMILY", familyId: guardian.familyId },
     });
   }
 }

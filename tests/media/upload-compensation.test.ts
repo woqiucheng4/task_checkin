@@ -42,10 +42,10 @@ async function setup() {
   const media = new MediaService(seed.harness, storage, provider);
   const actor = {
     accountId: seed.guardian.accountId,
-    mode: "CHILD" as const,
-    childId: seed.firstChild.id,
+    mode: "ACCOUNT" as const,
   };
   const { asset } = await media.createUploadIntent(actor, {
+    childId: seed.firstChild.id,
     assignmentId: assignment.id,
     purpose: "SUBMISSION_EVIDENCE",
     retentionDays: 90,
@@ -61,13 +61,18 @@ async function setup() {
   });
   const command = {
     action: "UPLOAD_MEDIA_CONTENT",
-    actor: { mode: "CHILD", childId: actor.childId },
-    payload: { assetId: asset.id, base64: Buffer.from([255, 216, 255, 0]).toString("base64") },
+    actor: { mode: "ACCOUNT" },
+    payload: {
+      childId: seed.firstChild.id,
+      assetId: asset.id,
+      base64: Buffer.from([255, 216, 255, 0]).toString("base64"),
+    },
     requestId: "upload-compensation-confirm",
   };
   const upload = () => api.handle(command, { openId: "wx-scenario-guardian" });
   const submit = () =>
     new SubmissionService(seed.harness).submit(actor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       mediaAssetIds: [asset.id],
       requestId: "upload-compensation-submit",
@@ -117,7 +122,7 @@ describe("verified upload failure compensation", () => {
       fileId: s.fileId,
       status: "QUARANTINED",
     });
-    await expect(s.media.readAsset(s.guardian, s.asset.id)).rejects.toMatchObject({
+    await expect(s.media.readAsset(s.guardian, s.asset.id, s.firstChild.id)).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
     expect(await s.upload()).toMatchObject({ ok: false });

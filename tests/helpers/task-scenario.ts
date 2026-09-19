@@ -46,10 +46,11 @@ export async function createSubmittedTaskScenario(
   }
   const childActor: ActorContext = {
     accountId: seed.guardian.accountId,
-    childId: seed.firstChild.id,
-    mode: "CHILD",
+
+    mode: "ACCOUNT",
   };
   await submissions.submit(childActor, {
+    childId: seed.firstChild.id,
     assignmentId: assignment.id,
     mediaAssetIds: [],
     requestId: "task-scenario-submit",

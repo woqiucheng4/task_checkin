@@ -34,8 +34,8 @@ async function submissionScenario(submissionMode: SubmissionMode = "CONFIRM") {
   }
   const childActor: ActorContext = {
     accountId: seed.guardian.accountId,
-    childId: seed.firstChild.id,
-    mode: "CHILD",
+
+    mode: "ACCOUNT",
   };
   return { ...seed, assignment, childActor, submissions, task, tasks };
 }
@@ -45,6 +45,7 @@ describe("submission lifecycle", () => {
     const seed = await submissionScenario("PHOTO");
     await expect(
       seed.submissions.submit(seed.childActor, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         mediaAssetIds: ["cloud://rental-env/tenant-private.jpg"],
         requestId: "submission-invalid-photo",
@@ -59,16 +60,14 @@ describe("submission lifecycle", () => {
   it("authorizes the caller before returning a repeated submission", async () => {
     const seed = await submissionScenario();
     const request = {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       mediaAssetIds: [],
       requestId: "submission-private-repeat",
     };
     await seed.submissions.submit(seed.childActor, request);
     await expect(
-      seed.submissions.submit(
-        { accountId: "outsider", childId: seed.firstChild.id, mode: "CHILD" },
-        request,
-      ),
+      seed.submissions.submit({ accountId: "outsider", mode: "ACCOUNT" }, request),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
@@ -93,6 +92,7 @@ describe("submission lifecycle", () => {
       }),
     );
     const result = await seed.submissions.submit(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       mediaAssetIds: ["media-owned-photo"],
       requestId: "submission-owned-photo",
@@ -130,6 +130,7 @@ describe("submission lifecycle", () => {
 
     await expect(
       seed.submissions.submit(seed.childActor, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         mediaAssetIds: ["media-other-assignment-photo"],
         requestId: "submission-other-assignment-photo",
@@ -141,6 +142,7 @@ describe("submission lifecycle", () => {
     const seed = await submissionScenario();
 
     const result = await seed.submissions.submit(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       mediaAssetIds: [],
       requestId: "submission-create-1",
@@ -155,6 +157,7 @@ describe("submission lifecycle", () => {
   it("returns the same submission for a repeated request id", async () => {
     const seed = await submissionScenario();
     const request = {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       mediaAssetIds: [] as string[],
       requestId: "submission-idempotent",
@@ -174,6 +177,7 @@ describe("submission lifecycle", () => {
 
     await expect(
       seed.submissions.submit(seed.childActor, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         mediaAssetIds: [],
         requestId: "submission-missing-text",
@@ -209,10 +213,11 @@ describe("submission lifecycle", () => {
     }
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     await submissions.submit(childActor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       mediaAssetIds: [],
       requestId: "revision-initial-submit",
@@ -228,6 +233,7 @@ describe("submission lifecycle", () => {
     );
 
     const result = await submissions.supplement(childActor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       mediaAssetIds: [],
       requestId: "submission-revision-1",
@@ -271,6 +277,7 @@ describe("submission lifecycle", () => {
     const seed = await submissionScenario();
 
     const result = await seed.submissions.markExcused(seed.guardian, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       requestId: "submission-excuse-1",
     });
@@ -287,6 +294,7 @@ describe("submission lifecycle", () => {
     const seed = await submissionScenario();
 
     const result = await seed.submissions.acceptLateChallenge(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       requestId: "submission-accept-late",
     });

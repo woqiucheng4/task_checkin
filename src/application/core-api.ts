@@ -513,7 +513,11 @@ async function dispatch(
     case "COMPLETE_REVISION":
       return services.reviews.completeRevision(actor, castInput(input));
     case "GET_CHILD_TODAY":
-      return services.views.childToday(actor, requireString(payload.date));
+      return services.views.childToday(
+        actor,
+        requireString(payload.date),
+        requireString(payload.childId),
+      );
     case "START_TREE":
       return services.orchard.startTree(actor, castInput(input));
     case "RENAME_TREE":
@@ -521,7 +525,7 @@ async function dispatch(
     case "HARVEST_TREE":
       return services.orchard.harvestTree(actor, castInput(input));
     case "GET_CHILD_ORCHARD":
-      return services.orchard.orchardForChild(actor);
+      return services.orchard.orchardForChild(actor, requireString(payload.childId));
     case "CREATE_WISH":
       return services.wishes.createWish(actor, castInput(input));
     case "UPDATE_WISH":
@@ -539,7 +543,11 @@ async function dispatch(
     case "START_GROUP_TREE":
       return services.groupOrchard.startGroupTree(actor, castInput(input));
     case "GET_GROUP_PROGRESS":
-      return services.groupOrchard.groupProgressForChild(actor, requireString(payload.groupId));
+      return services.groupOrchard.groupProgressForChild(
+        actor,
+        requireString(payload.groupId),
+        requireString(payload.childId),
+      );
     case "HARVEST_GROUP_TREE":
       return services.groupOrchard.harvestGroupTree(actor, castInput(input));
     case "CREATE_UPLOAD_INTENT":
@@ -547,7 +555,11 @@ async function dispatch(
     case "UPLOAD_MEDIA_CONTENT":
       return requireMedia(services).uploadContent(actor, castInput(input));
     case "GET_ASSIGNMENT_DETAIL":
-      return services.submissions.detail(actor, requireString(payload.assignmentId));
+      return services.submissions.detail(
+        actor,
+        requireString(payload.assignmentId),
+        payload.childId === undefined ? undefined : requireString(payload.childId),
+      );
     case "RECORD_UPLOAD":
       return requireMedia(services).recordUpload(actor, castInput(input));
     case "RECOGNIZE_TASK_DRAFT":
@@ -559,7 +571,11 @@ async function dispatch(
     case "ATTACH_SUBMISSION_EVIDENCE":
       return requireMedia(services).attachSubmissionEvidence(actor, castInput(input));
     case "READ_MEDIA_ASSET":
-      return requireMedia(services).readAsset(actor, requireString(payload.assetId));
+      return requireMedia(services).readAsset(
+        actor,
+        requireString(payload.assetId),
+        payload.childId === undefined ? undefined : requireString(payload.childId),
+      );
     case "DELETE_EXPIRED_MEDIA":
       return requireMedia(services).deleteExpiredAssets(actor, castInput(input));
     case "GRANT_SUPPORT_ACCESS":

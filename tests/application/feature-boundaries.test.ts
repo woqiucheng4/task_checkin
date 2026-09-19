@@ -181,6 +181,7 @@ describe("feature validation boundaries", () => {
     });
     await expect(
       media.recordUpload(seed.guardian, {
+        childId: seed.firstChild.id,
         assetId: upload.asset.id,
         observedByteSize: 10,
         observedMimeType: "image/png",
@@ -233,7 +234,9 @@ describe("feature validation boundaries", () => {
     await expect(
       media.editDraft(seed.teacher, { draftId: "missing", requestId: "media-edit-missing" }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(media.readAsset(seed.guardian, "missing")).rejects.toMatchObject({
+    await expect(
+      media.readAsset(seed.guardian, "missing", seed.firstChild.id),
+    ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
     await expect(
@@ -260,6 +263,7 @@ describe("feature validation boundaries", () => {
     );
     await expect(
       media.createUploadIntent(seed.guardian, {
+        childId: seed.firstChild.id,
         byteSize: 10,
         mimeType: "image/png",
         purpose: "SUBMISSION_EVIDENCE",
@@ -269,11 +273,12 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     const wrongChild: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: "other-child",
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     await expect(
       media.createUploadIntent(wrongChild, {
+        childId: "other-child",
         assignmentId: "missing",
         byteSize: 10,
         mimeType: "image/png",
@@ -283,6 +288,7 @@ describe("feature validation boundaries", () => {
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     const upload = await media.createUploadIntent(seed.guardian, {
+      childId: seed.firstChild.id,
       byteSize: 20,
       mimeType: "image/jpeg",
       ownerScope: { familyId: seed.family.id, kind: "FAMILY" },
@@ -291,6 +297,7 @@ describe("feature validation boundaries", () => {
       retentionDays: 90,
     });
     await media.recordUpload(seed.guardian, {
+      childId: seed.firstChild.id,
       assetId: upload.asset.id,
       observedByteSize: 20,
       observedMimeType: "image/jpeg",
@@ -331,10 +338,11 @@ describe("feature validation boundaries", () => {
       media.attachSubmissionEvidence(
         {
           accountId: seed.guardian.accountId,
-          childId: seed.firstChild.id,
-          mode: "CHILD",
+
+          mode: "ACCOUNT",
         },
         {
+          childId: seed.firstChild.id,
           assetId: upload.asset.id,
           requestId: "media-attach-submission-missing",
           submissionId: "missing",
@@ -350,35 +358,41 @@ describe("feature validation boundaries", () => {
     const seed = await createSubmittedTaskScenario("FAMILY");
     const orchard = new OrchardService(seed.harness);
     await expect(
-      orchard.startTree(seed.guardian, {
+      orchard.startTree(seed.teacher, {
+        childId: seed.firstChild.id,
         catalogId: "starter-apple",
         requestId: "orchard-actor-invalid",
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       orchard.startTree(seed.childActor, {
+        childId: seed.firstChild.id,
         catalogId: "starter-apple",
         requestId: "short",
       }),
     ).rejects.toMatchObject({ code: "INVALID_COMMAND" });
     await expect(
       orchard.startTree(seed.childActor, {
+        childId: seed.firstChild.id,
         catalogId: "missing",
         requestId: "orchard-catalog-missing",
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     const tree = await orchard.startTree(seed.childActor, {
+      childId: seed.firstChild.id,
       catalogId: "starter-apple",
       requestId: "orchard-start-valid",
     });
     await expect(
       orchard.startTree(seed.childActor, {
+        childId: seed.firstChild.id,
         catalogId: "starter-apple",
         requestId: "orchard-start-duplicate",
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
       orchard.renameTree(seed.childActor, {
+        childId: seed.firstChild.id,
         name: "",
         requestId: "orchard-name-empty",
         treeId: tree.id,
@@ -386,6 +400,7 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(
       orchard.renameTree(seed.childActor, {
+        childId: seed.firstChild.id,
         name: "x".repeat(21),
         requestId: "orchard-name-long",
         treeId: tree.id,
@@ -393,13 +408,18 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(
       orchard.renameTree(seed.childActor, {
+        childId: seed.firstChild.id,
         name: "名字",
         requestId: "orchard-tree-other",
         treeId: "missing",
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
-      orchard.harvestTree(seed.childActor, { requestId: "orchard-harvest-early", treeId: tree.id }),
+      orchard.harvestTree(seed.childActor, {
+        childId: seed.firstChild.id,
+        requestId: "orchard-harvest-early",
+        treeId: tree.id,
+      }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
   });
 
@@ -407,7 +427,7 @@ describe("feature validation boundaries", () => {
     const seed = await createHarvestedFruitScenario();
     const wishes = new WishService(seed.harness);
     await expect(
-      wishes.createWish(seed.childActor, {
+      wishes.createWish(seed.teacher, {
         childId: seed.firstChild.id,
         requestId: "wish-child-manage",
         title: "愿望",
@@ -429,6 +449,7 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_COMMAND" });
     await expect(
       wishes.updateWish(seed.guardian, {
+        childId: seed.firstChild.id,
         requestId: "wish-update-missing",
         title: "新愿望",
         wishId: "missing",
@@ -441,6 +462,7 @@ describe("feature validation boundaries", () => {
     });
     await expect(
       wishes.linkFruit(seed.guardian, {
+        childId: seed.firstChild.id,
         fruitCollectionId: seed.harvest.fruit.id,
         quantity: 0,
         requestId: "wish-link-zero",
@@ -449,6 +471,7 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(
       wishes.linkFruit(seed.guardian, {
+        childId: seed.firstChild.id,
         fruitCollectionId: "missing",
         quantity: 1,
         requestId: "wish-link-missing",
@@ -457,6 +480,7 @@ describe("feature validation boundaries", () => {
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       wishes.linkFruit(seed.guardian, {
+        childId: seed.firstChild.id,
         fruitCollectionId: seed.harvest.fruit.id,
         quantity: 2,
         requestId: "wish-link-insufficient",
@@ -464,19 +488,29 @@ describe("feature validation boundaries", () => {
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
-      wishes.fulfillWish(seed.guardian, { requestId: "wish-fulfill-empty", wishId: wish.id }),
+      wishes.fulfillWish(seed.guardian, {
+        childId: seed.firstChild.id,
+        requestId: "wish-fulfill-empty",
+        wishId: wish.id,
+      }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await wishes.linkFruit(seed.guardian, {
+      childId: seed.firstChild.id,
       fruitCollectionId: seed.harvest.fruit.id,
       quantity: 1,
       requestId: "wish-link-valid",
       wishId: wish.id,
     });
     await expect(
-      wishes.archiveWish(seed.guardian, { requestId: "wish-archive-reserved", wishId: wish.id }),
+      wishes.archiveWish(seed.guardian, {
+        childId: seed.firstChild.id,
+        requestId: "wish-archive-reserved",
+        wishId: wish.id,
+      }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
       wishes.unlinkFruit(seed.guardian, {
+        childId: seed.firstChild.id,
         fruitCollectionId: seed.harvest.fruit.id,
         quantity: 2,
         requestId: "wish-unlink-excess",
@@ -487,8 +521,8 @@ describe("feature validation boundaries", () => {
     await expect(wishes.familyWishView(platform, seed.firstChild.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    await expect(
-      wishes.familyWishView({ ...seed.childActor, childId: "other" }, seed.firstChild.id),
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(wishes.familyWishView(seed.guardian, "other")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });

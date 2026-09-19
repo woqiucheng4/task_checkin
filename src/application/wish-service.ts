@@ -12,6 +12,7 @@ import { DomainError } from "../shared/errors.js";
 
 interface RequestBase {
   readonly requestId: string;
+  readonly childId: string;
 }
 
 export interface FamilyWishView {
@@ -55,7 +56,7 @@ export class WishService {
     actor: ActorContext,
     input: RequestBase & { readonly wishId: string; readonly title: string },
   ): Promise<Wish> {
-    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId);
+    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId, input.childId);
     requireRequestId(input.requestId);
     if (wish.status !== "ACTIVE") {
       throw new DomainError("CONFLICT", "只有进行中的愿望可以修改");
@@ -75,7 +76,7 @@ export class WishService {
     actor: ActorContext,
     input: RequestBase & { readonly wishId: string },
   ): Promise<Wish> {
-    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId);
+    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId, input.childId);
     requireRequestId(input.requestId);
     if (wish.status !== "ACTIVE") {
       throw new DomainError("CONFLICT", "只有进行中的愿望可以归档");
@@ -106,7 +107,7 @@ export class WishService {
       readonly quantity: number;
     },
   ): Promise<FruitWishLink> {
-    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId);
+    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId, input.childId);
     requireRequestId(input.requestId);
     requireQuantity(input.quantity);
     if (wish.status !== "ACTIVE") {
@@ -144,7 +145,7 @@ export class WishService {
       readonly quantity: number;
     },
   ): Promise<FruitWishLink> {
-    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId);
+    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId, input.childId);
     requireRequestId(input.requestId);
     requireQuantity(input.quantity);
     const fruit = await this.requireOwnedFruit(input.fruitCollectionId, wish.childId);
@@ -176,7 +177,7 @@ export class WishService {
     actor: ActorContext,
     input: RequestBase & { readonly wishId: string },
   ): Promise<Wish> {
-    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId);
+    const { guardian, wish } = await this.requireGuardianWish(actor, input.wishId, input.childId);
     requireRequestId(input.requestId);
     if (wish.status !== "ACTIVE") {
       throw new DomainError("CONFLICT", "只有进行中的愿望可以完成");
@@ -216,16 +217,7 @@ export class WishService {
   }
 
   async familyWishView(actor: ActorContext, childId: string): Promise<FamilyWishView> {
-    if (actor.mode === "CHILD") {
-      if (actor.childId !== childId) {
-        throw new DomainError("FORBIDDEN", "孩子身份与愿望不匹配");
-      }
-      await this.policy.requireGuardian(actor, childId);
-    } else if (actor.mode === "ACCOUNT") {
-      await this.policy.requireGuardian(actor, childId);
-    } else {
-      throw new DomainError("FORBIDDEN", "机构和平台身份不能读取家庭愿望");
-    }
+    await this.policy.requireChildScope(actor, childId);
     return {
       fruits: await this.dependencies.repository.query("fruitCollections", { childId }),
       links: await this.dependencies.repository.query("fruitWishLinks", { childId }),
@@ -237,19 +229,20 @@ export class WishService {
     if (actor.mode !== "ACCOUNT") {
       throw new DomainError("FORBIDDEN", "只有成人监护人可以管理愿望");
     }
-    return this.policy.requireGuardian(actor, childId);
+    return this.policy.requireChildScope(actor, childId);
   }
 
   private async requireGuardianWish(
     actor: ActorContext,
     wishId: string,
+    childId: string,
   ): Promise<{ guardian: GuardianLink; wish: Wish }> {
     const wish = await this.dependencies.repository.read("wishes", wishId);
     if (wish === undefined) {
       throw new DomainError("NOT_FOUND", "愿望不存在");
     }
-    const guardian = await this.requireAdultGuardian(actor, wish.childId);
-    if (guardian.familyId !== wish.familyId) {
+    const guardian = await this.requireAdultGuardian(actor, childId);
+    if (guardian.familyId !== wish.familyId || guardian.childId !== wish.childId) {
       throw new DomainError("FORBIDDEN", "愿望不属于当前家庭");
     }
     return { guardian, wish };

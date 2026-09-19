@@ -22,6 +22,7 @@ async function scenario() {
   );
   const content = Buffer.from([255, 216, 255, 224, 0, 1, 255, 217]);
   const intent = await media.createUploadIntent(seed.guardian, {
+    childId: seed.firstChild.id,
     purpose: "TASK_SOURCE",
     ownerScope: { kind: "FAMILY", familyId: seed.family.id },
     byteSize: content.length,
@@ -36,6 +37,7 @@ describe("verified upload boundary", () => {
   it("stores only in the app namespace and persists the server-returned fileID", async () => {
     const seed = await scenario();
     const asset = await seed.media.uploadContent(seed.guardian, {
+      childId: seed.firstChild.id,
       assetId: seed.intent.asset.id,
       base64: seed.content.toString("base64"),
       requestId: "verified-upload-content",
@@ -56,6 +58,7 @@ describe("verified upload boundary", () => {
     const seed = await scenario();
     await expect(
       seed.media.uploadContent(seed.guardian, {
+        childId: seed.firstChild.id,
         assetId: seed.intent.asset.id,
         base64: Buffer.from("notimage").toString("base64"),
         requestId: "verified-upload-forgery",
@@ -70,6 +73,7 @@ describe("verified upload boundary", () => {
     const seed = await scenario();
     await expect(
       seed.media.recordUpload(seed.guardian, {
+        childId: seed.firstChild.id,
         assetId: seed.intent.asset.id,
         observedByteSize: seed.content.length,
         observedMimeType: "image/jpeg",

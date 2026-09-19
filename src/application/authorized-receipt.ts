@@ -84,19 +84,10 @@ export async function authorizedReceipt(
         return tx.appendAudit(record);
       },
     };
-    // Account and selected child/provider are authorization inputs even when a
-    // particular service authorizes only its target resource.
+    // Child scope is checked and tracked by each service using payload.childId.
+    // Account/provider authority is also required for every write.
     const account = await tracked.read("accounts", actor.accountId);
     if (account?.status !== "ACTIVE") throw new DomainError("UNAUTHORIZED", "账号已停用");
-    if (actor.mode === "CHILD") {
-      if (!actor.childId) throw new DomainError("FORBIDDEN", "未选择孩子");
-      const links = await tracked.query("guardianLinks", {
-        accountId: actor.accountId,
-        childId: actor.childId,
-        status: "ACTIVE",
-      });
-      if (!links.length) throw new DomainError("FORBIDDEN", "监护授权已失效");
-    }
     if (actor.mode === "CONTENT_PROVIDER") {
       const provider = actor.contentProviderId
         ? await tracked.read("contentProviders", actor.contentProviderId)

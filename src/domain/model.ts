@@ -21,8 +21,7 @@ export type TenantScope =
 
 export interface ActorContext {
   readonly accountId: string;
-  readonly mode: "ACCOUNT" | "CHILD" | "PLATFORM" | "CONTENT_PROVIDER";
-  readonly childId?: string;
+  readonly mode: "ACCOUNT" | "PLATFORM" | "CONTENT_PROVIDER";
   readonly contentProviderId?: string;
 }
 

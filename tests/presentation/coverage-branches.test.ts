@@ -105,10 +105,11 @@ describe("presentation optional and guard branches", () => {
     await submissions.submit(
       {
         accountId: seed.guardian.accountId,
-        childId: seed.firstChild.id,
-        mode: "CHILD",
+
+        mode: "ACCOUNT",
       },
       {
+        childId: seed.firstChild.id,
         assignmentId: assignment?.id ?? "missing",
         mediaAssetIds: [],
         requestId: "presentation-branches-group-submit",

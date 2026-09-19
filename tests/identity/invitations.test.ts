@@ -85,14 +85,22 @@ describe("group invitation lifecycle", () => {
     });
     await expect(
       seed.invitations.preview(
-        { ...seed.guardian, mode: "CHILD", childId: seed.child.id },
+        {
+          ...seed.guardian,
+          mode: "CHILD",
+          childId: seed.child.id,
+        } as unknown as import("../../src/domain/model.js").ActorContext,
         created.code,
         seed.child.id,
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       seed.invitations.claimInvitation(
-        { ...seed.guardian, mode: "CHILD", childId: seed.child.id },
+        {
+          ...seed.guardian,
+          mode: "CHILD",
+          childId: seed.child.id,
+        } as unknown as import("../../src/domain/model.js").ActorContext,
         {
           childId: seed.child.id,
           code: created.code,

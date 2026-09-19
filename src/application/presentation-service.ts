@@ -115,9 +115,7 @@ export class PresentationService {
   }
 
   async childGroups(actor: ActorContext, childId: string) {
-    if (actor.mode !== "ACCOUNT" && !(actor.mode === "CHILD" && actor.childId === childId))
-      throw new DomainError("FORBIDDEN", "不能读取其他孩子的分组");
-    await this.policy.requireGuardian(actor, childId);
+    await this.policy.requireChildScope(actor, childId);
     const memberships = await this.dependencies.repository.query("childGroupMemberships", {
       childId,
       status: "ACTIVE",
@@ -159,7 +157,7 @@ export class PresentationService {
     actor: ActorContext,
     input: { readonly childId: string; readonly date: string },
   ): Promise<ParentDashboardView> {
-    const guardian = await this.policy.requireGuardian(actor, input.childId);
+    const guardian = await this.policy.requireChildScope(actor, input.childId);
     const child = await this.requireRecord("children", input.childId, "孩子不存在");
     const family = await this.requireRecord("families", guardian.familyId, "家庭不存在");
     const links = await this.dependencies.repository.query("guardianLinks", {
@@ -173,12 +171,7 @@ export class PresentationService {
         return childOption(linkedChild, linkedChild.id === child.id);
       }),
     );
-    const childActor: ActorContext = {
-      accountId: actor.accountId,
-      childId: child.id,
-      mode: "CHILD",
-    };
-    const today = await this.views.childToday(childActor, input.date);
+    const today = await this.views.childToday(actor, input.date, child.id);
     const items = await Promise.all(
       [...today.mustDo, ...today.familyFocus, ...today.challenges].map((item) =>
         this.presentationTask(item.assignmentId),
@@ -230,7 +223,7 @@ export class PresentationService {
     actor: ActorContext,
     input: { readonly childId: string },
   ): Promise<ParentTaskCenterView> {
-    await this.policy.requireGuardian(actor, input.childId);
+    await this.policy.requireChildScope(actor, input.childId);
     const child = await this.requireRecord("children", input.childId, "孩子不存在");
     const assignments = await this.dependencies.repository.query("taskAssignments", {
       childId: input.childId,
@@ -246,7 +239,7 @@ export class PresentationService {
 
   async reviewQueue(actor: ActorContext, input: ReviewQueueInput): Promise<ReviewQueueView> {
     if (input.kind === "FAMILY") {
-      await this.policy.requireGuardian(actor, input.childId);
+      await this.policy.requireChildScope(actor, input.childId);
       const child = await this.requireRecord("children", input.childId, "孩子不存在");
       const assignments = await this.dependencies.repository.query(
         "taskAssignments",

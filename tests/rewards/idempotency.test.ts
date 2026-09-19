@@ -54,8 +54,9 @@ describe("reward idempotency", () => {
       throw new Error("two-child scenario did not create both assignments");
     }
     await seed.submissions.submit(
-      { accountId: seed.guardian.accountId, childId: secondChild.id, mode: "CHILD" },
+      { accountId: seed.guardian.accountId, mode: "ACCOUNT" },
       {
+        childId: secondChild.id,
         assignmentId: secondAssignment.id,
         mediaAssetIds: [],
         requestId: "review-second-child-submit",

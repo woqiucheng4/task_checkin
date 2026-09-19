@@ -22,6 +22,7 @@ describe("membership-sensitive Core API replays", () => {
           },
         );
         await seed.submissions.supplement(seed.childActor, {
+          childId: seed.firstChild.id,
           assignmentId: seed.assignment.id,
           mediaAssetIds: [],
           requestId: "replay-submit-revision",

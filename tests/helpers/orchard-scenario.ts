@@ -12,11 +12,12 @@ export async function createHarvestedFruitScenario() {
     reason: "MANUAL_CORRECTION",
     requestId: "wish-mature-grant",
   });
-  const beforeHarvest = await orchard.orchardForChild(seed.childActor);
+  const beforeHarvest = await orchard.orchardForChild(seed.childActor, seed.firstChild.id);
   if (beforeHarvest.currentTree === undefined) {
     throw new Error("wish scenario mature tree missing");
   }
   const harvest = await orchard.harvestTree(seed.childActor, {
+    childId: seed.firstChild.id,
     name: "愿望苹果树",
     requestId: "wish-tree-harvest",
     treeId: beforeHarvest.currentTree.id,

@@ -260,6 +260,7 @@ describe("atomic transitions and current disclosure", () => {
     )[0];
     if (!assignment) throw new Error("Missing assignment");
     await seed.submissions.submit(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment.id,
       mediaAssetIds: [],
       requestId: "disclosure-second-submit",

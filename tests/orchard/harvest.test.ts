@@ -14,7 +14,7 @@ async function matureTreeScenario() {
     reason: "MANUAL_CORRECTION",
     requestId: "harvest-mature-grant",
   });
-  const view = await orchard.orchardForChild(seed.childActor);
+  const view = await orchard.orchardForChild(seed.childActor, seed.firstChild.id);
   if (view.currentTree === undefined) {
     throw new Error("mature tree fixture missing");
   }
@@ -26,6 +26,7 @@ describe("orchard harvest", () => {
     const seed = await matureTreeScenario();
 
     const result = await seed.orchard.harvestTree(seed.childActor, {
+      childId: seed.firstChild.id,
       name: "小勇气",
       requestId: "harvest-tree-1",
       treeId: seed.tree.id,
@@ -34,12 +35,15 @@ describe("orchard harvest", () => {
     expect(result.tree).toMatchObject({ name: "小勇气", status: "HARVESTED" });
     expect(result.fruit).toMatchObject({ quantity: 1, reservedQuantity: 0 });
     expect(result.growthCard).toMatchObject({ treeId: seed.tree.id, title: "小勇气" });
-    expect((await seed.orchard.orchardForChild(seed.childActor)).harvestedTrees).toHaveLength(1);
+    expect(
+      (await seed.orchard.orchardForChild(seed.childActor, seed.firstChild.id)).harvestedTrees,
+    ).toHaveLength(1);
   });
 
   it("returns the same harvest result for a repeated request id", async () => {
     const seed = await matureTreeScenario();
     const request = {
+      childId: seed.firstChild.id,
       name: "小勇气",
       requestId: "harvest-repeat-1",
       treeId: seed.tree.id,
@@ -56,6 +60,7 @@ describe("orchard harvest", () => {
     const seed = await matureTreeScenario();
 
     const renamed = await seed.orchard.renameTree(seed.childActor, {
+      childId: seed.firstChild.id,
       name: "我的苹果树",
       requestId: "rename-tree-1",
       treeId: seed.tree.id,

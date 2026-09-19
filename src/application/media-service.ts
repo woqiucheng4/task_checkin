@@ -80,6 +80,7 @@ export class MediaService {
       readonly retentionDays: number;
       readonly ownerScope?: TenantScope;
       readonly assignmentId?: string;
+      readonly childId?: string;
     },
   ): Promise<UploadIntentResult> {
     requireRequestId(input.requestId);
@@ -147,10 +148,14 @@ export class MediaService {
 
   async uploadContent(
     actor: ActorContext,
-    input: RequestBase & { readonly assetId: string; readonly base64: string },
+    input: RequestBase & {
+      readonly assetId: string;
+      readonly base64: string;
+      readonly childId?: string;
+    },
   ): Promise<MediaAsset> {
     requireRequestId(input.requestId);
-    const asset = await this.requireUploader(actor, input.assetId);
+    const asset = await this.requireUploader(actor, input.assetId, input.childId);
     if (!this.storage.upload || !asset.storageKey.startsWith("task-checkin/")) {
       throw new DomainError("FORBIDDEN", "当前存储不允许此上传方式");
     }
@@ -189,7 +194,7 @@ export class MediaService {
     // Claim before storage I/O: cleanup and a second uploader must not race the
     // same physical key while its file ID is still unknown.
     const claimed = await this.dependencies.repository.transaction(async (tx) => {
-      const current = await this.requireUploader(actor, asset.id, tx);
+      const current = await this.requireUploader(actor, asset.id, input.childId, tx);
       if (current.status === "ACTIVE" && current.fileId) return current;
       if (current.status !== "PENDING_UPLOAD")
         throw new DomainError("CONFLICT", "图片正在上传或申请已失效");
@@ -208,7 +213,7 @@ export class MediaService {
     // A denied/failed activation leaves a non-readable, reclaimable quarantine.
     await this.stageUploadedFile(asset.id, input.requestId, fileId, now);
     return this.dependencies.repository.transaction(async (tx) => {
-      const current = await this.requireUploader(actor, asset.id, tx);
+      const current = await this.requireUploader(actor, asset.id, input.childId, tx);
       if (current.status === "ACTIVE" && current.fileId) return current;
       if (
         current.status !== "QUARANTINED" ||
@@ -274,11 +279,12 @@ export class MediaService {
       readonly assetId: string;
       readonly observedMimeType: string;
       readonly observedByteSize: number;
+      readonly childId?: string;
     },
   ): Promise<MediaAsset> {
     requireRequestId(input.requestId);
     if (this.storage.upload) throw new DomainError("FORBIDDEN", "必须上传实际文件，由服务端验证");
-    const asset = await this.requireUploader(actor, input.assetId);
+    const asset = await this.requireUploader(actor, input.assetId, input.childId);
     if (
       asset.status === "ACTIVE" &&
       asset.uploadConfirmationRequestId === input.requestId &&
@@ -294,7 +300,7 @@ export class MediaService {
     }
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
-      const current = await this.requireUploader(actor, asset.id, tx);
+      const current = await this.requireUploader(actor, asset.id, input.childId, tx);
       if (current.status === "ACTIVE" && current.uploadConfirmationRequestId === input.requestId)
         return current;
       if (current.status !== "PENDING_UPLOAD") throw new DomainError("CONFLICT", "上传申请已失效");
@@ -457,7 +463,11 @@ export class MediaService {
 
   async attachSubmissionEvidence(
     actor: ActorContext,
-    input: RequestBase & { readonly submissionId: string; readonly assetId: string },
+    input: RequestBase & {
+      readonly submissionId: string;
+      readonly assetId: string;
+      readonly childId: string;
+    },
   ): Promise<SubmissionEvidenceLink> {
     requireRequestId(input.requestId);
     const assetId = requireNonBlankString(input.assetId, "图片 ID");
@@ -465,16 +475,22 @@ export class MediaService {
     if (submission === undefined) {
       throw new DomainError("NOT_FOUND", "提交记录不存在");
     }
-    await this.requireChildActor(actor, submission.childId);
+    await this.policy.requireChildScope(actor, input.childId);
+    if (submission.childId !== input.childId)
+      throw new DomainError("FORBIDDEN", "提交记录不属于所选孩子");
     return this.dependencies.repository.transaction(async (tx) => {
       const currentSubmission = await tx.read("submissions", submission.id);
       const assignment = await tx.read("taskAssignments", submission.assignmentId);
-      await new AccessPolicy(tx).requireGuardian(actor, submission.childId);
+      const scope = await new AccessPolicy(tx).requireChildScope(actor, input.childId);
       const asset = await tx.read("mediaAssets", assetId);
       const links = await tx.query("submissionEvidenceLinks", { submissionId: submission.id });
       if (
         currentSubmission === undefined ||
         assignment === undefined ||
+        currentSubmission.childId !== scope.childId ||
+        currentSubmission.assignmentId !== assignment.id ||
+        assignment.childId !== scope.childId ||
+        assignment.familyId !== scope.familyId ||
         asset === undefined ||
         asset.status !== "ACTIVE" ||
         asset.purpose !== "SUBMISSION_EVIDENCE" ||
@@ -516,15 +532,22 @@ export class MediaService {
   async readAsset(
     actor: ActorContext,
     assetId: string,
+    childId?: string,
   ): Promise<MediaAsset & { downloadUrl?: string }> {
-    const asset = await this.authorizeReadableAsset(actor, assetId);
+    const asset = await this.authorizeReadableAsset(actor, assetId, childId);
     if (asset.fileId && this.storage.downloadUrl) {
       return { ...asset, downloadUrl: await this.storage.downloadUrl(asset.fileId) };
     }
     return asset;
   }
 
-  private async authorizeReadableAsset(actor: ActorContext, assetId: string): Promise<MediaAsset> {
+  private async authorizeReadableAsset(
+    actor: ActorContext,
+    assetId: string,
+    childId?: string,
+  ): Promise<MediaAsset> {
+    const childScope =
+      childId === undefined ? undefined : await this.policy.requireChildScope(actor, childId);
     const asset = await this.dependencies.repository.read("mediaAssets", assetId);
     if (asset === undefined || asset.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "图片不存在或已删除");
@@ -539,6 +562,7 @@ export class MediaService {
       );
       if (
         tasks.length === 0 &&
+        childScope === undefined &&
         actor.mode === "ACCOUNT" &&
         asset.uploaderAccountId === actor.accountId
       ) {
@@ -551,17 +575,15 @@ export class MediaService {
         });
         for (const assignment of assignments) {
           try {
-            if (actor.mode === "CHILD") {
-              await this.requireChildActor(actor, assignment.childId);
+            if (childScope !== undefined) {
+              if (
+                assignment.childId !== childScope.childId ||
+                assignment.familyId !== childScope.familyId
+              )
+                continue;
               return asset;
             }
             if (actor.mode !== "ACCOUNT") continue;
-            try {
-              await this.policy.requireGuardian(actor, assignment.childId);
-              return asset;
-            } catch (error) {
-              if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
-            }
             if (!assignment.groupId || !assignment.organizationId) continue;
             const group = await this.dependencies.repository.read("groups", assignment.groupId);
             const organization = await this.dependencies.repository.read(
@@ -600,6 +622,7 @@ export class MediaService {
     }
     if (
       actor.mode === "ACCOUNT" &&
+      childScope === undefined &&
       asset.uploaderAccountId === actor.accountId &&
       asset.purpose !== "SUBMISSION_EVIDENCE"
     ) {
@@ -617,16 +640,18 @@ export class MediaService {
       "taskAssignments",
       link.assignmentId,
     );
-    if (assignment === undefined) {
+    if (
+      assignment === undefined ||
+      link.childId !== assignment.childId ||
+      asset.assignmentId !== assignment.id ||
+      !isAssignmentScope(asset.ownerScope, assignment)
+    ) {
       throw new DomainError("FORBIDDEN", "图片关联的任务不存在");
     }
-    try {
-      await this.policy.requireGuardian(actor, assignment.childId);
+    if (childScope !== undefined) {
+      if (assignment.childId !== childScope.childId || assignment.familyId !== childScope.familyId)
+        throw new DomainError("FORBIDDEN", "图片不属于所选孩子");
       return asset;
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
-        throw error;
-      }
     }
     if (assignment.groupId !== undefined && assignment.organizationId !== undefined) {
       const memberships = await this.dependencies.repository.query("childGroupMemberships", {
@@ -796,6 +821,7 @@ export class MediaService {
       readonly purpose: MediaAsset["purpose"];
       readonly ownerScope?: TenantScope;
       readonly assignmentId?: string;
+      readonly childId?: string;
     },
     repository: ReadRepository = this.dependencies.repository,
   ): Promise<TenantScope> {
@@ -805,14 +831,10 @@ export class MediaService {
         throw new DomainError("INVALID_INPUT", "作业证据必须关联孩子任务实例");
       }
       const assignment = await repository.read("taskAssignments", input.assignmentId);
-      if (
-        !assignment ||
-        (actor.mode !== "ACCOUNT" && actor.mode !== "CHILD") ||
-        (actor.mode === "CHILD" && assignment.childId !== actor.childId)
-      ) {
+      const guardian = await policy.requireChildScope(actor, input.childId);
+      if (!assignment || assignment.childId !== guardian.childId) {
         throw new DomainError("FORBIDDEN", "作业证据不属于当前孩子任务");
       }
-      const guardian = await policy.requireGuardian(actor, assignment.childId);
       const task = await repository.read("tasks", assignment.taskId);
       const family = await repository.read("families", assignment.familyId);
       if (family?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "家庭已停用");
@@ -862,6 +884,7 @@ export class MediaService {
   private async requireUploader(
     actor: ActorContext,
     assetId: string,
+    childId: string | undefined,
     repository: ReadRepository = this.dependencies.repository,
   ): Promise<MediaAsset> {
     const asset = await repository.read("mediaAssets", assetId);
@@ -871,7 +894,11 @@ export class MediaService {
     if (asset.uploaderAccountId !== actor.accountId) {
       throw new DomainError("FORBIDDEN", "只能确认自己申请上传的图片");
     }
-    const scope = await this.resolveUploadScope(actor, asset, repository);
+    const scope = await this.resolveUploadScope(
+      actor,
+      { ...asset, ...(childId === undefined ? {} : { childId }) },
+      repository,
+    );
     if (!sameScope(scope, asset.ownerScope))
       throw new DomainError("FORBIDDEN", "上传申请空间不匹配");
     return asset;
@@ -950,13 +977,6 @@ export class MediaService {
     const access = await this.policy.requireGroupAccess(actor, groupId);
     if (access.organizationId !== organizationId)
       throw new DomainError("FORBIDDEN", "任务机构不匹配");
-  }
-
-  private async requireChildActor(actor: ActorContext, childId: string): Promise<void> {
-    if (actor.mode !== "CHILD" || actor.childId !== childId) {
-      throw new DomainError("FORBIDDEN", "当前不是该孩子的操作身份");
-    }
-    await this.policy.requireGuardian(actor, childId);
   }
 
   private async audit(

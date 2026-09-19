@@ -21,6 +21,7 @@ describe("submission evidence", () => {
     const uploads = await Promise.all(
       ["one", "two", "three", "four"].map(async (suffix) => {
         const intent = await media.createUploadIntent(seed.childActor, {
+          childId: seed.firstChild.id,
           assignmentId: seed.assignment.id,
           byteSize: 200_000,
           mimeType: "image/jpeg",
@@ -29,6 +30,7 @@ describe("submission evidence", () => {
           retentionDays: 90,
         });
         return media.recordUpload(seed.childActor, {
+          childId: seed.firstChild.id,
           assetId: intent.asset.id,
           observedByteSize: 200_000,
           observedMimeType: "image/jpeg",
@@ -38,6 +40,7 @@ describe("submission evidence", () => {
     );
     for (const [index, upload] of uploads.entries()) {
       const action = media.attachSubmissionEvidence(seed.childActor, {
+        childId: seed.firstChild.id,
         assetId: upload.id,
         requestId: `evidence-attach-${index}`,
         submissionId: submission.id,
@@ -83,6 +86,7 @@ describe("submission evidence", () => {
       new FakeOcrProvider({ confidence: 0, provider: "unused", providerVersion: "unused" }),
     );
     const upload = await media.createUploadIntent(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: otherAssignment.id,
       byteSize: 200_000,
       mimeType: "image/jpeg",
@@ -91,6 +95,7 @@ describe("submission evidence", () => {
       retentionDays: 90,
     });
     await media.recordUpload(seed.childActor, {
+      childId: seed.firstChild.id,
       assetId: upload.asset.id,
       observedByteSize: 200_000,
       observedMimeType: "image/jpeg",
@@ -99,6 +104,7 @@ describe("submission evidence", () => {
 
     await expect(
       media.attachSubmissionEvidence(seed.childActor, {
+        childId: seed.firstChild.id,
         assetId: upload.asset.id,
         requestId: "other-assignment-evidence-attach",
         submissionId: submission.id,
@@ -116,6 +122,7 @@ describe("submission evidence", () => {
 
     await expect(
       media.createUploadIntent(seed.childActor, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         byteSize: 200_000,
         mimeType: "image/jpeg",
@@ -131,6 +138,7 @@ describe("submission evidence", () => {
 
     await expect(
       seed.submissions.supplement(seed.childActor, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         mediaAssetIds: ["one", "two", "three", "four"],
         requestId: "too-many-evidence-ids",
@@ -150,6 +158,7 @@ describe("submission evidence", () => {
       }),
     );
     const upload = await media.createUploadIntent(seed.childActor, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       byteSize: 200_000,
       mimeType: "image/jpeg",
@@ -158,6 +167,7 @@ describe("submission evidence", () => {
       retentionDays: 90,
     });
     await media.recordUpload(seed.childActor, {
+      childId: seed.firstChild.id,
       assetId: upload.asset.id,
       observedByteSize: 200_000,
       observedMimeType: "image/jpeg",
@@ -170,6 +180,7 @@ describe("submission evidence", () => {
       throw new Error("submission fixture missing");
     }
     await media.attachSubmissionEvidence(seed.childActor, {
+      childId: seed.firstChild.id,
       assetId: upload.asset.id,
       requestId: "evidence-attach-1",
       submissionId: submission.id,
@@ -177,10 +188,14 @@ describe("submission evidence", () => {
 
     expect(upload.asset.expiresAt).toBe("2026-12-04T09:00:00.000Z");
 
-    await expect(media.readAsset(seed.guardian, upload.asset.id)).resolves.toMatchObject({
+    await expect(
+      media.readAsset(seed.guardian, upload.asset.id, seed.firstChild.id),
+    ).resolves.toMatchObject({
       id: upload.asset.id,
     });
-    await expect(media.readAsset(seed.childActor, upload.asset.id)).rejects.toMatchObject({
+    await expect(
+      media.readAsset(seed.guardian, upload.asset.id, "unlinked-child"),
+    ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     await expect(media.readAsset(seed.teacher, upload.asset.id)).resolves.toMatchObject({

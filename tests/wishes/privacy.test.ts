@@ -42,11 +42,17 @@ describe("wish privacy", () => {
     const wishes = new WishService(seed.harness);
 
     await expect(
-      wishes.createWish(seed.childActor, {
-        childId: seed.firstChild.id,
-        requestId: "wish-child-mutate",
-        title: "孩子不能自行兑换",
-      }),
+      wishes.createWish(
+        {
+          ...seed.guardian,
+          mode: "CHILD",
+        } as unknown as import("../../src/domain/model.js").ActorContext,
+        {
+          childId: seed.firstChild.id,
+          requestId: "wish-child-mutate",
+          title: "孩子不能自行兑换",
+        },
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

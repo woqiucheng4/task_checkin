@@ -21,12 +21,14 @@ const taskFields = {
 };
 
 describe("child today projection", () => {
-  it("rejects an adult projection and separates future or not-yet-started work", async () => {
+  it("rejects an unlinked child and separates future or not-yet-started work", async () => {
     const seed = await createIdentityScenario(1);
     seed.harness.clock.set("2026-09-05T09:00:00.000Z");
     const tasks = new TaskService(seed.harness);
     const views = new ViewModelService(seed.harness);
-    await expect(views.childToday(seed.guardian, "2026-09-05")).rejects.toMatchObject({
+    await expect(
+      views.childToday(seed.guardian, "2026-09-05", "unlinked-child"),
+    ).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     const tomorrow = await tasks.publishFamilyTask(seed.guardian, {
@@ -61,11 +63,11 @@ describe("child today projection", () => {
     });
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
 
-    const view = await views.childToday(childActor, "2026-09-05");
+    const view = await views.childToday(childActor, "2026-09-05", seed.firstChild.id);
 
     const upcomingTaskIds = await Promise.all(
       view.upcoming.map(
@@ -91,11 +93,15 @@ describe("child today projection", () => {
     )[0];
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
 
-    const view = await new ViewModelService(seed.harness).childToday(childActor, "2026-09-05");
+    const view = await new ViewModelService(seed.harness).childToday(
+      childActor,
+      "2026-09-05",
+      seed.firstChild.id,
+    );
 
     expect(view.mustDo.map((item) => item.assignmentId)).toContain(assignment?.id);
   });
@@ -114,11 +120,15 @@ describe("child today projection", () => {
     )[0];
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
 
-    const view = await new ViewModelService(seed.harness).childToday(childActor, "2026-09-05");
+    const view = await new ViewModelService(seed.harness).childToday(
+      childActor,
+      "2026-09-05",
+      seed.firstChild.id,
+    );
 
     expect(view.completionRequiredAssignmentIds).not.toContain(assignment?.id);
     expect(view.lateNoticeAssignmentIds).toContain(assignment?.id);
@@ -142,16 +152,21 @@ describe("child today projection", () => {
     )[0];
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     await submissions.submit(childActor, {
+      childId: seed.firstChild.id,
       assignmentId: assignment?.id ?? "",
       mediaAssetIds: [],
       requestId: "today-submit-1",
     });
 
-    const view = await new ViewModelService(seed.harness).childToday(childActor, "2026-09-05");
+    const view = await new ViewModelService(seed.harness).childToday(
+      childActor,
+      "2026-09-05",
+      seed.firstChild.id,
+    );
 
     expect(view.allDone).toBe(true);
     expect(view.mustDo).toMatchObject([{ taskState: "SUBMITTED", rewardState: "PROTECTED" }]);
@@ -185,10 +200,14 @@ describe("child today projection", () => {
     });
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
-    const view = await new ViewModelService(seed.harness).childToday(childActor, "2026-09-05");
+    const view = await new ViewModelService(seed.harness).childToday(
+      childActor,
+      "2026-09-05",
+      seed.firstChild.id,
+    );
 
     expect(view.familyFocus.map((item) => item.assignmentId)).toEqual(taskIds);
   });

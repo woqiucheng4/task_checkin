@@ -65,8 +65,8 @@ describe("membership and group orchard boundaries", () => {
     });
     const secondActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: second.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     const secondInvite = await invitations.createGroupInvitation(seed.teacher, {
       expiresAt: "2026-09-06T10:00:00.000Z",
@@ -150,7 +150,11 @@ describe("membership and group orchard boundaries", () => {
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(
-      new GroupOrchardService(seed.harness).groupProgressForChild(secondActor, seed.group.id),
+      new GroupOrchardService(seed.harness).groupProgressForChild(
+        secondActor,
+        seed.group.id,
+        second.id,
+      ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
@@ -160,8 +164,8 @@ describe("membership and group orchard boundaries", () => {
     const tasks = new TaskService(seed.harness);
     const childActor: ActorContext = {
       accountId: seed.guardian.accountId,
-      childId: seed.firstChild.id,
-      mode: "CHILD",
+
+      mode: "ACCOUNT",
     };
     await expect(
       groupOrchard.startGroupTree(seed.guardian, {
@@ -190,7 +194,7 @@ describe("membership and group orchard boundaries", () => {
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     await expect(
-      groupOrchard.groupProgressForChild(seed.guardian, seed.group.id),
+      groupOrchard.groupProgressForChild(seed.teacher, seed.group.id, seed.firstChild.id),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       groupOrchard.harvestGroupTree(seed.teacher, {
@@ -233,7 +237,9 @@ describe("membership and group orchard boundaries", () => {
         amount: 1,
       });
     });
-    expect(await groupOrchard.groupProgressForChild(childActor, seed.group.id)).toMatchObject({
+    expect(
+      await groupOrchard.groupProgressForChild(childActor, seed.group.id, seed.firstChild.id),
+    ).toMatchObject({
       progress: 1,
       threshold: 10,
     });

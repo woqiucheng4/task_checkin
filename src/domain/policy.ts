@@ -14,6 +14,9 @@ export class AccessPolicy {
   constructor(private readonly repository: ReadRepository) {}
 
   async requireGuardian(actor: ActorContext, childId: string): Promise<GuardianLink> {
+    if (actor.mode !== "ACCOUNT") {
+      throw new DomainError("FORBIDDEN", "监护操作必须使用成人账号");
+    }
     const links = await this.repository.query("guardianLinks", {
       accountId: actor.accountId,
       childId,
@@ -24,6 +27,22 @@ export class AccessPolicy {
       throw new DomainError("FORBIDDEN", "当前账号不是该孩子的有效监护人");
     }
     return link;
+  }
+
+  /** Child selection is request data, never an authenticated actor identity. */
+  async requireChildScope(actor: ActorContext, childId: unknown): Promise<GuardianLink> {
+    if (actor.mode !== "ACCOUNT") {
+      throw new DomainError("FORBIDDEN", "孩子操作必须使用成人账号");
+    }
+    if (typeof childId !== "string" || childId.trim().length === 0) {
+      throw new DomainError("INVALID_INPUT", "必须明确选择孩子");
+    }
+    const guardian = await this.requireGuardian(actor, childId);
+    const account = await this.repository.read("accounts", actor.accountId);
+    if (account?.status !== "ACTIVE") throw new DomainError("UNAUTHORIZED", "账号已停用");
+    const child = await this.repository.read("children", guardian.childId);
+    if (child?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "孩子档案已停用");
+    return guardian;
   }
 
   async requireFamilyRole(

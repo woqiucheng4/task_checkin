@@ -431,7 +431,7 @@ export class IdentityService {
   }
 
   private async requireActiveAccount(actor: ActorContext): Promise<Account> {
-    if (actor.mode !== "ACCOUNT" && actor.mode !== "CHILD") {
+    if (actor.mode !== "ACCOUNT") {
       throw new DomainError("FORBIDDEN", "当前身份不是普通账号");
     }
     const account = await this.dependencies.repository.read("accounts", actor.accountId);

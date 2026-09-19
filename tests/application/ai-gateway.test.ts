@@ -307,7 +307,11 @@ describe("AiGateway", () => {
 
     await expect(
       gateway.generateTaskDraft(
-        { accountId: seed.firstChild.id, childId: seed.firstChild.id, mode: "CHILD" },
+        {
+          accountId: seed.firstChild.id,
+          childId: seed.firstChild.id,
+          mode: "CHILD",
+        } as unknown as import("../../src/domain/model.js").ActorContext,
         { assetId: seed.upload.asset.id, requestId: "ai-draft-child-denied" },
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });

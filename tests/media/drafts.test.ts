@@ -129,7 +129,11 @@ describe("OCR task drafts", () => {
     );
     for (const actor of [
       other,
-      { ...seed.teacher, mode: "CHILD" as const, childId: seed.firstChild.id },
+      {
+        ...seed.teacher,
+        mode: "CHILD" as const,
+        childId: seed.firstChild.id,
+      } as unknown as import("../../src/domain/model.js").ActorContext,
     ]) {
       await expect(
         seed.media.editDraft(actor, {

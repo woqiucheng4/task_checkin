@@ -105,7 +105,7 @@ describe("media governance acceptance", () => {
     const family = await scenario.createFamilyWithChild();
     const platformOpenId = "wx-media-platform";
     await scenario.bootstrap(platformOpenId);
-    const childActor = { childId: family.child.id, mode: "CHILD" as const };
+    const childActor = { mode: "ACCOUNT" as const };
     const task = await scenario.call<Task>(family.openId, "PUBLISH_FAMILY_TASK", {
       ...ORDINARY_TASK,
       childIds: [family.child.id],
@@ -119,6 +119,7 @@ describe("media governance acceptance", () => {
       family.openId,
       "CREATE_UPLOAD_INTENT",
       {
+        childId: family.child.id,
         assignmentId: assignment.id,
         byteSize: 100_000,
         mimeType: "image/png",
@@ -131,6 +132,7 @@ describe("media governance acceptance", () => {
       family.openId,
       "RECORD_UPLOAD",
       {
+        childId: family.child.id,
         assetId: upload.asset.id,
         observedByteSize: 100_000,
         observedMimeType: "image/png",
@@ -140,13 +142,13 @@ describe("media governance acceptance", () => {
     const submitted = await scenario.call<{ submission: Submission }>(
       family.openId,
       "SUBMIT_TASK",
-      { assignmentId: assignment.id, mediaAssetIds: [upload.asset.id] },
+      { childId: family.child.id, assignmentId: assignment.id, mediaAssetIds: [upload.asset.id] },
       { actor: childActor },
     );
     await scenario.call(
       family.openId,
       "ATTACH_SUBMISSION_EVIDENCE",
-      { assetId: upload.asset.id, submissionId: submitted.submission.id },
+      { childId: family.child.id, assetId: upload.asset.id, submissionId: submitted.submission.id },
       { actor: childActor },
     );
     const linkCount = (
@@ -171,7 +173,10 @@ describe("media governance acceptance", () => {
     ).toHaveLength(linkCount);
 
     await expect(
-      scenario.call<MediaAsset>(family.openId, "READ_MEDIA_ASSET", { assetId: upload.asset.id }),
+      scenario.call<MediaAsset>(family.openId, "READ_MEDIA_ASSET", {
+        childId: family.child.id,
+        assetId: upload.asset.id,
+      }),
     ).resolves.toMatchObject({ id: upload.asset.id, status: "ACTIVE" });
     await scenario.harness.repository.transaction((tx) =>
       tx.update("taskAssignments", assignment.id, {

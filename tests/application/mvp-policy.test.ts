@@ -7,7 +7,7 @@ const child: ActorContext = {
   accountId: "guardian-1",
   childId: "child-1",
   mode: "CHILD",
-};
+} as unknown as import("../../src/domain/model.js").ActorContext;
 
 describe("MvpPolicy", () => {
   const policy = new MvpPolicy({ enabled: true });

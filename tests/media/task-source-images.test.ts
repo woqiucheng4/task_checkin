@@ -102,14 +102,15 @@ describe("task source images", () => {
       await seed.harness.repository.transaction((tx) =>
         tx.update("mediaAssets", asset.id, { fileId: `cloud://test/${asset.storageKey}` }),
       );
-      const childA: ActorContext = { ...seed.guardian, mode: "CHILD", childId: seed.firstChild.id };
+      const childA: ActorContext = { ...seed.guardian, mode: "ACCOUNT" };
       const childB: ActorContext = {
         ...seed.guardian,
-        mode: "CHILD",
-        childId: seed.children[1]!.id,
+        mode: "ACCOUNT",
       };
       await expect(media.readAsset(publisher, asset.id)).resolves.toHaveProperty("downloadUrl");
-      await expect(media.readAsset(childA, asset.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(media.readAsset(childA, asset.id, seed.firstChild.id)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
       const tasks = new TaskService(seed.harness);
       const task =
         source === "FAMILY"
@@ -129,16 +130,22 @@ describe("task source images", () => {
       const assignment = (
         await seed.harness.repository.query("taskAssignments", { taskId: task.id })
       )[0]!;
-      await expect(media.readAsset(childA, asset.id)).resolves.toHaveProperty("downloadUrl");
-      await expect(media.readAsset(seed.guardian, asset.id)).resolves.toHaveProperty("downloadUrl");
+      await expect(media.readAsset(childA, asset.id, seed.firstChild.id)).resolves.toHaveProperty(
+        "downloadUrl",
+      );
+      await expect(
+        media.readAsset(seed.guardian, asset.id, seed.firstChild.id),
+      ).resolves.toHaveProperty("downloadUrl");
       const signedReads = storage.downloadUrl.mock.calls.length;
-      await expect(media.readAsset(childB, asset.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(media.readAsset(childB, asset.id, seed.children[1]!.id)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
       expect(storage.downloadUrl).toHaveBeenCalledTimes(signedReads);
       await expect(
-        new SubmissionService(seed.harness).detail(childA, assignment.id),
+        new SubmissionService(seed.harness).detail(childA, assignment.id, seed.firstChild.id),
       ).resolves.toMatchObject({ sourceAssetIds: [asset.id] });
       await expect(
-        new SubmissionService(seed.harness).detail(childB, assignment.id),
+        new SubmissionService(seed.harness).detail(childB, assignment.id, seed.children[1]!.id),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
       const center = await new PresentationService(seed.harness).parentTaskCenter(seed.guardian, {
         childId: seed.firstChild.id,
@@ -218,9 +225,11 @@ describe("task source images", () => {
     await expect(media.readAsset(seed.teacher, asset.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
-    await expect(media.readAsset(seed.guardian, asset.id)).resolves.toMatchObject({ id: asset.id });
     await expect(
-      media.readAsset({ ...seed.guardian, mode: "CHILD", childId: seed.firstChild.id }, asset.id),
+      media.readAsset(seed.guardian, asset.id, seed.firstChild.id),
+    ).resolves.toMatchObject({ id: asset.id });
+    await expect(
+      media.readAsset({ ...seed.guardian, mode: "ACCOUNT" }, asset.id, seed.firstChild.id),
     ).resolves.toMatchObject({ id: asset.id });
   });
 

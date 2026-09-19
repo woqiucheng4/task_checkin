@@ -26,6 +26,7 @@ it("normalizes legacy review=false through publication, submission, teacher queu
   )[0];
   if (!assignment) throw new Error("Published assignment missing");
   await seed.submissions.submit(seed.childActor, {
+    childId: seed.firstChild.id,
     assignmentId: assignment.id,
     mediaAssetIds: [],
     requestId: "mandatory-review-submit",

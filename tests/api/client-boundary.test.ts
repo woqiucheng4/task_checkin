@@ -38,14 +38,14 @@ describe("mini-program core API client", () => {
 
     await client.execute(
       "GET_CHILD_TODAY",
-      { date: "2026-09-05" },
-      { childId: "child-1", mode: "CHILD" },
+      { date: "2026-09-05", childId: "child-1" },
+      { mode: "ACCOUNT" },
     );
 
     expect(cloud.lastPayload).toEqual({
       action: "GET_CHILD_TODAY",
-      actor: { childId: "child-1", mode: "CHILD" },
-      payload: { date: "2026-09-05" },
+      actor: { mode: "ACCOUNT" },
+      payload: { childId: "child-1", date: "2026-09-05" },
       requestId: "request-generated-0002",
     });
   });

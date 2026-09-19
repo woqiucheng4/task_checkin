@@ -15,7 +15,7 @@ describe("institution collaboration acceptance", () => {
     const scenario = new AcceptanceScenario();
     const family = await scenario.createFamilyWithChild();
     const institution = await scenario.createInstitution();
-    const childActor = { childId: family.child.id, mode: "CHILD" as const };
+    const childActor = { mode: "ACCOUNT" as const };
     const invitation = await scenario.call<CreatedInvitation>(
       institution.teacherOpenId,
       "CREATE_GROUP_INVITATION",
@@ -47,7 +47,7 @@ describe("institution collaboration acceptance", () => {
     await scenario.call(
       family.openId,
       "SUBMIT_TASK",
-      { assignmentId: assignment.id, mediaAssetIds: [] },
+      { childId: family.child.id, assignmentId: assignment.id, mediaAssetIds: [] },
       { actor: childActor },
     );
     await scenario.call(institution.teacherOpenId, "ACADEMIC_REVIEW", {
@@ -78,7 +78,7 @@ describe("institution collaboration acceptance", () => {
     const institution = await scenario.createInstitution();
     const outsiderOpenId = "wx-acceptance-outsider";
     await scenario.bootstrap(outsiderOpenId);
-    const childActor = { childId: family.child.id, mode: "CHILD" as const };
+    const childActor = { mode: "ACCOUNT" as const };
     const invitation = await scenario.call<CreatedInvitation>(
       institution.teacherOpenId,
       "CREATE_GROUP_INVITATION",
@@ -116,7 +116,7 @@ describe("institution collaboration acceptance", () => {
     await scenario.call(
       family.openId,
       "SUBMIT_TASK",
-      { assignmentId: assignment.id, mediaAssetIds: [] },
+      { childId: family.child.id, assignmentId: assignment.id, mediaAssetIds: [] },
       { actor: childActor },
     );
     await scenario.call(family.openId, "FAMILY_REVIEW", {
@@ -130,7 +130,7 @@ describe("institution collaboration acceptance", () => {
     const orchard = await scenario.call<OrchardView>(
       family.openId,
       "GET_CHILD_ORCHARD",
-      {},
+      { childId: family.child.id },
       { actor: childActor },
     );
     expect(orchard).toMatchObject({ currentTree: { progress: 2 }, lifetimeSunlight: 2 });
@@ -138,7 +138,7 @@ describe("institution collaboration acceptance", () => {
       await scenario.result(
         family.openId,
         "GET_GROUP_PROGRESS",
-        { groupId: institution.group.id },
+        { childId: family.child.id, groupId: institution.group.id },
         { actor: childActor },
       ),
     ).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });

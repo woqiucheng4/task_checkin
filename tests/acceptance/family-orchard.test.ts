@@ -8,7 +8,7 @@ describe("family growth orchard acceptance", () => {
   it("AC-FAMILY-001 completes three tasks, harvests the first apple, and links a private wish", async () => {
     const scenario = new AcceptanceScenario();
     const family = await scenario.createFamilyWithChild();
-    const childActor = { childId: family.child.id, mode: "CHILD" as const };
+    const childActor = { mode: "ACCOUNT" as const };
 
     for (let index = 1; index <= 3; index += 1) {
       const task = await scenario.call<Task>(family.openId, "PUBLISH_FAMILY_TASK", {
@@ -23,10 +23,7 @@ describe("family growth orchard acceptance", () => {
       await scenario.call(
         family.openId,
         "SUBMIT_TASK",
-        {
-          assignmentId: assignment.id,
-          mediaAssetIds: [],
-        },
+        { childId: family.child.id, assignmentId: assignment.id, mediaAssetIds: [] },
         { actor: childActor },
       );
       await scenario.call(family.openId, "FAMILY_REVIEW", {
@@ -38,7 +35,7 @@ describe("family growth orchard acceptance", () => {
     const orchard = await scenario.call<OrchardView>(
       family.openId,
       "GET_CHILD_ORCHARD",
-      {},
+      { childId: family.child.id },
       { actor: childActor },
     );
     expect(orchard).toMatchObject({
@@ -49,7 +46,7 @@ describe("family growth orchard acceptance", () => {
     const harvest = await scenario.call<HarvestResult>(
       family.openId,
       "HARVEST_TREE",
-      { name: "第一棵苹果树", treeId: orchard.currentTree?.id },
+      { childId: family.child.id, name: "第一棵苹果树", treeId: orchard.currentTree?.id },
       { actor: childActor },
     );
     const wish = await scenario.call<Wish>(family.openId, "CREATE_WISH", {
@@ -57,6 +54,7 @@ describe("family growth orchard acceptance", () => {
       title: "周末去科技馆",
     });
     await scenario.call(family.openId, "LINK_FRUIT", {
+      childId: family.child.id,
       fruitCollectionId: harvest.fruit.id,
       quantity: 1,
       wishId: wish.id,
@@ -73,7 +71,7 @@ describe("family growth orchard acceptance", () => {
       await scenario.call<OrchardView>(
         family.openId,
         "GET_CHILD_ORCHARD",
-        {},
+        { childId: family.child.id },
         { actor: childActor },
       ),
     ).toMatchObject({ harvestedTrees: [{ name: "第一棵苹果树" }] });

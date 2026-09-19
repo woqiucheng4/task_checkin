@@ -14,6 +14,7 @@ interface RequestBase {
 }
 
 interface SubmissionInput extends RequestBase {
+  readonly childId: string;
   readonly assignmentId: string;
   readonly text?: string;
   readonly mediaAssetIds: readonly string[];
@@ -39,47 +40,43 @@ export class SubmissionService {
     return this.createSubmission(actor, input, "REVISION_REQUIRED");
   }
 
-  async detail(actor: ActorContext, assignmentId: string) {
+  async detail(actor: ActorContext, assignmentId: string, childId?: string) {
     const { assignment, task } = await this.loadAssignment(assignmentId);
     let childLabel = "";
     let teacherAccess = false;
-    if (actor.mode === "CHILD") {
-      await this.requireChildActor(actor, assignment.childId);
+    if (childId !== undefined) {
+      await this.requireAssignmentChild(actor, childId, assignment);
     } else if (actor.mode === "ACCOUNT") {
-      try {
-        await this.policy.requireGuardian(actor, assignment.childId);
-      } catch (error) {
-        if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
-        if (!assignment.groupId || !assignment.organizationId) throw error;
-        const access = await this.policy.requireGroupAccess(actor, assignment.groupId);
-        if (access.organizationId !== assignment.organizationId)
-          throw new DomainError("FORBIDDEN", "任务机构不匹配");
-        const memberships = await this.dependencies.repository.query("childGroupMemberships", {
-          childId: assignment.childId,
-          groupId: assignment.groupId,
+      if (!assignment.groupId || !assignment.organizationId)
+        throw new DomainError("FORBIDDEN", "家长读取任务必须明确选择孩子");
+      const access = await this.policy.requireGroupAccess(actor, assignment.groupId);
+      if (access.organizationId !== assignment.organizationId)
+        throw new DomainError("FORBIDDEN", "任务机构不匹配");
+      const memberships = await this.dependencies.repository.query("childGroupMemberships", {
+        childId: assignment.childId,
+        groupId: assignment.groupId,
+        organizationId: assignment.organizationId,
+        ...(assignment.organizationMemberId === undefined
+          ? {}
+          : { organizationMemberId: assignment.organizationMemberId }),
+        status: "ACTIVE",
+      });
+      if (!memberships.length)
+        throw new DomainError("FORBIDDEN", "孩子已退出分组，不能继续读取提交内容");
+      const organizationMemberId = assignment.organizationMemberId;
+      if (!organizationMemberId) throw new DomainError("FORBIDDEN", "机构成员不存在");
+      const member = (
+        await this.dependencies.repository.query("organizationMembers", {
           organizationId: assignment.organizationId,
-          ...(assignment.organizationMemberId === undefined
-            ? {}
-            : { organizationMemberId: assignment.organizationMemberId }),
+          organizationMemberId,
+          childId: assignment.childId,
+          memberType: "CHILD",
           status: "ACTIVE",
-        });
-        if (!memberships.length)
-          throw new DomainError("FORBIDDEN", "孩子已退出分组，不能继续读取提交内容");
-        const organizationMemberId = assignment.organizationMemberId;
-        if (!organizationMemberId) throw new DomainError("FORBIDDEN", "机构成员不存在");
-        const member = (
-          await this.dependencies.repository.query("organizationMembers", {
-            organizationId: assignment.organizationId,
-            organizationMemberId,
-            childId: assignment.childId,
-            memberType: "CHILD",
-            status: "ACTIVE",
-          })
-        )[0];
-        if (!member) throw new DomainError("FORBIDDEN", "机构授权已失效");
-        teacherAccess = true;
-        childLabel = memberships[0]?.disclosure.displayName ? member.displayName : "未披露昵称";
-      }
+        })
+      )[0];
+      if (!member) throw new DomainError("FORBIDDEN", "机构授权已失效");
+      teacherAccess = true;
+      childLabel = memberships[0]?.disclosure.displayName ? member.displayName : "未披露昵称";
     } else throw new DomainError("FORBIDDEN", "当前身份不能读取孩子提交内容");
     if (!teacherAccess)
       childLabel =
@@ -116,11 +113,11 @@ export class SubmissionService {
 
   async markExcused(
     actor: ActorContext,
-    input: RequestBase & { readonly assignmentId: string },
+    input: RequestBase & { readonly assignmentId: string; readonly childId: string },
   ): Promise<TaskAssignment> {
     requireRequestId(input.requestId);
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
-    const guardian = await this.policy.requireGuardian(actor, assignment.childId);
+    const guardian = await this.requireAssignmentChild(actor, input.childId, assignment);
     if (task.source !== "FAMILY" || guardian.familyId !== assignment.familyId) {
       throw new DomainError("FORBIDDEN", "家长只能免除本家庭发布的任务");
     }
@@ -149,14 +146,14 @@ export class SubmissionService {
 
   async acceptLateChallenge(
     actor: ActorContext,
-    input: RequestBase & { readonly assignmentId: string },
+    input: RequestBase & { readonly assignmentId: string; readonly childId: string },
   ): Promise<TaskAssignment> {
     requireRequestId(input.requestId);
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
-    await this.requireChildActor(actor, assignment.childId);
+    await this.requireAssignmentChild(actor, input.childId, assignment);
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
-      await new AccessPolicy(tx).requireGuardian(actor, assignment.childId);
+      await new AccessPolicy(tx).requireChildScope(actor, input.childId);
       const current = await tx.read("taskAssignments", assignment.id);
       if (current?.acceptedLateChallenge) return current;
       const accepted = await tx.update("taskAssignments", assignment.id, {
@@ -252,7 +249,7 @@ export class SubmissionService {
     requireRequestId(input.requestId);
     const mediaAssetIds = normalizeMediaAssetIds(input.mediaAssetIds);
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
-    await this.requireChildActor(actor, assignment.childId);
+    await this.requireAssignmentChild(actor, input.childId, assignment);
     const repeated = (
       await this.dependencies.repository.query("submissions", {
         assignmentId: input.assignmentId,
@@ -359,11 +356,16 @@ export class SubmissionService {
     }
   }
 
-  private async requireChildActor(actor: ActorContext, childId: string): Promise<void> {
-    if (actor.mode !== "CHILD" || actor.childId !== childId) {
-      throw new DomainError("FORBIDDEN", "当前不是该孩子的操作身份");
+  private async requireAssignmentChild(
+    actor: ActorContext,
+    childId: string,
+    assignment: TaskAssignment,
+  ) {
+    const scope = await this.policy.requireChildScope(actor, childId);
+    if (assignment.childId !== scope.childId || assignment.familyId !== scope.familyId) {
+      throw new DomainError("FORBIDDEN", "任务不属于所选孩子");
     }
-    await this.policy.requireGuardian(actor, childId);
+    return scope;
   }
 
   private async loadAssignment(

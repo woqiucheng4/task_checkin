@@ -52,7 +52,10 @@ describe("orchard growth rules", () => {
       requestId: "orchard-first-grant",
     });
 
-    const orchard = await new OrchardService(seed.harness).orchardForChild(seed.childActor);
+    const orchard = await new OrchardService(seed.harness).orchardForChild(
+      seed.childActor,
+      seed.firstChild.id,
+    );
     expect(orchard.currentTree).toMatchObject({
       catalogId: "starter-apple",
       progress: 2,
@@ -70,22 +73,26 @@ describe("orchard growth rules", () => {
       reason: "MANUAL_CORRECTION",
       requestId: "orchard-carry-grant",
     });
-    const first = await orchard.orchardForChild(seed.childActor);
+    const first = await orchard.orchardForChild(seed.childActor, seed.firstChild.id);
     if (first.currentTree === undefined) {
       throw new Error("starter tree missing");
     }
     await orchard.harvestTree(seed.childActor, {
+      childId: seed.firstChild.id,
       name: "第一棵苹果树",
       requestId: "orchard-carry-harvest",
       treeId: first.currentTree.id,
     });
 
     const next = await orchard.startTree(seed.childActor, {
+      childId: seed.firstChild.id,
       catalogId: "ordinary-pear",
       requestId: "orchard-next-tree",
     });
 
     expect(next).toMatchObject({ carryOver: 0, progress: 2, status: "GROWING" });
-    expect((await orchard.orchardForChild(seed.childActor)).lifetimeSunlight).toBe(8);
+    expect(
+      (await orchard.orchardForChild(seed.childActor, seed.firstChild.id)).lifetimeSunlight,
+    ).toBe(8);
   });
 });

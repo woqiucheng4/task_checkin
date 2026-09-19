@@ -9,7 +9,6 @@ import type {
 } from "../domain/model.js";
 import { AccessPolicy } from "../domain/policy.js";
 import { isLateSameDayPublication } from "../shared/time.js";
-import { DomainError } from "../shared/errors.js";
 
 export interface ChildTaskItemView {
   readonly assignmentId: string;
@@ -39,13 +38,10 @@ export class ViewModelService {
     this.policy = new AccessPolicy(dependencies.repository);
   }
 
-  async childToday(actor: ActorContext, date: string): Promise<ChildTodayView> {
-    if (actor.mode !== "CHILD" || actor.childId === undefined) {
-      throw new DomainError("FORBIDDEN", "需要选择孩子身份");
-    }
-    await this.policy.requireGuardian(actor, actor.childId);
+  async childToday(actor: ActorContext, date: string, childId: string): Promise<ChildTodayView> {
+    await this.policy.requireChildScope(actor, childId);
     const assignments = await this.dependencies.repository.query("taskAssignments", {
-      childId: actor.childId,
+      childId,
     });
     const current: { assignment: (typeof assignments)[number]; task: Task }[] = [];
     const upcoming: ChildTaskItemView[] = [];
