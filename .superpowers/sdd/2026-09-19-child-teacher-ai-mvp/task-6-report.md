@@ -27,3 +27,11 @@
 ## Commit
 
 - `feat: configure DeepSeek task draft provider`
+
+## Review fix round 1
+
+- RED regression tests showed that a same-path `cloud://other-env.bucket/task-checkin/...` file could be downloaded, invalid optional DeepSeek base configuration threw during setup, and equal start/due timestamps were accepted.
+- `CloudMediaStorage` now requires an exact, injected `TASK_CHECKIN_CLOUD_FILE_AUTHORITIES` allowlist. A missing or nonmatching authority fails closed before `downloadFile`, `deleteFile`, or temp-URL access. This environment is intentionally explicit because a CloudBase fileID authority can include both the environment and bucket; only an exact configured authority is accepted.
+- DeepSeek optional configuration now falls back to the stable unavailable provider on an absent key or any constructor/base-URL validation failure, so manual task APIs continue to initialize. Response validation requires `startsAt < dueAt`.
+- AI audit field counting now includes a recognized `submissionMode`.
+- Verification after the correction: focused adapter/storage/gateway/API tests PASS (21 tests); `npm test -- --run` PASS (79 files, 296 tests); `npm run typecheck`, `npm run build:deploy`, and `git diff --check` PASS.

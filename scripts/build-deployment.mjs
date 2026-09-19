@@ -109,6 +109,7 @@ const manifest = {
   configured,
   runtimeEnvironmentRequirements: {
     optional: ["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "AI_TASK_DRAFT_ENABLED"],
+    requiredForPrivateAiImageReads: ["TASK_CHECKIN_CLOUD_FILE_AUTHORITIES"],
   },
   functionEnvironment: { ALLOWED_CALLER_APPIDS: appId },
   storagePrefix: "task-checkin/",

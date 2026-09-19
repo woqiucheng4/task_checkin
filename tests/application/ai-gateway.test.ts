@@ -15,6 +15,7 @@ async function sourceScenario() {
       confidence: 0.92,
       provider: "fake-draft-provider",
       providerVersion: "1.0",
+      submissionMode: "photo",
       title: "识别出的任务",
     }),
   );
@@ -42,6 +43,7 @@ describe("AiGateway", () => {
       confidence: 0.92,
       provider: "fake-draft-provider",
       providerVersion: "1.0",
+      submissionMode: "photo",
       title: "识别出的任务",
     });
     const gateway = new AiGateway(seed.harness, seed.storage, provider);
@@ -51,7 +53,7 @@ describe("AiGateway", () => {
       requestId: "ai-draft-audited-success",
     });
 
-    expect(draft).toMatchObject({ category: "MATHEMATICS", status: "DRAFT" });
+    expect(draft).toMatchObject({ category: "MATHEMATICS", status: "DRAFT", submissionMode: "PHOTO" });
     expect(await seed.harness.repository.query("tasks", { draftId: draft.id })).toHaveLength(0);
     const [invocation] = await seed.harness.repository.query("aiInvocations");
     expect(invocation).toMatchObject({
@@ -59,7 +61,7 @@ describe("AiGateway", () => {
       inputByteSize: 12,
       inputImageCount: 1,
       provider: "fake-draft-provider",
-      resultSummary: { recognizedFieldCount: 2 },
+      resultSummary: { recognizedFieldCount: 3 },
     });
     expect(invocation?.inputSha256).toMatch(/^[a-f0-9]{64}$/);
     expect(invocation).not.toHaveProperty("image");

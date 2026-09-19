@@ -203,7 +203,7 @@ function safeProviderValue(value: string, fallback: string): string {
 }
 
 function recognizedFieldCount(fields: NormalizedRecognizedTaskFields): number {
-  return [fields.title, fields.description, fields.category, fields.startsAt, fields.dueAt].filter(
+  return [fields.title, fields.description, fields.category, fields.startsAt, fields.dueAt, fields.submissionMode].filter(
     (value) => value !== undefined,
   ).length;
 }

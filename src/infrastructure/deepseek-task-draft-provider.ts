@@ -89,6 +89,22 @@ export class DeepSeekTaskDraftProvider implements TaskDraftProvider {
   }
 }
 
+/** Optional AI configuration must never prevent manual task creation at startup. */
+export function createOptionalDeepSeekTaskDraftProvider(
+  environment: Readonly<{ DEEPSEEK_API_KEY?: string; DEEPSEEK_BASE_URL?: string }>,
+): TaskDraftProvider {
+  const apiKey = environment.DEEPSEEK_API_KEY?.trim();
+  if (apiKey === undefined || apiKey === "") return unavailableProvider();
+  try {
+    return new DeepSeekTaskDraftProvider({
+      apiKey,
+      ...(environment.DEEPSEEK_BASE_URL === undefined ? {} : { baseUrl: environment.DEEPSEEK_BASE_URL }),
+    });
+  } catch {
+    return unavailableProvider();
+  }
+}
+
 function parseBaseUrl(value: string): string {
   let url: URL;
   try {
@@ -171,6 +187,7 @@ function isExactDraft(value: unknown): value is DeepSeekDraftResponse {
     CATEGORIES.has(value.category) &&
     isIsoInstant(value.startsAt) &&
     isIsoInstant(value.dueAt) &&
+    Date.parse(value.startsAt) < Date.parse(value.dueAt) &&
     typeof value.submissionMode === "string" &&
     SUBMISSION_MODES.has(value.submissionMode) &&
     typeof value.confidence === "number" &&
@@ -195,4 +212,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function unavailable(): DomainError {
   return new DomainError("CONFLICT", FAILURE_MESSAGE);
+}
+
+function unavailableProvider(): TaskDraftProvider {
+  return {
+    async generateTaskDraft() {
+      throw new DomainError("CONFLICT", "图片识别服务尚未配置，请手动填写任务");
+    },
+  };
 }
