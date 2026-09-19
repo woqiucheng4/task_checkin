@@ -33,7 +33,7 @@ describe("group co-growing tree", () => {
     expect(await seed.harness.repository.read("groupTrees", groupTree.id)).toMatchObject({
       progress: 1,
     });
-    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(0);
+    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(2);
   });
 
   it("matures and harvests one memorial when aggregate progress reaches the threshold", async () => {

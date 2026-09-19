@@ -8,6 +8,6 @@
     <button bindtap="openReview">去审核</button>
   </view>
   <view class="tree-brief"><image src="/assets/orchard/apple-seedling.webp" mode="aspectFit" /><view><view class="tree-brief__title">{{treeName}}</view><view class="tree-brief__note">{{current}} / {{target}} 阳光</view></view></view>
-  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">今天的任务</view><view class="page-subtitle">学校、辅导班和家庭统一查看</view></view><button class="text-link" bindtap="createTask">布置任务</button></view><task-row wx:for="{{tasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTask" /></view>
+  <view class="page-section"><view class="page-section__heading"><view><view class="page-title">今天的任务</view><view class="page-subtitle">家庭和学习小组任务统一查看</view></view><button class="text-link" bindtap="createTask">布置任务</button></view><task-row wx:for="{{tasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTask" /></view>
 </app-shell>
 <bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

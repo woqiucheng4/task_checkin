@@ -22,7 +22,7 @@
     </scroll-view>
   </view>
   <view class="page-section">
-    <view class="page-section__heading"><view><view class="page-title">水果图鉴</view><view class="page-subtitle">成熟并采摘后点亮</view></view><button class="text-link" bindtap="openGroup">查看共育树</button></view>
+    <view class="page-section__heading"><view><view class="page-title">水果图鉴</view><view class="page-subtitle">成熟并采摘后点亮</view></view></view>
     <view class="collection"><view wx:for="{{collection}}" wx:key="name" class="fruit {{item.count === 0 ? 'fruit--locked' : ''}}"><image src="{{item.asset}}" mode="aspectFit" /><view>{{item.name}}</view><text>{{item.count > 0 ? '已收获 ' + item.count : '待解锁'}}</text></view></view>
   </view>
   </block>

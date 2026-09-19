@@ -1,7 +1,7 @@
 <app-shell title="教师工作台" subtitle="{{date}} · 全部分组统计" context-label="{{groupName}}" bindcontextswitch="openGroup" bindroleswitch="openRoles">
   <view wx:if="{{error || loading}}" class="page-subtitle">{{loading ? '加载中' : error}}</view>
   <view class="metrics"><button wx:for="{{sections}}" wx:key="kind" class="metric metric--{{item.kind}}" bindtap="openReview"><view>{{item.count}}</view><text>{{item.label}}</text></button></view>
-  <view class="notice"><t-icon name="info-circle" size="38rpx" color="#246397" /><text>教师负责学习评价；阳光仍由每个孩子的家长确认。</text></view>
+  <view class="notice"><t-icon name="info-circle" size="38rpx" color="#246397" /><text>教师负责学习评价；通过后按每个孩子的家庭默认规则记入阳光。</text></view>
   <view class="page-section"><view class="page-section__heading"><view><view class="page-title">{{groupName}} · 待处理</view><view class="page-subtitle">当前分组的真实提交</view></view><button class="text-link" bindtap="createTask">发布任务</button></view><view wx:if="{{!submissions.length}}" class="page-subtitle">暂无待审核提交</view><button wx:for="{{submissions}}" wx:key="id" class="submission" data-id="{{item.id}}" bindtap="openReview"><view><text class="submission__label">{{item.label}}</text><view class="submission__title">{{item.name}} · {{item.title}}</view><text class="submission__time">提交于 {{item.time}}</text></view><t-icon name="chevron-right" size="34rpx" color="#6C7068" /></button></view>
   <view class="page-section"><view class="page-title">当前分组 · 今日截止</view><view wx:if="{{!deadlines.length}}" class="page-subtitle">暂无今日截止任务</view><view wx:for="{{deadlines}}" wx:key="id" class="deadline"><view><view>{{item.title}}</view><text>{{item.completedCount}} / {{item.assignmentCount}} 人已完成</text></view><strong>{{item.time}}</strong></view></view>
 </app-shell>

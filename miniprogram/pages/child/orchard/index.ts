@@ -94,9 +94,6 @@ Page({
     const path = event.detail.path;
     if (path !== undefined) replace(path);
   },
-  openGroup() {
-    navigate("/pages/child/group/index");
-  },
   openRoles() {
     navigate("/pages/shared/role-switcher/index");
   },

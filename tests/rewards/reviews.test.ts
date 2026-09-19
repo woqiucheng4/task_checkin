@@ -40,33 +40,34 @@ describe("family and academic review", () => {
     });
   });
 
-  it("teacher approval leaves reward pending when family auto reward is disabled", async () => {
+  it("rejects family approval of a group task even for its guardian", async () => {
     const seed = await createSubmittedTaskScenario("ORGANIZATION");
-    const sunlight = new SunlightService(seed.harness);
-    const reviews = new ReviewService(seed.harness, sunlight);
+    const reviews = new ReviewService(seed.harness, new SunlightService(seed.harness));
 
-    const result = await reviews.academicReview(seed.teacher, {
-      assignmentId: seed.assignment.id,
-      decision: "APPROVE",
-      requestId: "review-academic-approve",
-    });
-
-    expect(result.assignment).toMatchObject({
-      academicState: "APPROVED",
-      rewardState: "PENDING_CONFIRMATION",
-      taskState: "COMPLETED",
-    });
-    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(0);
+    await expect(
+      reviews.familyReview(seed.guardian, {
+        assignmentId: seed.assignment.id,
+        decision: "APPROVE",
+        requestId: "review-family-group-denied",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("teacher approval automatically grants the family reward when enabled", async () => {
-    const seed = await createSubmittedTaskScenario("ORGANIZATION");
-    await seed.harness.repository.transaction((tx) =>
-      tx.update("families", seed.family.id, {
-        autoRewardInstitutionTasks: true,
-        updatedAt: seed.harness.clock.now(),
+  it("rejects teacher academic approval of a family task", async () => {
+    const seed = await createSubmittedTaskScenario("FAMILY");
+    const reviews = new ReviewService(seed.harness, new SunlightService(seed.harness));
+
+    await expect(
+      reviews.academicReview(seed.teacher, {
+        assignmentId: seed.assignment.id,
+        decision: "APPROVE",
+        requestId: "review-academic-family-denied",
       }),
-    );
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("teacher approval grants the affected child's family default reward", async () => {
+    const seed = await createSubmittedTaskScenario("ORGANIZATION");
     const sunlight = new SunlightService(seed.harness);
     const reviews = new ReviewService(seed.harness, sunlight);
 
@@ -76,19 +77,20 @@ describe("family and academic review", () => {
       requestId: "review-academic-auto",
     });
 
+    expect(seed.task.source).toBe("LEARNING_GROUP");
     expect(result.assignment.rewardState).toBe("GRANTED");
     expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(2);
+    expect(
+      await seed.harness.repository.query("sunlightLedgers", {
+        referenceId: seed.assignment.id,
+      }),
+    ).toHaveLength(1);
   });
 
-  it("academic revision never claws back sunlight already granted by a guardian", async () => {
-    const seed = await createSubmittedTaskScenario("ORGANIZATION");
+  it("teacher revision retains the group task's protected eligibility", async () => {
+    const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
     const sunlight = new SunlightService(seed.harness);
     const reviews = new ReviewService(seed.harness, sunlight);
-    await reviews.familyReview(seed.guardian, {
-      assignmentId: seed.assignment.id,
-      decision: "APPROVE",
-      requestId: "review-guardian-before-teacher",
-    });
 
     const result = await reviews.academicReview(seed.teacher, {
       assignmentId: seed.assignment.id,
@@ -98,21 +100,16 @@ describe("family and academic review", () => {
 
     expect(result.assignment).toMatchObject({
       academicState: "REVISION_REQUIRED",
-      rewardState: "GRANTED",
+      rewardState: "PROTECTED",
       taskState: "REVISION_REQUIRED",
     });
-    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(2);
+    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(0);
   });
 
-  it("grants the configured revision bonus after a corrected task is approved", async () => {
+  it("grants exactly the group task reward after a corrected submission is approved", async () => {
     const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
     const sunlight = new SunlightService(seed.harness);
     const reviews = new ReviewService(seed.harness, sunlight);
-    await reviews.familyReview(seed.guardian, {
-      assignmentId: seed.assignment.id,
-      decision: "APPROVE",
-      requestId: "review-before-revision",
-    });
     await reviews.academicReview(seed.teacher, {
       assignmentId: seed.assignment.id,
       decision: "REVISION_REQUIRED",
@@ -130,10 +127,9 @@ describe("family and academic review", () => {
       requestId: "review-corrected-approved",
     });
 
-    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(3);
+    expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(2);
     expect(await sunlight.ledgerForChild(seed.firstChild.id)).toMatchObject([
       { amount: 2, reason: "TASK_COMPLETED" },
-      { amount: 1, reason: "REVISION_COMPLETED" },
     ]);
   });
 });

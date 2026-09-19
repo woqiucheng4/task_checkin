@@ -1,11 +1,6 @@
 <app-shell title="我的" subtitle="{{nickname}} {{grade ? '· ' + grade + '年级' : ''}}" show-role-switch="{{false}}">
   <view class="profile-card"><image src="/assets/orchard/apple-sprout.webp" mode="aspectFit" /><view><view class="profile-card__name">{{nickname}}</view><view class="profile-card__note">收获 {{fruitCount}} 个果实</view></view></view>
   <view class="page-section">
-    <view class="page-title">我的分组</view>
-    <view wx:if="{{!groups.length}}" class="setting-row__note">还没有加入分组，请家长使用老师提供的邀请码申请加入。</view>
-    <button wx:for="{{groups}}" wx:key="id" class="setting-row" bindtap="openGroup"><view class="setting-row__copy"><view class="setting-row__title">{{item.name}}</view><view class="setting-row__note">查看共同成长</view></view><t-icon name="chevron-right" size="34rpx" color="#777A72" /></button>
-  </view>
-  <view class="page-section">
     <view class="page-title">显示和账户</view>
     <view class="setting-row"><view class="setting-row__copy"><view class="setting-row__title">高年级简洁模式</view><view class="setting-row__note">减少装饰、提高信息密度，不改变任务规则</view></view><switch checked="{{density === 'UPPER_PRIMARY'}}" color="#174E2A" bindchange="switchDensity" /></view>
     <button class="setting-row" bindtap="openRoles"><view class="setting-row__copy"><view class="setting-row__title">切换身份</view><view class="setting-row__note">当前：孩子</view></view><t-icon name="user-switch" size="36rpx" color="#174E2A" /></button>

@@ -172,12 +172,10 @@ export class TaskService {
     if (memberships.length === 0) {
       throw new DomainError("INVALID_INPUT", "分组中没有有效孩子成员");
     }
-    const source: TaskSource =
-      organization.type === "TUTORING"
-        ? "TUTORING"
-        : group.type === "INTEREST" || group.type === "TEMPORARY"
-          ? "LEARNING_GROUP"
-          : "SCHOOL";
+    // MVP teacher workspaces publish only learning-group tasks.  Keeping this
+    // explicit makes review authority depend on the task's source, rather than
+    // on legacy organization labels.
+    const source: TaskSource = "LEARNING_GROUP";
     const scope: TenantScope = {
       kind: "ORGANIZATION",
       organizationId: group.organizationId,

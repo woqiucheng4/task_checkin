@@ -221,7 +221,6 @@ export function buildNavigation(
     parent: [
       ["home", "今日", "/pages/parent/home/index", "home"],
       ["tasks", "任务", "/pages/parent/tasks/index", "task"],
-      ["orchard", "果园", "/pages/parent/orchard/index", "image"],
       ["profile", "我的", "/pages/parent/profile/index", "user"],
     ],
     teacher: [

@@ -9,7 +9,6 @@ Page({
     nickname: "",
     grade: 0,
     fruitCount: 0,
-    groups: [],
     navigation: buildNavigation("child", "profile"),
   },
   async onShow() {
@@ -24,7 +23,6 @@ Page({
         nickname: home.selectedChild.nickname,
         grade: home.selectedChild.grade || 0,
         fruitCount: orchard.fruits.reduce((sum, fruit) => sum + fruit.quantity, 0),
-        groups: home.groups,
         density: wx.getStorageSync("task_checkin_density") || "LOWER_PRIMARY",
       });
     } catch (error) {
@@ -34,9 +32,6 @@ Page({
   navigateTab(event: { readonly detail: { readonly path?: string } }) {
     const path = event.detail.path;
     if (path !== undefined) replace(path);
-  },
-  openGroup() {
-    navigate("/pages/child/group/index");
   },
   openRoles() {
     navigate("/pages/shared/role-switcher/index");

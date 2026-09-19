@@ -6,8 +6,9 @@ import { createIdentityScenario } from "./identity-scenario.js";
 export async function createSubmittedTaskScenario(
   source: "FAMILY" | "ORGANIZATION" = "FAMILY",
   submissionMode: SubmissionMode = "CONFIRM",
+  childCount = 1,
 ) {
-  const seed = await createIdentityScenario(1);
+  const seed = await createIdentityScenario(childCount);
   seed.harness.clock.set("2026-09-05T09:00:00.000Z");
   const tasks = new TaskService(seed.harness);
   const submissions = new SubmissionService(seed.harness);
@@ -38,9 +39,8 @@ export async function createSubmittedTaskScenario(
           requestId: "task-scenario-organization",
           requiresAcademicReview: true,
         });
-  const assignment = (
-    await seed.harness.repository.query("taskAssignments", { taskId: task.id })
-  )[0];
+  const assignments = await seed.harness.repository.query("taskAssignments", { taskId: task.id });
+  const assignment = assignments[0];
   if (assignment === undefined) {
     throw new Error("task scenario assignment missing");
   }
@@ -57,5 +57,5 @@ export async function createSubmittedTaskScenario(
       ? { text: "已经完成" }
       : {}),
   });
-  return { ...seed, assignment, childActor, submissions, task, tasks };
+  return { ...seed, assignment, assignments, childActor, submissions, task, tasks };
 }

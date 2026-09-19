@@ -28,6 +28,12 @@ describe("MvpPolicy", () => {
     );
   });
 
+  it("rejects hidden advanced group-tree actions at the service boundary", () => {
+    expect(() => policy.assertAllowed("START_GROUP_TREE", guardian)).toThrowError(
+      expect.objectContaining({ code: "FEATURE_DISABLED" }),
+    );
+  });
+
   it("rejects parent-only actions from a resolved child actor", () => {
     expect(() => policy.assertAllowed("PUBLISH_FAMILY_TASK", child)).toThrowError(
       expect.objectContaining({ code: "FEATURE_DISABLED" }),

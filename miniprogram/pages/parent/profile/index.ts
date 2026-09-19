@@ -13,7 +13,6 @@ Page({
     members: [],
     rewards: {},
     roleLabel: "",
-    working: false,
   },
   async onShow() {
     try {
@@ -51,20 +50,5 @@ Page({
   toggleNotifications(event: { readonly detail: { readonly value: boolean } }) {
     this.setData({ notifications: event.detail.value });
     wx.setStorageSync("task_checkin_notification_preference", event.detail.value);
-  },
-  async requestExport() {
-    if (this.data.working) return;
-    this.setData({ working: true });
-    try {
-      await command("REQUEST_EXPORT", {
-        kind: "FAMILY_DATA",
-        tenantScope: { kind: "FAMILY", familyId: (await selectedFamily()).id },
-      });
-      wx.showToast({ icon: "success", title: "导出申请已提交" });
-    } catch (error) {
-      showError(error);
-    } finally {
-      this.setData({ working: false });
-    }
   },
 });

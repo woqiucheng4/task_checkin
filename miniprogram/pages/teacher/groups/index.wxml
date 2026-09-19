@@ -5,7 +5,6 @@
   <block wx:if="{{selected}}">
     <view class="group-head"><view><text>{{organizationName}}</text><view>{{groupName}}</view><text>{{memberCount}} 名有效成员</text></view><button bindtap="invite">邀请加入</button></view>
     <view class="metric-grid"><view class="metric"><view class="metric__value">{{reviewCount}}</view><view class="metric__label">待学习审核</view></view><view class="metric"><view class="metric__value">{{memberCount}}</view><view class="metric__label">有效成员</view></view><view class="metric"><view class="metric__value">{{pendingCount}}</view><view class="metric__label">待入组</view></view></view>
-    <button class="entry" bindtap="openTree"><image src="/assets/orchard/scene-group-tree.webp" mode="aspectFit" /><view><view>班级共育果树</view><text>{{target ? current + ' / ' + target : '尚未种植'}} · 不展示个人排名</text></view><t-icon name="chevron-right" size="34rpx" /></button>
     <button class="entry" bindtap="openMembers"><t-icon name="usergroup" size="54rpx" color="#174E2A" /><view><view>成员与权限</view><text>查看已授权成员、审批入组申请</text></view><t-icon name="chevron-right" size="34rpx" /></button>
   </block>
 </app-shell>

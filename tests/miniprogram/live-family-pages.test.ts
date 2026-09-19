@@ -30,7 +30,6 @@ const session = vi.hoisted(() => ({
         members: [{ id: "member-real", role: "FAMILY_ADMIN", isSelf: true }],
         defaultRewards: { ordinary: 2, focus: 3, challenge: 1, revision: 1 },
       };
-    if (action === "REQUEST_EXPORT") return { id: "export-real", status: "PENDING" };
     throw new Error(`Unexpected action ${action}`);
   }),
   showError: vi.fn(),
@@ -45,7 +44,6 @@ afterEach(() => vi.unstubAllGlobals());
 type Definition = {
   data: Record<string, unknown>;
   onShow(this: MiniPageInstance): Promise<void>;
-  requestExport(this: MiniPageInstance): Promise<void>;
 };
 async function loadPage(path: string) {
   let definition: Definition | undefined;
@@ -79,7 +77,7 @@ it("shows real orchard progress and harvest history in the parent orchard", asyn
     growthCards: [{ id: "card-real", title: "第一次收获" }],
   });
 });
-it("loads family settings and sends a scoped export request", async () => {
+it("loads family settings without exposing an export action", async () => {
   const page = await loadPage("../../miniprogram/pages/parent/profile/index.js");
   await page.onShow();
   expect(page.data).toMatchObject({
@@ -88,14 +86,10 @@ it("loads family settings and sends a scoped export request", async () => {
     memberCount: 1,
     rewards: { ordinary: 2, focus: 3, challenge: 1, revision: 1 },
   });
-  await page.requestExport();
-  expect(session.command).toHaveBeenCalledWith("REQUEST_EXPORT", {
-    kind: "FAMILY_DATA",
-    tenantScope: { kind: "FAMILY", familyId: "family-real" },
-  });
+  expect(session.command).not.toHaveBeenCalledWith("REQUEST_EXPORT", expect.anything());
 });
 it("shows the selected child's real nickname, grade and harvest count", async () => {
   const page = await loadPage("../../miniprogram/pages/child/profile/index.js");
   await page.onShow();
-  expect(page.data).toMatchObject({ nickname: "小新", grade: 2, fruitCount: 2, groups: [] });
+  expect(page.data).toMatchObject({ nickname: "小新", grade: 2, fruitCount: 2 });
 });

@@ -48,18 +48,15 @@ export class ReviewService {
       return repeated;
     }
     const { assignment, task, family } = await this.loadContext(input.assignmentId);
+    if (task.source !== "FAMILY") {
+      throw new DomainError("FORBIDDEN", "分组任务只能由老师进行学习审核");
+    }
     const guardian = await this.policy.requireGuardian(actor, assignment.childId);
     if (guardian.familyId !== assignment.familyId) {
       throw new DomainError("FORBIDDEN", "监护关系不属于任务家庭");
     }
     if (assignment.taskState !== "SUBMITTED") {
       throw new DomainError("CONFLICT", "只有已提交任务可以审核");
-    }
-    if (
-      (input.decision === "EXCUSE" || input.decision === "REVISION_REQUIRED") &&
-      task.source !== "FAMILY"
-    ) {
-      throw new DomainError("FORBIDDEN", "家长不能修改机构学习状态");
     }
     const now = this.dependencies.clock.now();
     const review = makeReview(
@@ -168,16 +165,13 @@ export class ReviewService {
     }
     const { assignment, task, family } = await this.loadContext(input.assignmentId);
     if (
-      task.source === "FAMILY" ||
+      task.source !== "LEARNING_GROUP" ||
       task.groupId === undefined ||
       assignment.organizationId === undefined
     ) {
-      throw new DomainError("FORBIDDEN", "家庭任务没有机构学习审核");
+      throw new DomainError("FORBIDDEN", "只有学习小组任务可以进行老师学习审核");
     }
     await this.requireInstitutionReviewer(actor, task.groupId, assignment.organizationId);
-    if (assignment.taskState !== "SUBMITTED") {
-      throw new DomainError("CONFLICT", "只有已提交任务可以进行学习审核");
-    }
     const now = this.dependencies.clock.now();
     const review = makeReview(
       this.dependencies.ids.next("review"),
@@ -189,32 +183,46 @@ export class ReviewService {
     );
 
     return this.dependencies.repository.transaction(async (tx) => {
+      const current = await tx.read("taskAssignments", assignment.id);
+      if (current === undefined) {
+        throw new DomainError("NOT_FOUND", "任务实例不存在");
+      }
+      if (input.decision === "APPROVE") {
+        const approved = (
+          await tx.query("reviewRecords", {
+            assignmentId: current.id,
+            decision: "APPROVED",
+            reviewType: "ACADEMIC",
+          })
+        )[0];
+        if (approved !== undefined) {
+          const ledger = (
+            await tx.query("sunlightLedgers", {
+              reason: "TASK_COMPLETED",
+              referenceId: current.id,
+            })
+          )[0];
+          return ledger === undefined
+            ? { assignment: current, review: approved }
+            : { assignment: current, ledger, review: approved };
+        }
+      }
+      if (current.taskState !== "SUBMITTED") {
+        throw new DomainError("CONFLICT", "只有已提交任务可以进行学习审核");
+      }
       let ledger: SunlightLedger | undefined;
       let patch: Parameters<Transaction["update"]>[2];
       if (input.decision === "APPROVE") {
-        let rewardState = assignment.rewardState;
-        if (assignment.rewardState !== "GRANTED") {
-          if (family.autoRewardInstitutionTasks) {
-            ledger = await this.sunlight.grantInTransaction(
-              tx,
-              actor.accountId,
-              assignment.childId,
-              {
-                amount: taskRewardAmount(family, task, assignment),
-                assignmentId: assignment.id,
-                reason: "TASK_COMPLETED",
-                requestId: input.requestId,
-              },
-            );
-            rewardState = "GRANTED";
-          } else {
-            rewardState = "PENDING_CONFIRMATION";
-          }
-        }
-        if (revisionCompleted && assignment.rewardState === "GRANTED") {
+        ledger = await this.sunlight.grantInTransaction(tx, actor.accountId, current.childId, {
+          amount: taskRewardAmount(family, task, current),
+          assignmentId: current.id,
+          reason: "TASK_COMPLETED",
+          requestId: input.requestId,
+        });
+        if (revisionCompleted && current.rewardState === "GRANTED") {
           ledger = await this.sunlight.grantInTransaction(tx, actor.accountId, assignment.childId, {
             amount: family.defaultRewards.revision,
-            assignmentId: assignment.id,
+            assignmentId: current.id,
             reason: "REVISION_COMPLETED",
             referenceId: `${assignment.id}:revision:${review.id}`,
             requestId: input.requestId,
@@ -222,7 +230,7 @@ export class ReviewService {
         }
         patch = {
           academicState: "APPROVED",
-          rewardState,
+          rewardState: "GRANTED",
           taskState: "COMPLETED",
           updatedAt: now,
         };
@@ -235,7 +243,7 @@ export class ReviewService {
       } else {
         patch = {
           academicState: "EXCUSED",
-          rewardState: assignment.rewardState === "GRANTED" ? "GRANTED" : "WAIVED",
+          rewardState: current.rewardState === "GRANTED" ? "GRANTED" : "WAIVED",
           taskState: "EXCUSED",
           updatedAt: now,
         };
@@ -247,7 +255,7 @@ export class ReviewService {
           assignment,
         );
       }
-      const updated = await tx.update("taskAssignments", assignment.id, patch);
+      const updated = await tx.update("taskAssignments", current.id, patch);
       await this.audit(
         tx,
         actor,

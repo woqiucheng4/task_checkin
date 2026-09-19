@@ -6,13 +6,12 @@ import type {
   TaskAssignment,
 } from "../../src/domain/model.js";
 import type { CreatedInvitation } from "../../src/application/invitation-service.js";
-import type { ChildGroupProgressView } from "../../src/application/group-orchard-service.js";
 import type { OrganizationChildView } from "../../src/application/identity-service.js";
 import type { OrchardView } from "../../src/application/orchard-service.js";
 import { AcceptanceScenario, ORDINARY_TASK } from "./scenario.js";
 
 describe("institution collaboration acceptance", () => {
-  it("AC-ORG-001 joins with consent, receives group work, completes dual review, and contributes once", async () => {
+  it("AC-ORG-001 joins with consent, receives group work, and receives one teacher-approved reward", async () => {
     const scenario = new AcceptanceScenario();
     const family = await scenario.createFamilyWithChild();
     const institution = await scenario.createInstitution();
@@ -36,10 +35,6 @@ describe("institution collaboration acceptance", () => {
       "APPROVE_JOIN_REQUEST",
       { joinRequestId: join.id },
     );
-    await scenario.call(institution.teacherOpenId, "START_GROUP_TREE", {
-      catalogId: "starter-apple",
-      groupId: institution.group.id,
-    });
     const task = await scenario.call<Task>(institution.teacherOpenId, "PUBLISH_GROUP_TASK", {
       ...ORDINARY_TASK,
       groupId: institution.group.id,
@@ -55,24 +50,14 @@ describe("institution collaboration acceptance", () => {
       { assignmentId: assignment.id, mediaAssetIds: [] },
       { actor: childActor },
     );
-    await scenario.call(family.openId, "FAMILY_REVIEW", {
-      assignmentId: assignment.id,
-      decision: "APPROVE",
-    });
     await scenario.call(institution.teacherOpenId, "ACADEMIC_REVIEW", {
       assignmentId: assignment.id,
       decision: "APPROVE",
     });
 
-    const progress = await scenario.call<ChildGroupProgressView>(
-      family.openId,
-      "GET_GROUP_PROGRESS",
-      { groupId: institution.group.id },
-      { actor: childActor },
-    );
-    expect(progress).toMatchObject({ progress: 1, status: "GROWING" });
-    expect(JSON.stringify(progress)).not.toMatch(/contributor|organizationMemberId|childId/i);
-    await expect(scenario.harness.repository.query("groupContributions")).resolves.toHaveLength(1);
+    await expect(
+      scenario.harness.repository.query("sunlightLedgers", { referenceId: assignment.id }),
+    ).resolves.toHaveLength(1);
 
     const organizationView = await scenario.call<OrganizationChildView>(
       institution.teacherOpenId,

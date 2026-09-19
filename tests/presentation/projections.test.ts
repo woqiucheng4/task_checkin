@@ -79,7 +79,7 @@ describe("UI presentation projections", () => {
     expect(view.children).toEqual([
       expect.objectContaining({ id: seed.firstChild.id, selected: true }),
     ]);
-    expect(view.today.items.map((item) => item.source)).toEqual(["FAMILY", "SCHOOL"]);
+    expect(view.today.items.map((item) => item.source)).toEqual(["FAMILY", "LEARNING_GROUP"]);
     expect(view.today).toMatchObject({ completedCount: 0, requiredCount: 2 });
   });
 

@@ -49,8 +49,6 @@ async function load(page: MiniPageInstance) {
     reviewCount: submissions.filter(
       (row) => row.taskState === "SUBMITTED" && row.academicState === "PENDING",
     ).length,
-    current: view.groupTree?.progress || 0,
-    target: view.groupTree?.threshold || 0,
     error: "",
   });
 }
@@ -65,8 +63,6 @@ Page({
     memberCount: 0,
     pendingCount: 0,
     reviewCount: 0,
-    current: 0,
-    target: 0,
     error: "",
     groupNameInput: "",
     creating: false,
@@ -87,9 +83,6 @@ Page({
   },
   openMembers() {
     if (this.data.selected) navigate("/pages/teacher/members/index");
-  },
-  openTree() {
-    if (this.data.selected) navigate("/pages/teacher/group-tree/index");
   },
   async selectGroup(event: { currentTarget: { dataset: { id?: string } } }) {
     const id = event.currentTarget.dataset.id;
