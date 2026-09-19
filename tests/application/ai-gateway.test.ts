@@ -113,17 +113,85 @@ describe("AiGateway", () => {
           })) {
             await tx.update("organizationMembers", member.id, { status: "WITHDRAWN" });
           }
-        for (const binding of await tx.query("groupRoleBindings", { accountId: actor.accountId })) {
-          await tx.update("groupRoleBindings", binding.id, { status: "WITHDRAWN" });
-        }
+        if (authority === "binding")
+          for (const binding of await tx.query("groupRoleBindings", {
+            accountId: actor.accountId,
+          })) {
+            await tx.update("groupRoleBindings", binding.id, { status: "WITHDRAWN" });
+          }
       });
+      // Withdraw exactly one authority; the other remains ACTIVE to catch fallback bypasses.
+      expect(
+        await seed.harness.repository.query(
+          authority === "membership" ? "groupRoleBindings" : "organizationMembers",
+          { accountId: actor.accountId, status: "ACTIVE" },
+        ),
+      ).toHaveLength(1);
       const retry = await api.handle(command, { openId });
       expect(retry).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
       expect(retry).not.toHaveProperty("data");
       expect(JSON.stringify(retry)).not.toContain("private-draft-title");
+      expect(
+        await api.handle({ ...command, requestId: "api-new-after-withdrawal" }, { openId }),
+      ).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
       expect(provider.calls).toHaveLength(1);
+      expect(
+        (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+      ).toEqual([1, 1]);
     },
   );
+
+  it("rejects a residual binding when organization membership is not an adult", async () => {
+    const seed = await sourceScenario();
+    await seed.harness.repository.transaction(async (tx) => {
+      for (const member of await tx.query("organizationMembers", {
+        accountId: seed.teacher.accountId,
+      })) {
+        await tx.update("organizationMembers", member.id, { memberType: "CHILD" });
+      }
+    });
+    expect(
+      await seed.harness.repository.query("groupRoleBindings", {
+        accountId: seed.teacher.accountId,
+        status: "ACTIVE",
+      }),
+    ).toHaveLength(1);
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider);
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: seed.upload.asset.id,
+        requestId: "non-adult-membership-request",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(provider.calls).toHaveLength(0);
+    expect(await seed.harness.repository.query("usageCounters")).toHaveLength(0);
+  });
+
+  it("allows an active adult staff member with an active assistant binding", async () => {
+    const seed = await sourceScenario();
+    await seed.harness.repository.transaction(async (tx) => {
+      for (const member of await tx.query("organizationMembers", {
+        accountId: seed.teacher.accountId,
+      })) {
+        await tx.update("organizationMembers", member.id, { organizationRole: "STAFF" });
+      }
+      for (const binding of await tx.query("groupRoleBindings", {
+        accountId: seed.teacher.accountId,
+      })) {
+        await tx.update("groupRoleBindings", binding.id, { role: "ASSISTANT" });
+      }
+    });
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider);
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: seed.upload.asset.id,
+        requestId: "active-assistant-request",
+      }),
+    ).resolves.toMatchObject({ status: "DRAFT" });
+    expect(provider.calls).toHaveLength(1);
+  });
 
   it("owns successful API retry idempotency without writing generic command receipts", async () => {
     const seed = await sourceScenario();

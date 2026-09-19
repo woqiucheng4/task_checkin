@@ -217,12 +217,8 @@ export class AiGateway {
     actor: ActorContext,
     organizationId: string,
   ): Promise<void> {
-    try {
-      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
-      return;
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
-    }
+    const member = await this.policy.requireOrganizationRole(actor, organizationId);
+    if (member.organizationRole === "ORGANIZATION_ADMIN") return;
     const bindings = await this.dependencies.repository.query("groupRoleBindings", {
       accountId: actor.accountId,
       organizationId,

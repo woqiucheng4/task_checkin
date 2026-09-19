@@ -26,7 +26,7 @@ AI 审计新增唯一索引 `actorAccountId, requestId, status`，预算按固�
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm test` | PASS：复审修复后 90 个测试文件、391 条用例 |
+| `npm test` | PASS：复审轮次 2 后 90 个测试文件、393 条用例 |
 | `npm run typecheck` | PASS |
 | `npx biome lint`（本批修改的 16 个 TS/MJS 文件） | PASS，无警告；未以此冒充整个仓库 lint |
 | `npx biome format --write`（本批修改的 TS/MJS 文件） | 已格式化 |
@@ -43,6 +43,14 @@ AI 审计新增唯一索引 `actorAccountId, requestId, status`，预算按固�
 - 复审验证：AI 测试 22 条通过；全量 90 文件/391 用例通过；typecheck、3 个修改代码文件的 Biome lint、git diff --check 均通过。
 
 本轮仅修改 core-api、AI Gateway、对应测试及本报告，单独提交；不改 media/review/invitation 服务。
+
+## 复审修复轮次 2：组织成员撤销后残留 binding
+
+修正组织发布者检查顺序：先调用现有组织权限策略，强制当前 `ACTIVE`、`ADULT` 的组织成员资格；管理员直接允许，其余成人 STAFF 必须另有对应有效分组的 ACTIVE TEACHER/ASSISTANT binding。移除捕获成员资格失败后继续查 binding 的回退，残留 binding 不再抵消 membership 撤销。
+
+修正上一轮测试：撤销 membership 时明确保留 ACTIVE binding，撤销 binding 时明确保留 ACTIVE membership；两种情况下旧 requestId 和新 requestId 均返回 FORBIDDEN，不回传草稿、不再调用 provider、不增加预算。另覆盖非成人成员保留 binding 仍被拒绝、合法成人助教仍可识别；原管理员和合法教师成功路径保持通过。
+
+本轮先观察到 membership 撤销和非成人成员两个 RED 失败，再做最小 Gateway 修复。验证：AI 24 条用例、全量 90 文件/393 用例、typecheck、两文件 Biome lint、git diff --check 全部通过。仅修改 AI Gateway、对应测试与本报告，单独提交；无部署或远端修改。
 
 ## 验证边界
 
