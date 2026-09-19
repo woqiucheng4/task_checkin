@@ -15,6 +15,12 @@
   line-height: 1.14;
 }
 
+.hero__title-image {
+  display: block;
+  width: 338rpx;
+  height: 98rpx;
+}
+
 .hero__subtitle {
   max-width: 360rpx;
   margin-top: 22rpx;
@@ -82,8 +88,11 @@
 }
 
 .hero__tree {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: -22rpx;
+  right: 0;
+  width: 378rpx;
+  height: 501rpx;
 }
 
 .hero__sign {

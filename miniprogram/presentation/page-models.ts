@@ -24,6 +24,7 @@ export interface TaskRowPageModel {
   readonly category: string;
   readonly description?: string;
   readonly dueLabel: string;
+  readonly icon: string;
   readonly sourceLabel: string;
   readonly sourceTone: "family" | "school";
   readonly title: string;
@@ -38,9 +39,30 @@ export interface ChildTodayInput {
   readonly tasks: readonly PresentationTaskItemView[];
   readonly tree: {
     readonly asset: string;
+    readonly embeddedSign?: boolean;
     readonly level: number;
     readonly name: string;
   };
+}
+
+export interface ChildTreeAssetInput {
+  readonly progress: number;
+  readonly status: "GROWING" | "MATURE" | "HARVESTED";
+  readonly threshold: number;
+}
+
+/**
+ * The reference 18/30 state has a supplied, pixel-matched tree asset. Other
+ * progress bands deliberately retain the orchard's existing growth stages.
+ */
+export function resolveChildTreeAsset(input: ChildTreeAssetInput): string {
+  if (input.status === "MATURE") return "/assets/orchard/apple-mature.webp";
+  const percent = Math.min(100, Math.round((input.progress / Math.max(input.threshold, 1)) * 100));
+  if (percent < 20) return "/assets/orchard/apple-seedling.webp";
+  if (percent < 45) return "/assets/orchard/apple-bud.webp";
+  if (percent <= 70) return "/assets/orchard/apple-reference-lv1-cutout.png";
+  if (percent < 90) return "/assets/orchard/apple-fruit-small.webp";
+  return "/assets/orchard/apple-fruit-growing.webp";
 }
 
 export interface ChildTodayPageModel extends Omit<ChildTodayInput, "tasks"> {
@@ -74,10 +96,18 @@ export function buildTaskRow(task: PresentationTaskItemView): TaskRowPageModel {
     category: CATEGORY_LABELS[task.category],
     ...(task.description === undefined ? {} : { description: task.description }),
     dueLabel: formatDueTime(task.dueAt),
+    icon: taskIcon(task.category),
     sourceLabel: SOURCE_LABELS[task.source],
     sourceTone: task.source === "FAMILY" ? "family" : "school",
     title: task.title,
   };
+}
+
+function taskIcon(category: PresentationTaskItemView["category"]): string {
+  if (category === "MATHEMATICS") return "calculation";
+  if (category === "SPORT") return "activity";
+  if (category === "LIFE") return "home";
+  return "book-open";
 }
 
 export function buildChildTodayPage(input: ChildTodayInput): ChildTodayPageModel {

@@ -1,6 +1,7 @@
 <view class="hero">
   <view class="hero__copy">
-    <view class="hero__title">{{title}}</view>
+    <image wx:if="{{titleAsset}}" class="hero__title-image" src="{{titleAsset}}" mode="aspectFit" aria-label="{{title}}" />
+    <view wx:else class="hero__title">{{title}}</view>
     <view class="hero__subtitle">{{subtitle}}</view>
     <view class="hero__label">阳光进度</view>
     <view class="hero__numbers">
@@ -15,6 +16,6 @@
   </view>
   <view class="hero__tree-wrap">
     <image class="hero__tree" src="{{asset}}" mode="aspectFit" aria-label="{{name}}，等级 {{level}}" />
-    <view class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
+    <view wx:if="{{!embeddedSign}}" class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
   </view>
 </view>

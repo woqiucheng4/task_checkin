@@ -1,4 +1,37 @@
 @import "../../../styles/pages.wxss";
+.today-page {
+  min-height: 100vh;
+  padding: 0 36rpx calc(160rpx + env(safe-area-inset-bottom));
+  background: #faf7ee;
+}
+
+.journal-date {
+  padding-top: 56rpx;
+  color: #183e24;
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
+}
+
+orchard-hero { display: block; margin-right: -36rpx; }
+
 .tasks { margin-top: 10rpx; }
-.sunlight-note { display: grid; grid-template-columns: 112rpx 1fr; align-items: center; gap: 18rpx; margin-top: 28rpx; padding: 18rpx 22rpx; border-radius: 14rpx; background: #f2f3e4; color: #52574e; font-size: 23rpx; line-height: 1.6; }
-.sunlight-note image { width: 112rpx; height: 88rpx; }
+
+.growth-guide { margin: -10rpx 0 50rpx; }
+.growth-guide image { display: block; width: 100%; }
+
+.sunlight-note {
+  display: grid;
+  grid-template-columns: 44rpx minmax(0, 1fr) 142rpx;
+  align-items: center;
+  gap: 15rpx;
+  min-height: 102rpx;
+  margin-top: 28rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 14rpx;
+  background: #f6f3e3;
+  color: #52574e;
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.sunlight-note image { width: 142rpx; height: 82rpx; }

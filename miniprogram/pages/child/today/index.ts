@@ -1,4 +1,4 @@
-import { buildChildTodayPage } from "../../../presentation/page-models.js";
+import { buildChildTodayPage, resolveChildTreeAsset } from "../../../presentation/page-models.js";
 import { navigate, replace } from "../../../services/page-runtime.js";
 import { dashboard, today } from "../../../services/session-runtime.js";
 
@@ -26,10 +26,20 @@ async function load(page: MiniPageInstance) {
         tree: {
           name: tree?.name || "去果园种下第一棵树",
           level: 1,
-          asset:
-            tree?.status === "MATURE"
-              ? "/assets/orchard/apple-mature.webp"
-              : "/assets/orchard/apple-seedling.webp",
+          asset: tree
+            ? resolveChildTreeAsset({
+                progress: tree.progress,
+                status: tree.status,
+                threshold: tree.threshold,
+              })
+            : "/assets/orchard/apple-seedling.webp",
+          embeddedSign: tree
+            ? resolveChildTreeAsset({
+                progress: tree.progress,
+                status: tree.status,
+                threshold: tree.threshold,
+              }) === "/assets/orchard/apple-reference-lv1-cutout.png"
+            : false,
         },
       }),
     );

@@ -1,9 +1,9 @@
 import { Icon } from "tdesign-icons-react";
 import { useState } from "react";
-import appleTree from "../assets/orchard/apple-mature.png";
-import seedling from "../assets/orchard/apple-seedling.png";
-import sprout from "../assets/orchard/apple-sprout.png";
-import watering from "../assets/orchard/scene-watering.png";
+import appleReferenceTree from "../assets/orchard/apple-reference-lv1-cutout.png";
+import growthGuideReference from "../assets/orchard/growth-guide-reference.png";
+import orchardDailyTitleReference from "../assets/orchard/orchard-daily-title-reference-cutout.png";
+import watering from "../assets/orchard/scene-watering-reference.png";
 import { MobileShell } from "./mobile-shell";
 import "./preview.css";
 
@@ -65,7 +65,7 @@ export function ChildTodayPreview(): React.JSX.Element {
         </header>
         <section className="orchard-intro">
           <div className="orchard-copy">
-            <h1>果园日计划</h1>
+            <h1><img src={orchardDailyTitleReference} alt="果园日计划" /></h1>
             <p>
               完成任务，收集阳光，
               <br />
@@ -86,30 +86,11 @@ export function ChildTodayPreview(): React.JSX.Element {
             </div>
           </div>
           <div className="tree-visual">
-            <img src={appleTree} alt="结着红苹果的苹果树" />
-            <div className="wood-label">
-              苹果树
-              <br />
-              <b>LV.1</b>
-            </div>
+            <img src={appleReferenceTree} alt="结着红苹果的苹果树" />
           </div>
         </section>
         <section className="growth-guide">
-          <h2>
-            <img className="guide-icon" src={sprout} alt="" />
-            小树成长指南
-          </h2>
-          <div>
-            <img src={seedling} alt="苹果树幼苗" />
-            <p>
-              第一棵小树结果时间<strong>1 天后</strong>
-            </p>
-            <span />
-            <img src={appleTree} alt="普通苹果树" />
-            <p>
-              普通小树结果时间<strong>3–5 天</strong>
-            </p>
-          </div>
+          <img src={growthGuideReference} alt="小树成长指南" />
         </section>
         <section className="today-section">
           <h2>今日任务</h2>
@@ -132,9 +113,7 @@ export function ChildTodayPreview(): React.JSX.Element {
                   </div>
                   {isProtected ? (
                     <div className="protected-state">
-                      <strong>
-                        {task.id === "desk" ? "已提交 · 等待家长确认" : "待确认 · 阳光已保护"}
-                      </strong>
+                      <strong>待确认 · 阳光已保护</strong>
                       <span>已提交 09:48</span>
                       <Icon name="chevron-right" size="24px" />
                     </div>
