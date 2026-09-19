@@ -49,12 +49,13 @@ npm run admin:dev -- --host 127.0.0.1 --port 4173 --strictPort
 
 常用入口：
 
-- 家长为孩子查看任务（历史浏览器视觉预览，不是孩子登录入口）：`http://127.0.0.1:4173/preview/child-today`
 - 家长审核：`http://127.0.0.1:4173/preview/parent-review`
 - 教师工作台：`http://127.0.0.1:4173/preview/teacher-home`
 - 机构管理：`http://127.0.0.1:4173/institution`
 - 平台运营：`http://127.0.0.1:4173/platform`
 - 内容服务方：`http://127.0.0.1:4173/provider`
+
+旧的 `/preview/child-today` 地址会重定向到家长审核预览，不保留孩子独立查看任务或提交完成情况的浏览器流程。
 
 Web 测试、类型检查和生产构建：
 
