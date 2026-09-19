@@ -64,7 +64,6 @@ const MVP_ACTIONS = new Set<CoreAction>([
 ]);
 
 const CHILD_ACTIONS = new Set<CoreAction>([
-  "GET_ACCOUNT_SHELL",
   "GET_CHILD_GROUPS",
   "GET_CHILD_TODAY",
   "GET_ASSIGNMENT_DETAIL",

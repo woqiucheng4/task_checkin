@@ -94,6 +94,20 @@ describe("core API authentication", () => {
     expect(result).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });
   });
 
+  it("rejects a disabled action after resolving an authenticated actor", async () => {
+    const harness = createHarness();
+    const identity = new IdentityService(harness);
+    await identity.createAccount({ openId: "wx-mvp-account", requestId: "seed-mvp-account" });
+    const api = createCoreApi({ ...harness, mvpPolicy: new MvpPolicy({ enabled: true }) });
+
+    const result = await api.handle(
+      { action: "GET_PLATFORM_DASHBOARD", payload: {} },
+      { openId: "wx-mvp-account" },
+    );
+
+    expect(result).toMatchObject({ error: { code: "FEATURE_DISABLED" }, ok: false });
+  });
+
   it("passes only runtime OPENID into the core API", async () => {
     let capturedOpenId = "";
     const handler = createCloudFunctionHandler(

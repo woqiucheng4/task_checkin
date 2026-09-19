@@ -34,6 +34,12 @@ describe("MvpPolicy", () => {
     );
   });
 
+  it("rejects the account shell from a child actor because it is not child-scoped", () => {
+    expect(() => policy.assertAllowed("GET_ACCOUNT_SHELL", child)).toThrowError(
+      expect.objectContaining({ code: "FEATURE_DISABLED" }),
+    );
+  });
+
   it("leaves legacy actions available when the MVP edition is disabled", () => {
     const legacyPolicy = new MvpPolicy({ enabled: false });
 
