@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCoreApi } from "../../src/application/core-api.js";
+import { MvpPolicy } from "../../src/application/mvp-policy.js";
 import { createCloudFunctionHandler } from "../../cloudfunctions/coreApi/handler.js";
 import { IdentityService } from "../../src/application/identity-service.js";
 import { createHarness } from "../helpers/harness.js";
@@ -70,6 +71,24 @@ describe("core API authentication", () => {
         requestId: "request-forged-platform-001",
       },
       { openId: "wx-normal" },
+    );
+
+    expect(result).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });
+  });
+
+  it("enforces the MVP policy only after resolving the trusted actor", async () => {
+    const harness = createHarness();
+    const identity = new IdentityService(harness);
+    await identity.createAccount({ openId: "wx-mvp-guardian", requestId: "seed-mvp-guardian" });
+    const api = createCoreApi({ ...harness, mvpPolicy: new MvpPolicy({ enabled: true }) });
+
+    const result = await api.handle(
+      {
+        action: "GET_PLATFORM_DASHBOARD",
+        actor: { mode: "PLATFORM" },
+        payload: {},
+      },
+      { openId: "wx-mvp-guardian" },
     );
 
     expect(result).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });

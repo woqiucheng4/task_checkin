@@ -4,6 +4,7 @@ import { GroupOrchardService } from "./group-orchard-service.js";
 import { IdentityService } from "./identity-service.js";
 import { InvitationService } from "./invitation-service.js";
 import { MediaService } from "./media-service.js";
+import { MvpPolicy } from "./mvp-policy.js";
 import { OrchardService } from "./orchard-service.js";
 import type { ApplicationDependencies, MediaStorage, OcrProvider } from "./ports.js";
 import { PresentationService } from "./presentation-service.js";
@@ -153,6 +154,7 @@ export interface CoreCommand {
 
 export interface CoreApiDependencies extends ApplicationDependencies {
   readonly mediaStorage?: MediaStorage;
+  readonly mvpPolicy?: MvpPolicy;
   readonly ocrProvider?: OcrProvider;
 }
 
@@ -162,6 +164,7 @@ export interface CoreApi {
 
 export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
   const services = createServices(dependencies);
+  const mvpPolicy = dependencies.mvpPolicy ?? new MvpPolicy({ enabled: false });
   return {
     async handle(rawCommand, authContext) {
       try {
@@ -195,6 +198,7 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
         }
 
         const actor = await resolveActor(dependencies, account.id, command.actor, authContext);
+        mvpPolicy.assertAllowed(command.action, actor);
         if (isWrite) {
           const requestId = requireRequestId(command.requestId);
           const replay = await findReceipt(dependencies, account.id, command.action, requestId);

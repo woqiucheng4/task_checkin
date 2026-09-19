@@ -1,0 +1,98 @@
+import type { ActorContext } from "../domain/model.js";
+import { DomainError } from "../shared/errors.js";
+import type { CoreAction } from "./core-api.js";
+
+export interface MvpPolicyConfig {
+  readonly enabled: boolean;
+}
+
+const MVP_ACTIONS = new Set<CoreAction>([
+  "BOOTSTRAP_ACCOUNT",
+  "GET_ACCOUNT_SHELL",
+  "GET_FAMILY_SETTINGS",
+  "GET_CHILD_GROUPS",
+  "GET_PARENT_DASHBOARD",
+  "GET_PARENT_TASK_CENTER",
+  "GET_REVIEW_QUEUE",
+  "GET_TEACHER_DASHBOARD",
+  "GET_GROUP_SUBMISSIONS",
+  "GET_GROUP_JOIN_REQUESTS",
+  "GET_GROUP_TASK_TEMPLATES",
+  "GET_GROUP_WORKSPACE",
+  "CREATE_FAMILY",
+  "ADD_CHILD",
+  "CREATE_GROUP",
+  "BIND_GROUP_ROLE",
+  "CREATE_GROUP_INVITATION",
+  "PREVIEW_GROUP_INVITATION",
+  "CLAIM_INVITATION",
+  "APPROVE_JOIN_REQUEST",
+  "REJECT_JOIN_REQUEST",
+  "WITHDRAW_CHILD",
+  "CREATE_TASK_TEMPLATE",
+  "ARCHIVE_TASK_TEMPLATE",
+  "PUBLISH_FAMILY_TASK",
+  "PUBLISH_GROUP_TASK",
+  "CANCEL_TASK",
+  "SET_FAMILY_FOCUS",
+  "SUBMIT_TASK",
+  "SUPPLEMENT_SUBMISSION",
+  "MARK_TASK_EXCUSED",
+  "ACCEPT_LATE_CHALLENGE",
+  "EXPIRE_UNSUBMITTED",
+  "FAMILY_REVIEW",
+  "ACADEMIC_REVIEW",
+  "COMPLETE_REVISION",
+  "GET_CHILD_TODAY",
+  "START_TREE",
+  "RENAME_TREE",
+  "HARVEST_TREE",
+  "GET_CHILD_ORCHARD",
+  "START_GROUP_TREE",
+  "GET_GROUP_PROGRESS",
+  "HARVEST_GROUP_TREE",
+  "CREATE_UPLOAD_INTENT",
+  "UPLOAD_MEDIA_CONTENT",
+  "GET_ASSIGNMENT_DETAIL",
+  "RECORD_UPLOAD",
+  "RECOGNIZE_TASK_DRAFT",
+  "EDIT_TASK_DRAFT",
+  "PUBLISH_TASK_DRAFT",
+  "ATTACH_SUBMISSION_EVIDENCE",
+  "READ_MEDIA_ASSET",
+  "DELETE_EXPIRED_MEDIA",
+]);
+
+const CHILD_ACTIONS = new Set<CoreAction>([
+  "GET_ACCOUNT_SHELL",
+  "GET_CHILD_GROUPS",
+  "GET_CHILD_TODAY",
+  "GET_ASSIGNMENT_DETAIL",
+  "SUBMIT_TASK",
+  "SUPPLEMENT_SUBMISSION",
+  "COMPLETE_REVISION",
+  "GET_CHILD_ORCHARD",
+  "START_TREE",
+  "RENAME_TREE",
+  "HARVEST_TREE",
+  "GET_GROUP_PROGRESS",
+  "CREATE_UPLOAD_INTENT",
+  "UPLOAD_MEDIA_CONTENT",
+  "RECORD_UPLOAD",
+  "ATTACH_SUBMISSION_EVIDENCE",
+  "READ_MEDIA_ASSET",
+]);
+
+export class MvpPolicy {
+  constructor(private readonly config: MvpPolicyConfig) {}
+
+  assertAllowed(action: CoreAction, actor: ActorContext): void {
+    if (!this.config.enabled) return;
+    if (!MVP_ACTIONS.has(action)) {
+      throw new DomainError("FEATURE_DISABLED", "该功能暂未在内测版开放");
+    }
+    if (actor.mode === "CHILD" && !CHILD_ACTIONS.has(action)) {
+      throw new DomainError("FEATURE_DISABLED", "孩子视图暂不支持该操作");
+    }
+  }
+}

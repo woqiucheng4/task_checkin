@@ -2,6 +2,7 @@ export type DomainErrorCode =
   | "ALREADY_EXISTS"
   | "CONFLICT"
   | "FORBIDDEN"
+  | "FEATURE_DISABLED"
   | "INTERNAL_ERROR"
   | "INVALID_COMMAND"
   | "INVALID_INPUT"

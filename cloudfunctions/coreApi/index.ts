@@ -1,5 +1,6 @@
 import * as cloud from "wx-server-sdk";
 import { createCoreApi } from "../../src/application/core-api.js";
+import { MvpPolicy } from "../../src/application/mvp-policy.js";
 import {
   CloudBaseRepository,
   type CloudDatabase,
@@ -21,6 +22,7 @@ const api = createCoreApi({
   ids: new CryptoIdGenerator(),
   repository,
   mediaStorage: new CloudMediaStorage(cloud as unknown as CloudStorage),
+  mvpPolicy: new MvpPolicy({ enabled: process.env.PRODUCT_EDITION === "CHILD_TEACHER_MVP" }),
   ocrProvider: {
     async recognize() {
       throw new DomainError("CONFLICT", "图片识别服务尚未配置，请手动填写任务");
