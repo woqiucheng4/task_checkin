@@ -1,6 +1,7 @@
 import type { CollectionName } from "../domain/model.js";
 
 export const COLLECTIONS = {
+  teacherActivationCodes: "task_checkin_teacher_activation_codes",
   accounts: "task_checkin_accounts",
   auditLogs: "task_checkin_audit_logs",
   childGroupMemberships: "task_checkin_child_group_memberships",
@@ -52,6 +53,23 @@ export interface CloudBaseIndexDefinition {
 }
 
 export const CLOUDBASE_INDEXES: readonly CloudBaseIndexDefinition[] = [
+  {
+    collection: "teacherActivationCodes",
+    name: "teacher_activation_hash_status",
+    fields: [
+      { field: "codeHash", direction: "asc" },
+      { field: "status", direction: "asc" },
+    ],
+    unique: true,
+  },
+  {
+    collection: "teacherActivationCodes",
+    name: "teacher_activation_expiry_status",
+    fields: [
+      { field: "expiresAt", direction: "asc" },
+      { field: "status", direction: "asc" },
+    ],
+  },
   {
     collection: "accounts",
     name: "open_id_unique",

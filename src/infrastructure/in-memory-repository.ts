@@ -22,6 +22,7 @@ const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
 
 export class InMemoryRepository implements Repository {
   private state: DatabaseState;
+  private transactionQueue: Promise<void> = Promise.resolve();
 
   constructor(seed: SeedState = {}) {
     this.state = emptyState();
@@ -50,11 +51,21 @@ export class InMemoryRepository implements Repository {
   }
 
   async transaction<T>(work: (transaction: Transaction) => Promise<T>): Promise<T> {
-    const candidate = cloneState(this.state);
-    const transaction = new InMemoryTransaction(candidate);
-    const result = await work(transaction);
-    this.state = candidate;
-    return structuredClone(result);
+    const previous = this.transactionQueue;
+    let release!: () => void;
+    this.transactionQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      const candidate = cloneState(this.state);
+      const transaction = new InMemoryTransaction(candidate);
+      const result = await work(transaction);
+      this.state = candidate;
+      return structuredClone(result);
+    } finally {
+      release();
+    }
   }
 }
 
@@ -161,6 +172,7 @@ function cloneState(state: DatabaseState): DatabaseState {
 
 function emptyState(): DatabaseState {
   return {
+    teacherActivationCodes: new Map(),
     accounts: new Map(),
     auditLogs: new Map(),
     childGroupMemberships: new Map(),

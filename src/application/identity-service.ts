@@ -13,6 +13,7 @@ import type {
 } from "../domain/model.js";
 import { AccessPolicy } from "../domain/policy.js";
 import { DomainError } from "../shared/errors.js";
+import { TeacherActivationService } from "./teacher-activation-service.js";
 
 interface RequestBase {
   readonly requestId: string;
@@ -29,6 +30,53 @@ export class IdentityService {
 
   constructor(private readonly dependencies: ApplicationDependencies) {
     this.policy = new AccessPolicy(dependencies.repository);
+  }
+
+  async activateTeacherWorkspace(
+    actor: ActorContext,
+    input: RequestBase & { readonly code: string; readonly workspaceName: string },
+  ): Promise<Organization> {
+    if (typeof input.workspaceName !== "string")
+      throw new DomainError("INVALID_INPUT", "工作空间名称无效");
+    requireName(input.workspaceName, "工作空间名称");
+    return new TeacherActivationService(this.dependencies).consume(
+      actor,
+      input.code,
+      input.requestId,
+      async (tx) => {
+        const now = this.dependencies.clock.now();
+        const workspace: Organization = {
+          id: this.dependencies.ids.next("organization"),
+          createdAt: now,
+          name: input.workspaceName.trim(),
+          status: "ACTIVE",
+          type: "TEACHER_WORKSPACE",
+          updatedAt: now,
+        };
+        await tx.insert("organizations", workspace);
+        await tx.insert("organizationMembers", {
+          id: this.dependencies.ids.next("organization_member"),
+          accountId: actor.accountId,
+          createdAt: now,
+          displayName: workspace.name,
+          memberType: "ADULT",
+          organizationId: workspace.id,
+          organizationMemberId: this.dependencies.ids.next("organization_person"),
+          organizationRole: "ORGANIZATION_ADMIN",
+          status: "ACTIVE",
+          updatedAt: now,
+        });
+        await this.audit(tx, {
+          action: "TEACHER_WORKSPACE_CREATED",
+          actorAccountId: actor.accountId,
+          requestId: input.requestId,
+          resourceId: workspace.id,
+          resourceType: "ORGANIZATION",
+          tenantScope: { kind: "ORGANIZATION", organizationId: workspace.id },
+        });
+        return workspace;
+      },
+    );
   }
 
   async createAccount(input: RequestBase & { readonly openId: string }): Promise<Account> {

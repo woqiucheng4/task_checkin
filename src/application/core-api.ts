@@ -12,6 +12,10 @@ import { ReviewService } from "./review-service.js";
 import { SubmissionService } from "./submission-service.js";
 import { SunlightService } from "./sunlight-service.js";
 import { TaskService } from "./task-service.js";
+import {
+  TeacherActivationService,
+  TEACHER_ACTIVATION_ACTIONS,
+} from "./teacher-activation-service.js";
 import { ViewModelService } from "./view-models.js";
 import { WishService } from "./wish-service.js";
 import type { ActorContext, CommandReceipt } from "../domain/model.js";
@@ -19,6 +23,7 @@ import { DomainError } from "../shared/errors.js";
 import { commandFailure, commandSuccess, type CommandResult } from "../shared/result.js";
 
 export const CORE_ACTIONS = [
+  ...TEACHER_ACTIVATION_ACTIONS,
   "BOOTSTRAP_ACCOUNT",
   "GET_ACCOUNT_SHELL",
   "GET_FAMILY_SETTINGS",
@@ -199,6 +204,12 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
 
         const actor = await resolveActor(dependencies, account.id, command.actor, authContext);
         mvpPolicy.assertAllowed(command.action, actor);
+        // Activation services authorize replays and commit their own secret-free receipts atomically.
+        if ((TEACHER_ACTIVATION_ACTIONS as readonly string[]).includes(command.action)) {
+          return commandSuccess(
+            await dispatch(services, command.action, actor, command.payload, command.requestId),
+          );
+        }
         if (isWrite) {
           const requestId = requireRequestId(command.requestId);
           const replay = await findReceipt(dependencies, account.id, command.action, requestId);
@@ -226,6 +237,7 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
 }
 
 interface Services {
+  readonly teacherActivations: TeacherActivationService;
   readonly commercial: CommercialService;
   readonly governance: GovernanceService;
   readonly groupOrchard: GroupOrchardService;
@@ -244,6 +256,7 @@ interface Services {
 function createServices(dependencies: CoreApiDependencies): Services {
   const sunlight = new SunlightService(dependencies);
   return {
+    teacherActivations: new TeacherActivationService(dependencies),
     commercial: new CommercialService(dependencies),
     governance: new GovernanceService(dependencies),
     groupOrchard: new GroupOrchardService(dependencies),
@@ -342,6 +355,12 @@ async function dispatch(
 ): Promise<unknown> {
   const input = { ...payload, ...(requestId === undefined ? {} : { requestId }) };
   switch (action) {
+    case "ISSUE_TEACHER_ACTIVATION":
+      return services.teacherActivations.issue(actor, castInput(input));
+    case "REVOKE_TEACHER_ACTIVATION":
+      return services.teacherActivations.revoke(actor, castInput(input));
+    case "ACTIVATE_TEACHER_WORKSPACE":
+      return services.identity.activateTeacherWorkspace(actor, castInput(input));
     case "GET_ACCOUNT_SHELL":
       return services.presentation.accountShell(actor);
     case "GET_FAMILY_SETTINGS":

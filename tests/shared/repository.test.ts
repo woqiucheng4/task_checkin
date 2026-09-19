@@ -115,6 +115,7 @@ describe("collection manifest", () => {
         "taskDrafts",
         "taskTemplates",
         "tasks",
+        "teacherActivationCodes",
         "tenantEntitlements",
         "treeCatalog",
         "usageCounters",

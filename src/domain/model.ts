@@ -68,7 +68,17 @@ export interface GuardianLink extends MutableRecord {
   status: MembershipStatus;
 }
 
-export type OrganizationType = "SCHOOL" | "TUTORING";
+export type OrganizationType = "SCHOOL" | "TUTORING" | "TEACHER_WORKSPACE";
+
+export interface TeacherActivationCode extends BaseRecord {
+  readonly codeHash: string;
+  readonly expiresAt: IsoInstant;
+  readonly issuedByAccountId: string;
+  status: "ACTIVE" | "REDEEMED" | "REVOKED";
+  readonly redeemedByAccountId?: string;
+  readonly redeemedAt?: IsoInstant;
+  readonly revokedAt?: IsoInstant;
+}
 
 export interface Organization extends MutableRecord {
   name: string;
@@ -89,7 +99,12 @@ export interface OrganizationMember extends MutableRecord {
   status: MembershipStatus;
 }
 
-export type GroupType = "SCHOOL_CLASS" | "TUTORING_CLASS" | "INTEREST" | "TEMPORARY";
+export type GroupType =
+  | "SCHOOL_CLASS"
+  | "TUTORING_CLASS"
+  | "INTEREST"
+  | "TEMPORARY"
+  | "LEARNING_GROUP";
 
 export interface Group extends MutableRecord {
   readonly organizationId: string;
@@ -501,6 +516,7 @@ export interface PublicPoolEvent extends BaseRecord {
 }
 
 export interface DomainSchema {
+  teacherActivationCodes: TeacherActivationCode;
   accounts: Account;
   families: Family;
   familyMembers: FamilyMember;

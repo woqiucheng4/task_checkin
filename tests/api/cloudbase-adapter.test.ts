@@ -22,7 +22,8 @@ describe("CloudBase repository adapter", () => {
   it("maps logical collection names to stable snake-case names", () => {
     expect(COLLECTIONS.sunlightLedgers).toBe("task_checkin_sunlight_ledgers");
     expect(COLLECTIONS.childGroupMemberships).toBe("task_checkin_child_group_memberships");
-    expect(Object.keys(COLLECTIONS)).toHaveLength(41);
+    expect(COLLECTIONS.teacherActivationCodes).toBe("task_checkin_teacher_activation_codes");
+    expect(Object.keys(COLLECTIONS)).toHaveLength(42);
   });
 
   it("supports equality and in-process predicate queries", async () => {
