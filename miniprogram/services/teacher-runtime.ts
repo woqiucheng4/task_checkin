@@ -6,8 +6,14 @@ import type {
 
 const KEY = "task_checkin_teacher_group_v1";
 let selected = "";
+export async function teacherWorkspaceOrganization() {
+  const shell = await accountShell(true);
+  return shell.organizations.find((organization) => organization.type === "TEACHER_WORKSPACE");
+}
 export async function teacherGroups(): Promise<readonly GroupRoleView[]> {
-  return (await accountShell(true)).groups;
+  const [shell, workspace] = await Promise.all([accountShell(true), teacherWorkspaceOrganization()]);
+  if (!workspace) return [];
+  return shell.groups.filter((group) => group.organizationId === workspace.id);
 }
 export async function selectedTeacherGroup(): Promise<GroupRoleView> {
   const groups = await teacherGroups();
@@ -15,7 +21,7 @@ export async function selectedTeacherGroup(): Promise<GroupRoleView> {
   const group = groups.find((item) => item.id === (selected || persisted)) || groups[0];
   if (!group) {
     selected = "";
-    throw new Error("尚未获得教师分组权限，请由机构管理员授权");
+    throw new Error("请先激活教师工作空间并创建学习小组");
   }
   selected = group.id;
   return group;

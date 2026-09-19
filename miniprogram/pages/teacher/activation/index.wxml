@@ -1,0 +1,9 @@
+<app-shell title="激活教师工作空间" subtitle="输入由管理员提供的激活码后，创建你的学习小组">
+  <view class="page-subtitle">激活码仅用于开通教师工作空间；这里不提供激活码签发或管理。</view>
+  <view wx:if="{{error}}" class="page-subtitle activation-error">{{error}}</view>
+  <view class="activation-form">
+    <text>激活码</text><input value="{{code}}" placeholder="例如：ABCD-EFGH" maxlength="128" bindinput="editCode" />
+    <text>学习小组名称</text><input value="{{workspaceName}}" placeholder="例如：王老师的学习小组" maxlength="60" bindinput="editWorkspaceName" />
+    <button loading="{{working}}" disabled="{{working}}" bindtap="submitActivation">激活并进入分组</button>
+  </view>
+</app-shell>

@@ -12,7 +12,12 @@ Page({
                 { label: "家长", path: "/pages/parent/home/index" },
               ]
             : [{ label: "创建我的家庭", path: "/pages/bootstrap/index" }]),
-          { label: "教师／助教", path: "/pages/teacher/home/index" },
+          {
+            label: "教师／助教",
+            path: shell.organizations.some((organization) => organization.type === "TEACHER_WORKSPACE")
+              ? "/pages/teacher/home/index"
+              : "/pages/teacher/activation/index",
+          },
         ],
       });
     } catch (error) {

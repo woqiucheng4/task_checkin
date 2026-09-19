@@ -1,7 +1,11 @@
 import { buildNavigation, buildTeacherWorkbench } from "../../../presentation/page-models.js";
 import { navigate, replace } from "../../../services/page-runtime.js";
 import { command, today, showError } from "../../../services/session-runtime.js";
-import { selectedTeacherGroup, teacherWorkspace } from "../../../services/teacher-runtime.js";
+import {
+  selectedTeacherGroup,
+  teacherWorkspace,
+  teacherWorkspaceOrganization,
+} from "../../../services/teacher-runtime.js";
 import type { TeacherDashboardView } from "../../../../src/application/presentation-models.js";
 import type { PresentationService } from "../../../../src/application/presentation-service.js";
 Page({
@@ -18,6 +22,10 @@ Page({
   async onShow() {
     this.setData({ loading: true, error: "" });
     try {
+      if (!(await teacherWorkspaceOrganization())) {
+        replace("/pages/teacher/activation/index");
+        return;
+      }
       const group = await selectedTeacherGroup();
       const dashboard = await command<TeacherDashboardView>("GET_TEACHER_DASHBOARD", {
         date: today(),

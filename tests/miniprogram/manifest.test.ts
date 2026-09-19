@@ -5,6 +5,7 @@ const REQUIRED_MOBILE_ROUTES = [
   "pages/bootstrap/index",
   "pages/shared/role-switcher/index",
   "pages/shared/invitation/index",
+  "pages/teacher/activation/index",
   "pages/child/today/index",
   "pages/child/task/index",
   "pages/child/submit/index",

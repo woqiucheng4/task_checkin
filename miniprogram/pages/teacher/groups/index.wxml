@@ -1,5 +1,6 @@
 <app-shell title="我的班级" subtitle="教师和助教只管理被授权的分组" context-label="{{groups.length}} 个分组">
   <view wx:if="{{error}}" class="page-subtitle">{{error}}</view>
+  <view class="create-group"><input value="{{groupNameInput}}" placeholder="例如：周末阅读组" maxlength="30" bindinput="editGroupName" /><button loading="{{creating}}" disabled="{{creating}}" bindtap="createGroup">新建分组</button></view>
   <view class="group-tabs"><button wx:for="{{groups}}" wx:key="id" class="group-tab {{selected === item.id ? 'group-tab--selected' : ''}}" data-id="{{item.id}}" bindtap="selectGroup">{{item.name}}</button></view>
   <block wx:if="{{selected}}">
     <view class="group-head"><view><text>{{organizationName}}</text><view>{{groupName}}</view><text>{{memberCount}} 名有效成员</text></view><button bindtap="invite">邀请加入</button></view>

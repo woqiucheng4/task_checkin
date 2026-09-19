@@ -7,6 +7,7 @@ const teacher = vi.hoisted(() => ({
     role: "TEACHER",
   }),
   teacherGroups: async () => [{ id: "group-real", name: "真实班级" }],
+  teacherWorkspaceOrganization: async () => ({ id: "workspace-real", name: "真实学校" }),
   selectTeacherGroup: vi.fn(),
   teacherWorkspace: async () => ({
     group: { id: "group-real", name: "真实班级", organizationName: "真实学校" },

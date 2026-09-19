@@ -3,13 +3,34 @@ import { navigate, replace } from "../../../services/page-runtime.js";
 import { command, showError } from "../../../services/session-runtime.js";
 import {
   teacherGroups,
+  teacherWorkspaceOrganization,
   teacherWorkspace,
   selectTeacherGroup,
 } from "../../../services/teacher-runtime.js";
 import type { PresentationService } from "../../../../src/application/presentation-service.js";
 async function load(page: MiniPageInstance) {
+  const workspace = await teacherWorkspaceOrganization();
+  if (!workspace) {
+    page.setData({ groups: [], selected: "", workspaceId: "", error: "请先激活教师工作空间" });
+    replace("/pages/teacher/activation/index");
+    return;
+  }
   const groups = await teacherGroups();
-  page.setData({ groups });
+  page.setData({ groups, workspaceId: workspace.id });
+  if (!groups.length) {
+    page.setData({
+      selected: "",
+      groupName: "",
+      organizationName: workspace.name,
+      memberCount: 0,
+      pendingCount: 0,
+      reviewCount: 0,
+      current: 0,
+      target: 0,
+      error: "还没有学习小组，请新建分组后再邀请成员。",
+    });
+    return;
+  }
   const view = await teacherWorkspace();
   const pending = await command<Awaited<ReturnType<PresentationService["groupJoinRequests"]>>>(
     "GET_GROUP_JOIN_REQUESTS",
@@ -37,6 +58,7 @@ Page({
   data: {
     navigation: buildNavigation("teacher", "groups"),
     groups: [],
+    workspaceId: "",
     selected: "",
     groupName: "",
     organizationName: "",
@@ -46,6 +68,8 @@ Page({
     current: 0,
     target: 0,
     error: "",
+    groupNameInput: "",
+    creating: false,
   },
   async onShow() {
     try {
@@ -75,6 +99,41 @@ Page({
       await load(this);
     } catch (error) {
       showError(error);
+    }
+  },
+  editGroupName(event: { detail: { value: string } }) {
+    this.setData({ groupNameInput: event.detail.value });
+  },
+  async createGroup() {
+    if (this.data.creating) return;
+    const workspaceId = String(this.data.workspaceId || "");
+    const name = String(this.data.groupNameInput || "").trim();
+    if (!workspaceId) {
+      this.setData({ error: "请先激活教师工作空间" });
+      replace("/pages/teacher/activation/index");
+      return;
+    }
+    if (!name) {
+      this.setData({ error: "请填写分组名称" });
+      return;
+    }
+    this.setData({ creating: true, error: "" });
+    try {
+      const group = await command<{ id: string; name: string }>("CREATE_GROUP", {
+        organizationId: workspaceId,
+        name,
+        type: "LEARNING_GROUP",
+      });
+      await selectTeacherGroup(group.id);
+      this.setData({ groupNameInput: "" });
+      await load(this);
+      wx.showToast({ icon: "success", title: "分组已创建" });
+      navigate("/pages/teacher/members/index");
+    } catch (error) {
+      this.setData({ error: error instanceof Error ? error.message : "创建分组失败，请重试" });
+      showError(error);
+    } finally {
+      this.setData({ creating: false });
     }
   },
 });

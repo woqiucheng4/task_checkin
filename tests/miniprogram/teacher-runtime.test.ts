@@ -12,9 +12,10 @@ it("uses the authorized selected group and rejects stale or foreign selections",
     setStorageSync: (key: string, value: unknown) => stored.set(key, value),
   });
   session.accountShell.mockResolvedValue({
+    organizations: [{ id: "workspace-1", type: "TEACHER_WORKSPACE" }],
     groups: [
-      { id: "group-a", name: "A" },
-      { id: "group-b", name: "B" },
+      { id: "group-a", name: "A", organizationId: "workspace-1" },
+      { id: "group-b", name: "B", organizationId: "workspace-1" },
     ],
   });
   const runtime = await import("../../miniprogram/services/teacher-runtime.js");
@@ -22,6 +23,6 @@ it("uses the authorized selected group and rejects stale or foreign selections",
   await runtime.teacherWorkspace();
   expect(session.command).toHaveBeenCalledWith("GET_GROUP_WORKSPACE", { groupId: "group-b" });
   await expect(runtime.selectTeacherGroup("rental-group")).rejects.toThrow();
-  session.accountShell.mockResolvedValue({ groups: [] });
+  session.accountShell.mockResolvedValue({ organizations: [], groups: [] });
   await expect(runtime.selectedTeacherGroup()).rejects.toThrow();
 });

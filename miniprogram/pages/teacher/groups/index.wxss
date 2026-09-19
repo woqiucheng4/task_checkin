@@ -1,4 +1,7 @@
 @import "../../../styles/pages.wxss";
+.create-group { display: flex; gap: 14rpx; margin: 18rpx 0 24rpx; }
+.create-group input { flex: 1; min-width: 0; padding: 16rpx 18rpx; border: 2rpx solid #d9d6ca; border-radius: 12rpx; background: #fffdf7; font-size: 26rpx; }
+.create-group button { margin: 0; padding: 0 22rpx; border-radius: 12rpx; background: #174e2a; color: #fffdf7; font-size: 25rpx; }
 .group-tabs { display: flex; gap: 12rpx; margin-bottom: 24rpx; }
 .group-tab { margin: 0; padding: 10rpx 20rpx; border: 2rpx solid #d9d6ca; border-radius: 26rpx; background: #fffdf7; color: #62675f; font-size: 23rpx; line-height: 1.4; }
 .group-tab--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }
