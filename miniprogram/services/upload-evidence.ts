@@ -1,16 +1,10 @@
 import type { CoreAction } from "../../src/application/core-api.js";
 import type { CommandResult } from "../../src/shared/result.js";
 
-export async function uploadEvidence(
-  client: {
-    execute(
-      action: CoreAction,
-      payload: Readonly<Record<string, unknown>>,
-    ): Promise<CommandResult<unknown>>;
-  },
-  assignmentId: string,
-  base64: string,
-): Promise<string> {
+export function imageUploadMetadata(base64: string): {
+  readonly mimeType: string;
+  readonly byteSize: number;
+} {
   const mimeType = base64.startsWith("/9j/")
     ? "image/jpeg"
     : base64.startsWith("iVBORw0KGgo")
@@ -22,6 +16,20 @@ export async function uploadEvidence(
     (base64.length * 3) / 4 - (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0);
   if (!mimeType || byteSize > 1_000_000 || byteSize < 1)
     throw new Error("请选择小于 1 MB 的 JPG、PNG 或 WebP 图片");
+  return { byteSize, mimeType };
+}
+
+export async function uploadEvidence(
+  client: {
+    execute(
+      action: CoreAction,
+      payload: Readonly<Record<string, unknown>>,
+    ): Promise<CommandResult<unknown>>;
+  },
+  assignmentId: string,
+  base64: string,
+): Promise<string> {
+  const { byteSize, mimeType } = imageUploadMetadata(base64);
   const intent = await client.execute("CREATE_UPLOAD_INTENT", {
     assignmentId,
     purpose: "SUBMISSION_EVIDENCE",

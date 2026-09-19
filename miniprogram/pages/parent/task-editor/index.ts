@@ -1,4 +1,5 @@
 import { coreApiClient } from "../../../services/page-runtime.js";
+import { uploadTaskSource } from "../../../services/upload-task-source.js";
 import {
   selectedChild,
   selectedFamily,
@@ -6,18 +7,41 @@ import {
   today,
 } from "../../../services/session-runtime.js";
 
+async function chooseImageBase64(): Promise<string | undefined> {
+  const selected = await wx.chooseMedia({
+    count: 1,
+    mediaType: ["image"],
+    sourceType: ["album", "camera"],
+  });
+  const filePath = selected.tempFiles[0]?.tempFilePath;
+  if (!filePath) return undefined;
+  return wx.getFileSystemManager().readFileSync(filePath, "base64");
+}
+
+function editorDate(instant: string | undefined, fallback: string): { date: string; time: string } {
+  if (!instant) return { date: fallback, time: "23:59" };
+  const parsed = new Date(instant);
+  if (Number.isNaN(parsed.getTime())) return { date: fallback, time: "23:59" };
+  const local = new Date(parsed.getTime() + 8 * 3600000).toISOString();
+  return { date: local.slice(0, 10), time: local.slice(11, 16) };
+}
+
 Page({
   data: {
     category: "LIFE",
+    confidence: "",
+    description: "",
     draftId: "",
     dueAt: `${today()} 23:59`,
     date: today(),
     time: "23:59",
     publishing: false,
-    mode: "MANUAL",
+    mode: "OCR",
     submissionMode: "CONFIRM",
     title: "",
     uploaded: false,
+    uploadingImage: false,
+    sourceAssetIds: [] as readonly string[],
   },
   chooseMode(event: { readonly currentTarget: { readonly dataset: { readonly mode?: string } } }) {
     const mode = event.currentTarget.dataset.mode;
@@ -25,6 +49,9 @@ Page({
   },
   editTitle(event: { readonly detail: { readonly value?: string } }) {
     this.setData({ title: event.detail.value ?? "" });
+  },
+  editDescription(event: { readonly detail: { readonly value?: string } }) {
+    this.setData({ description: event.detail.value ?? "" });
   },
   editDate(event: { detail: { value: string } }) {
     this.setData({ date: event.detail.value, dueAt: `${event.detail.value} ${this.data.time}` });
@@ -41,13 +68,54 @@ Page({
     this.setData({ mode: "MANUAL", title: event.currentTarget.dataset.title ?? "" });
   },
   async recognizePhoto() {
-    const selected = await wx.chooseMedia({
-      count: 1,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"],
-    });
-    if (selected.tempFiles[0] === undefined) return;
-    wx.showToast({ icon: "none", title: "识别服务连接中，请先手动填写" });
+    const sourceAssetIds = this.data.sourceAssetIds as readonly string[];
+    if (this.data.uploadingImage === true || sourceAssetIds.length >= 3) {
+      if (sourceAssetIds.length >= 3) wx.showToast({ icon: "none", title: "最多上传 3 张图片" });
+      return;
+    }
+    this.setData({ uploadingImage: true });
+    try {
+      const base64 = await chooseImageBase64();
+      if (!base64) return;
+      const family = await selectedFamily();
+      const assetId = await uploadTaskSource(
+        coreApiClient,
+        { kind: "FAMILY", familyId: family.id },
+        base64,
+      );
+      this.setData({ sourceAssetIds: [...sourceAssetIds, assetId] });
+      const result = await coreApiClient.execute("RECOGNIZE_TASK_DRAFT", { assetId });
+      if (!result.ok) throw new Error(result.error.message);
+      const draft = result.data as {
+        id: string;
+        title?: string;
+        description?: string;
+        category?: string;
+        dueAt?: string;
+        submissionMode?: string;
+        confidence?: number;
+      };
+      const deadline = editorDate(draft.dueAt, String(this.data.date));
+      this.setData({
+        category: draft.category ?? this.data.category,
+        confidence:
+          typeof draft.confidence === "number"
+            ? `识别置信度 ${Math.round(draft.confidence * 100)}%，请逐项确认`
+            : "识别结果仅供参考，请逐项确认",
+        date: deadline.date,
+        description: draft.description ?? this.data.description,
+        draftId: draft.id,
+        mode: "MANUAL",
+        submissionMode: draft.submissionMode ?? this.data.submissionMode,
+        time: deadline.time,
+        title: draft.title ?? this.data.title,
+        uploaded: true,
+      });
+    } catch (error) {
+      showError(error);
+    } finally {
+      this.setData({ uploadingImage: false });
+    }
   },
   async publish() {
     if (this.data.publishing) return;
@@ -60,21 +128,43 @@ Page({
       const family = await selectedFamily();
       const date = String(this.data.date);
       const dueAt = new Date(`${date}T${this.data.time}:00+08:00`).toISOString();
-      const result = await coreApiClient.execute("PUBLISH_FAMILY_TASK", {
-        allowLateSubmission: true,
+      const fields = {
         category: this.data.category,
-        childIds: [await selectedChild()],
+        description: this.data.description,
         dueAt,
-        estimatedMinutes: 15,
-        familyId: family.id,
-        importance: "REQUIRED",
-        occurrenceDate: date,
-        requiresAcademicReview: false,
-        schedule: { date, kind: "ONCE" },
         startsAt: new Date(`${date}T00:00:00+08:00`).toISOString(),
         submissionMode: this.data.submissionMode,
         title: this.data.title,
-      });
+      };
+      const result = this.data.draftId
+        ? await coreApiClient.execute("EDIT_TASK_DRAFT", { draftId: this.data.draftId, ...fields })
+        : await coreApiClient.execute("PUBLISH_FAMILY_TASK", {
+            allowLateSubmission: true,
+            ...fields,
+            childIds: [await selectedChild()],
+            estimatedMinutes: 15,
+            familyId: family.id,
+            importance: "REQUIRED",
+            occurrenceDate: date,
+            requiresAcademicReview: false,
+            schedule: { date, kind: "ONCE" },
+            sourceAssetIds: this.data.sourceAssetIds,
+          });
+      if (this.data.draftId && result.ok) {
+        const published = await coreApiClient.execute("PUBLISH_TASK_DRAFT", {
+          allowLateSubmission: true,
+          childIds: [await selectedChild()],
+          draftId: this.data.draftId,
+          estimatedMinutes: 15,
+          familyId: family.id,
+          importance: "REQUIRED",
+          occurrenceDate: date,
+          requiresAcademicReview: false,
+          schedule: { date, kind: "ONCE" },
+          sourceAssetIds: this.data.sourceAssetIds,
+        });
+        if (!published.ok) throw new Error(published.error.message);
+      }
       wx.showToast({
         icon: result.ok ? "success" : "none",
         title: result.ok ? "任务已发布" : result.error.message,
