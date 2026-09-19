@@ -47,6 +47,55 @@ describe("parent child session runtime", () => {
     await expect(runtime.selectedChild()).rejects.toThrow("请选择孩子");
   });
 
+  it("returns account children for the selection UI without requesting a child dashboard", async () => {
+    stubShell([
+      {
+        id: "family-1",
+        name: "家庭",
+        children: [
+          { id: "child-1", nickname: "小明" },
+          { id: "child-2", nickname: "小红" },
+        ],
+      },
+    ]);
+    const runtime = await import("../../miniprogram/services/session-runtime.js");
+
+    const view = await runtime.dashboard();
+
+    expect(view).toMatchObject({
+      selectionRequired: true,
+      children: [
+        { id: "child-1", nickname: "小明", selected: false },
+        { id: "child-2", nickname: "小红", selected: false },
+      ],
+    });
+    expect(bridge.execute).not.toHaveBeenCalledWith(
+      "GET_PARENT_DASHBOARD",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("replaces a persisted stale child with the only linked child on refresh", async () => {
+    let families = [{ id: "family-1", children: [{ id: "child-1" }] }];
+    stubShell(() => families);
+    let storage = { selectedChildId: "child-1" } as { selectedChildId?: string };
+    vi.stubGlobal("wx", {
+      getStorageSync: () => storage,
+      setStorageSync: vi.fn(
+        (_key: string, value: { selectedChildId?: string }) => (storage = structuredClone(value)),
+      ),
+    });
+    const runtime = await import("../../miniprogram/services/session-runtime.js");
+
+    await runtime.accountShell();
+    families = [{ id: "family-1", children: [{ id: "child-2" }] }];
+    await runtime.accountShell(true);
+
+    expect(storage).toEqual({ selectedChildId: "child-2" });
+    await expect(runtime.selectedChild()).resolves.toBe("child-2");
+  });
+
   it("switches a valid child and clears it after a refreshed shell removes the link", async () => {
     let families = [{ id: "family-1", children: [{ id: "child-1" }, { id: "child-2" }] }];
     stubShell(() => families);

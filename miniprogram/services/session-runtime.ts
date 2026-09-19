@@ -18,6 +18,16 @@ let shell: AccountShellView | undefined;
 let selectedChildId = "";
 let init: Promise<AccountShellView> | undefined;
 
+/**
+ * Parent page data is available before a child is selected. `selectionRequired`
+ * tells the page to render the account's children without issuing a
+ * child-scoped request.
+ */
+export interface ParentDashboardPageData extends ParentDashboardView {
+  readonly accountShell: AccountShellView;
+  readonly selectionRequired: boolean;
+}
+
 export async function command<T>(
   action: CoreAction,
   payload: Readonly<Record<string, unknown>> = {},
@@ -43,8 +53,8 @@ export async function accountShell(refresh = false): Promise<AccountShellView> {
         selectedChildId = all[0]?.id || "";
       } else {
         selectedChildId = "";
-        if (preferredChildId) wx.setStorageSync(KEY, {});
       }
+      wx.setStorageSync(KEY, selectedChildId ? { selectedChildId } : {});
       return shell;
     })().finally(() => {
       init = undefined;
@@ -98,8 +108,14 @@ export function today(): string {
   return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
 }
 
-export async function dashboard(): Promise<ParentDashboardView> {
-  return accountChildCommand("GET_PARENT_DASHBOARD", { date: today() });
+export async function dashboard(): Promise<ParentDashboardPageData> {
+  const current = await accountShell();
+  if (!hasSelectedChild(current)) return selectionRequiredDashboard(current);
+  return {
+    ...(await accountChildCommand<ParentDashboardView>("GET_PARENT_DASHBOARD", { date: today() })),
+    accountShell: current,
+    selectionRequired: false,
+  };
 }
 
 export async function taskDetail(id: string): Promise<PresentationTaskItemView> {
@@ -122,6 +138,33 @@ async function accountChildCommand<T>(
   const result = await accountChildClient.execute(action, payload);
   if (!result.ok) throw new Error(result.error.message);
   return result.data as T;
+}
+
+function hasSelectedChild(current: AccountShellView): boolean {
+  return current.families.some((family) =>
+    family.children.some((child) => child.id === selectedChildId),
+  );
+}
+
+function selectionRequiredDashboard(current: AccountShellView): ParentDashboardPageData {
+  return {
+    accountShell: current,
+    selectionRequired: true,
+    children: current.families.flatMap((family) =>
+      family.children.map((child) => ({ ...child, selected: false })),
+    ),
+    selectedChild: { id: "", nickname: "" },
+    family: { id: "", name: "" },
+    today: {
+      allDone: false,
+      completedCount: 0,
+      date: today(),
+      items: [],
+      pendingReviewCount: 0,
+      requiredCount: 0,
+    },
+    groups: [],
+  };
 }
 
 export function showError(error: unknown): void {
