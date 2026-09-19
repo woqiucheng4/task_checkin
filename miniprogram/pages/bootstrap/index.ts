@@ -1,13 +1,30 @@
 import { accountShell, command, showError } from "../../services/session-runtime.js";
 
 const ROLE_HOME = {
-  child: "/pages/child/today/index",
   parent: "/pages/parent/home/index",
   teacher: "/pages/teacher/home/index",
 } as const;
 
+const TEACHER_ACTIVATION = "/pages/teacher/activation/index";
+
+function hasParentWorkspace(shell: Awaited<ReturnType<typeof accountShell>>): boolean {
+  return shell.families.some((family) => family.children.length > 0);
+}
+
+function hasTeacherWorkspace(shell: Awaited<ReturnType<typeof accountShell>>): boolean {
+  return shell.organizations.some((organization) => organization.type === "TEACHER_WORKSPACE");
+}
+
 Page({
-  data: { loading: false, setup: false, familyName: "", nickname: "", notice: "", familyId: "", activeRole: "" },
+  data: {
+    loading: false,
+    setup: false,
+    familyName: "",
+    nickname: "",
+    notice: "",
+    familyId: "",
+    activeRole: "",
+  },
   editFamily(event: { detail: { value: string } }) {
     this.setData({ familyName: event.detail.value });
   },
@@ -43,18 +60,28 @@ Page({
     readonly currentTarget: { readonly dataset: { readonly role?: string } };
   }) {
     const role = event.currentTarget.dataset.role;
-    if (role === "child" || role === "parent" || role === "teacher") {
-      this.setData({ activeRole: role, loading: true, notice: "" });
-      try {
-        const shell = await accountShell(true);
-        if (role !== "teacher" && !shell.families.some((f) => f.children.length)) {
+    if (role === "child") {
+      wx.redirectTo({ url: `${ROLE_HOME.parent}?legacy=child` });
+      return;
+    }
+    if (role !== "parent" && role !== "teacher") return;
+
+    this.setData({ activeRole: role, loading: true, notice: "" });
+    try {
+      const shell = await accountShell(true);
+      if (role === "parent") {
+        if (!hasParentWorkspace(shell)) {
           this.setData({ setup: true, familyId: shell.families[0]?.id || "" });
-        } else wx.redirectTo({ url: ROLE_HOME[role] });
-      } catch (error) {
-        this.setData({ notice: error instanceof Error ? error.message : "连接失败，请重试" });
-      } finally {
-        this.setData({ activeRole: "", loading: false });
+          return;
+        }
+        wx.redirectTo({ url: ROLE_HOME.parent });
+        return;
       }
+      wx.redirectTo({ url: hasTeacherWorkspace(shell) ? ROLE_HOME.teacher : TEACHER_ACTIVATION });
+    } catch (error) {
+      this.setData({ notice: error instanceof Error ? error.message : "连接失败，请重试" });
+    } finally {
+      this.setData({ activeRole: "", loading: false });
     }
   },
 });

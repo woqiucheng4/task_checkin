@@ -14,11 +14,6 @@
     <button class="setup__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
   </view>
   <view wx:else class="roles">
-    <button class="role {{activeRole === 'child' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="child" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
-      <t-icon name="user" size="42rpx" />
-      <view><text>我是孩子</text><text class="role__hint">完成任务，让果树长大</text></view>
-      <t-icon name="chevron-right" size="34rpx" />
-    </button>
     <button class="role {{activeRole === 'parent' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="parent" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
       <t-icon name="home" size="42rpx" />
       <view><text>我是家长</text><text class="role__hint">布置、查看和确认阳光</text></view>
