@@ -46,3 +46,31 @@ The deliberate CHILD client/actor removal leaves these exact UI migration errors
 6. `miniprogram/pages/child/task/index.ts(14,9)`: `{ mode: "CHILD"; childId: string }` is not assignable to `CoreActorSelection`.
 7. `miniprogram/pages/child/task/index.ts(38,13)`: `{ mode: "CHILD"; childId: string }` is not assignable to `CoreActorSelection`.
 8. `miniprogram/pages/parent/orchard/index.ts(28,11)`: `"CHILD"` is not assignable to `"ACCOUNT" | "CONTENT_PROVIDER" | "PLATFORM"`.
+
+## Fix round 1/5
+
+### Status and decisions
+
+- `dashboard()` now first loads the authenticated account shell. If there is no selected guardian-linked child, it returns `ParentDashboardPageData` with `selectionRequired: true`, the account shell, an unselected children list, and empty child-scoped content. It does not issue `GET_PARENT_DASHBOARD` in that state, so the parent UI can render its chooser before a child selection.
+- The same page-data interface remains structurally compatible with current dashboard consumers; when a child is selected it contains the server dashboard and `selectionRequired: false`. Task 4 can render the explicit empty-selection state from the new flag without changing runtime contracts again.
+- Every account-shell refresh now writes the reconciled local preference: a valid selection or sole linked child is stored as `selectedChildId`; otherwise the storage value is replaced with `{}`. An unlinked child ID cannot remain in storage.
+
+### Changed files
+
+- `miniprogram/services/session-runtime.ts`
+- `tests/miniprogram/session-runtime.test.ts`
+
+### Tests and checks
+
+- `npm test -- tests/miniprogram/session-runtime.test.ts tests/api/session.test.ts tests/api/client-boundary.test.ts tests/miniprogram/editor-selection-snapshot.test.ts` — passed, 19 tests.
+- `npm run typecheck` — still blocked only by the eight existing Task 4 CHILD actor/`childClient` page migrations above.
+- `npm test` — 470 passed, 4 skipped; `tests/miniprogram/deployment-runtime.test.ts` remains blocked because `npm run build:deploy` runs that same typecheck.
+- `git diff --check` — passed.
+
+### Commit
+
+- `c137efa fix: expose child selection dashboard state`
+
+### Concerns
+
+- No Task 4 page or `project.config.json` files were modified. Task 4 must consume `selectionRequired` to show the explicit chooser state rather than treating the empty default dashboard as a selected child.
