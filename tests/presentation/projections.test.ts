@@ -180,7 +180,7 @@ describe("UI presentation projections", () => {
 
     expect(institution).toMatchObject({
       groups: [{ id: seed.group.id, memberCount: 1 }],
-      organization: { id: seed.organization.id, name: "青禾学校" },
+      organization: { id: seed.organization.id, name: "青禾老师", type: "TEACHER_WORKSPACE" },
     });
     expect(platform.metrics).toMatchObject({ activeOrganizations: 1, contentProviders: 1 });
     expect(providerView.templates).toEqual([expect.objectContaining({ title: "观察一片叶子" })]);

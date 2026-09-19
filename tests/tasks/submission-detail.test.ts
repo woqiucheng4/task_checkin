@@ -41,10 +41,15 @@ describe("submission detail access", () => {
       payload: { assignmentId: seed.assignment.id },
       requestId: "detail-read-request-0001",
     };
+    const receiptsBeforeRead = await seed.harness.repository.query("commandReceipts");
+    expect(receiptsBeforeRead.map((receipt) => receipt.action)).toEqual([
+      "ISSUE_TEACHER_ACTIVATION",
+      "ACTIVATE_TEACHER_WORKSPACE",
+    ]);
     expect(await api.handle(command, { openId: "wx-scenario-guardian" })).toMatchObject({
       ok: true,
     });
-    expect(await seed.harness.repository.query("commandReceipts")).toHaveLength(0);
+    expect(await seed.harness.repository.query("commandReceipts")).toEqual(receiptsBeforeRead);
   });
   it("returns actual submitted text to the guardian", async () => {
     const seed = await createSubmittedTaskScenario("FAMILY", "TEXT");

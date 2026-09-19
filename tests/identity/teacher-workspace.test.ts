@@ -61,6 +61,15 @@ describe("teacher-owned learning groups", () => {
 
   it("lets only the activated workspace admin create learning groups", async () => {
     const seed = await teacherWorkspaceScenario();
+    const secondActivation = await new TeacherActivationService(seed.harness).issue(platform, {
+      expiresAt: "2026-09-06T10:00:00.000Z",
+      requestId: "workspace-second-activation-issue",
+    });
+    const secondWorkspace = await seed.identity.activateTeacherWorkspace(seed.otherTeacher, {
+      code: secondActivation.code,
+      requestId: "workspace-second-activation-redeem",
+      workspaceName: "远山老师",
+    });
     const input = {
       name: "三年级学习小组",
       organizationId: seed.workspace.id,
@@ -70,6 +79,7 @@ describe("teacher-owned learning groups", () => {
     const group = await seed.identity.createGroup(seed.teacher, input);
 
     expect(group).toMatchObject({ organizationId: seed.workspace.id, type: "LEARNING_GROUP" });
+    expect(secondWorkspace.type).toBe("TEACHER_WORKSPACE");
     await expect(
       seed.identity.createGroup(seed.otherTeacher, {
         ...input,

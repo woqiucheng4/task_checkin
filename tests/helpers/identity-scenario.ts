@@ -38,18 +38,19 @@ export async function createIdentityScenario(childCount = 2) {
       }),
     );
   }
-  process.env.TEACHER_ACTIVATION_PEPPER ??= "identity-scenario-test-pepper";
-  const activation = await activations.issue(platform, {
-    expiresAt: "2026-09-06T10:00:00.000Z",
-    requestId: "scenario-activation-issue",
-  });
-  const organization = await identity.activateTeacherWorkspace(teacher, {
-    code: activation.code,
-    requestId: "scenario-activation-redeem",
-    workspaceName: "青禾学校",
+  const organization = await withTeacherActivationPepper(async () => {
+    const activation = await activations.issue(platform, {
+      expiresAt: "2026-09-06T10:00:00.000Z",
+      requestId: "scenario-activation-issue",
+    });
+    return identity.activateTeacherWorkspace(teacher, {
+      code: activation.code,
+      requestId: "scenario-activation-redeem",
+      workspaceName: "青禾老师",
+    });
   });
   const group = await identity.createGroup(teacher, {
-    name: "三年级一班",
+    name: "三年级学习小组",
     organizationId: organization.id,
     requestId: "scenario-group",
     type: "LEARNING_GROUP",
@@ -94,4 +95,15 @@ export async function createIdentityScenario(childCount = 2) {
     platform,
     teacher,
   };
+}
+
+async function withTeacherActivationPepper<T>(work: () => Promise<T>): Promise<T> {
+  const previous = process.env.TEACHER_ACTIVATION_PEPPER;
+  process.env.TEACHER_ACTIVATION_PEPPER = "identity-scenario-test-pepper";
+  try {
+    return await work();
+  } finally {
+    if (previous === undefined) delete process.env.TEACHER_ACTIVATION_PEPPER;
+    else process.env.TEACHER_ACTIVATION_PEPPER = previous;
+  }
 }

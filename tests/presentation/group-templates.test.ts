@@ -29,6 +29,11 @@ it("lists only active templates of the authorized group's organization without c
     payload: { groupId: seed.group.id },
     requestId: "template-read-0001",
   };
+  const receiptsBeforeRead = await seed.harness.repository.query("commandReceipts");
+  expect(receiptsBeforeRead.map((receipt) => receipt.action)).toEqual([
+    "ISSUE_TEACHER_ACTIVATION",
+    "ACTIVATE_TEACHER_WORKSPACE",
+  ]);
   const result = await api.handle(request, { openId: "wx-scenario-teacher" });
   expect(result).toMatchObject({
     ok: true,
@@ -37,7 +42,7 @@ it("lists only active templates of the authorized group's organization without c
   if (!result.ok) throw new Error("Expected successful read");
   expect(result.data).toHaveLength(1);
   expect((result.data as object[])[0]).not.toHaveProperty("ownerScope");
-  expect(await seed.harness.repository.query("commandReceipts")).toHaveLength(0);
+  expect(await seed.harness.repository.query("commandReceipts")).toEqual(receiptsBeforeRead);
   expect(await api.handle(request, { openId: "wx-scenario-guardian" })).toMatchObject({
     ok: false,
     error: { code: "FORBIDDEN" },

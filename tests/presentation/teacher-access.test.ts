@@ -9,7 +9,7 @@ describe("teacher workspace authorization", () => {
     const other = await seed.identity.createGroup(seed.teacher, {
       name: "另一分组",
       organizationId: seed.organization.id,
-      type: "SCHOOL_CLASS",
+      type: "LEARNING_GROUP",
       requestId: "queue-other-group-0001",
     });
     const invite = await seed.invitations.createGroupInvitation(seed.teacher, {

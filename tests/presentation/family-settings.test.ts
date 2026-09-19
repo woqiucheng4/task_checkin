@@ -25,8 +25,8 @@ describe("family settings projections", () => {
     expect(view.memberships).toMatchObject([
       {
         groupId: seed.group.id,
-        name: "三年级一班",
-        organizationName: "青禾学校",
+        name: "三年级学习小组",
+        organizationName: "青禾老师",
         status: "ACTIVE",
       },
     ]);
