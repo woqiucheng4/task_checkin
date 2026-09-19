@@ -50,6 +50,7 @@ describe("submission detail access", () => {
     expect(receiptsBeforeRead.map((receipt) => receipt.action)).toEqual([
       "ISSUE_TEACHER_ACTIVATION",
       "ACTIVATE_TEACHER_WORKSPACE",
+      "PUBLISH_FAMILY_TASK",
     ]);
     expect(await api.handle(command, { openId: "wx-scenario-guardian" })).toMatchObject({
       ok: true,

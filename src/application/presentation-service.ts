@@ -16,7 +16,7 @@ import type {
 } from "./presentation-models.js";
 import type { ApplicationDependencies } from "./ports.js";
 import { ViewModelService } from "./view-models.js";
-import type { ActorContext, Child } from "../domain/model.js";
+import type { ActorContext, Child, ChildGroupMembership } from "../domain/model.js";
 import { AccessPolicy } from "../domain/policy.js";
 import { DomainError } from "../shared/errors.js";
 
@@ -62,11 +62,11 @@ export class PresentationService {
     );
     const organizations = await Promise.all(
       organizationMemberships.map(async (membership) => {
-        const organization = await this.requireRecord(
+        const organization = await this.dependencies.repository.read(
           "organizations",
           membership.organizationId,
-          "机构不存在",
         );
+        if (organization?.status !== "ACTIVE") return undefined;
         return {
           id: organization.id,
           name: organization.name,
@@ -79,7 +79,10 @@ export class PresentationService {
     return {
       families: families.sort(byName),
       groups: (await this.groupRoles(actor)).sort(byName),
-      organizations: organizations.sort(byName),
+      organizations:
+        actor.mode === "ACCOUNT"
+          ? organizations.filter((organization) => organization !== undefined).sort(byName)
+          : [],
     };
   }
 
@@ -304,6 +307,8 @@ export class PresentationService {
           await this.dependencies.repository.query("organizationMembers", {
             organizationId: access.organizationId,
             organizationMemberId,
+            childId: assignment.childId,
+            memberType: "CHILD",
             status: "ACTIVE",
           })
         )[0];
@@ -314,7 +319,15 @@ export class PresentationService {
         return {
           academicState: assignment.academicState,
           assignmentId: assignment.id,
-          childLabel: member.displayName,
+          childLabel: (
+            await this.disclosedChild(
+              activeMemberships.find(
+                (membership) =>
+                  membership.organizationMemberId === organizationMemberId &&
+                  membership.childId === assignment.childId,
+              ),
+            )
+          ).displayName,
           organizationMemberId,
           ...(submittedAt === undefined ? {} : { submittedAt }),
           title: task.title,
@@ -355,6 +368,7 @@ export class PresentationService {
     const access = await this.requireGroupAccess(actor, input.groupId);
     const memberships = await this.dependencies.repository.query("childGroupMemberships", {
       groupId: input.groupId,
+      organizationId: access.organizationId,
       status: "ACTIVE",
     });
     const activeIds = new Set(memberships.map((member) => member.organizationMemberId));
@@ -375,6 +389,8 @@ export class PresentationService {
           await this.dependencies.repository.query("organizationMembers", {
             organizationId: access.organizationId,
             organizationMemberId,
+            childId: assignment.childId,
+            memberType: "CHILD",
             status: "ACTIVE",
           })
         )[0];
@@ -383,7 +399,15 @@ export class PresentationService {
           id: assignment.id,
           taskId: task.id,
           title: task.title,
-          name: member.displayName,
+          name: (
+            await this.disclosedChild(
+              memberships.find(
+                (membership) =>
+                  membership.organizationMemberId === organizationMemberId &&
+                  membership.childId === assignment.childId,
+              ),
+            )
+          ).displayName,
           taskState: assignment.taskState,
           academicState: assignment.academicState,
           submittedAt: (await this.latestSubmissionAt(assignment.id)) || "",
@@ -447,6 +471,7 @@ export class PresentationService {
     );
     const memberships = await this.dependencies.repository.query("childGroupMemberships", {
       groupId: input.groupId,
+      organizationId: role.organizationId,
       status: "ACTIVE",
     });
     const members = await Promise.all(
@@ -455,6 +480,8 @@ export class PresentationService {
           await this.dependencies.repository.query("organizationMembers", {
             organizationId: role.organizationId,
             organizationMemberId: membership.organizationMemberId,
+            childId: membership.childId,
+            memberType: "CHILD",
             status: "ACTIVE",
           })
         )[0];
@@ -462,8 +489,7 @@ export class PresentationService {
           throw new DomainError("NOT_FOUND", "机构成员不存在");
         }
         return {
-          displayName: member.displayName,
-          ...(member.grade === undefined ? {} : { grade: member.grade }),
+          ...(await this.disclosedChild(membership)),
           organizationMemberId: member.organizationMemberId,
         };
       }),
@@ -640,12 +666,26 @@ export class PresentationService {
   }
 
   private async groupRoles(actor: ActorContext): Promise<GroupRoleView[]> {
+    if (actor.mode !== "ACCOUNT") return [];
     const bindings = await this.dependencies.repository.query("groupRoleBindings", {
       accountId: actor.accountId,
       status: "ACTIVE",
     });
-    const roles: GroupRoleView[] = await Promise.all(
+    const candidates = await Promise.all(
       bindings.map(async (binding) => {
+        try {
+          const current = await this.policy.requireGroupRole(actor, binding.groupId, [
+            binding.role,
+          ]);
+          if (current.organizationId !== binding.organizationId) return undefined;
+        } catch (error) {
+          if (
+            error instanceof DomainError &&
+            (error.code === "FORBIDDEN" || error.code === "NOT_FOUND")
+          )
+            return undefined;
+          throw error;
+        }
         const group = await this.requireRecord("groups", binding.groupId, "分组不存在");
         const organization = await this.requireRecord(
           "organizations",
@@ -661,6 +701,7 @@ export class PresentationService {
         };
       }),
     );
+    const roles: GroupRoleView[] = candidates.filter((role) => role !== undefined);
     const admins = await this.dependencies.repository.query("organizationMembers", {
       accountId: actor.accountId,
       memberType: "ADULT",
@@ -668,12 +709,11 @@ export class PresentationService {
       status: "ACTIVE",
     });
     for (const admin of admins) {
-      const organization = await this.requireRecord(
+      const organization = await this.dependencies.repository.read(
         "organizations",
         admin.organizationId,
-        "机构不存在",
       );
-      if (organization.status !== "ACTIVE") continue;
+      if (organization?.status !== "ACTIVE") continue;
       const groups = await this.dependencies.repository.query("groups", {
         organizationId: organization.id,
         status: "ACTIVE",
@@ -689,6 +729,17 @@ export class PresentationService {
           });
     }
     return roles;
+  }
+
+  private async disclosedChild(
+    membership: ChildGroupMembership | undefined,
+  ): Promise<{ displayName: string; grade?: number }> {
+    if (membership?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "孩子分组授权已失效");
+    const child = await this.requireRecord("children", membership.childId, "孩子不存在");
+    return {
+      displayName: membership.disclosure.displayName ? child.nickname : "未披露昵称",
+      ...(membership.disclosure.grade && child.grade !== undefined ? { grade: child.grade } : {}),
+    };
   }
 
   private async requireGroupAccess(

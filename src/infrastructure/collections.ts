@@ -122,9 +122,10 @@ export const CLOUDBASE_INDEXES: readonly CloudBaseIndexDefinition[] = [
   },
   {
     collection: "commandReceipts",
-    name: "actor_request_unique",
+    name: "actor_action_request_unique",
     fields: [
       { field: "accountId", direction: "asc" },
+      { field: "action", direction: "asc" },
       { field: "requestId", direction: "asc" },
     ],
     unique: true,

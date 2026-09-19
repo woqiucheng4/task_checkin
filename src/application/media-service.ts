@@ -387,7 +387,10 @@ export class MediaService {
       const draft = await this.requireDraftManager(actor, input.draftId, tx);
       if (draft.status === "PUBLISHED") {
         const published = (await tx.query("tasks", { draftId: draft.id }))[0];
-        if (published) return published;
+        if (published) {
+          await new TaskService(dependencies).assertPublicationAccess(actor, published);
+          return published;
+        }
         throw new DomainError("CONFLICT", "已发布草稿缺少对应任务");
       }
       if (

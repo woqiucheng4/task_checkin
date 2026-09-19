@@ -167,6 +167,9 @@ export class GroupOrchardService {
     input: RequestBase & { readonly groupTreeId: string; readonly title: string },
   ): Promise<GroupHarvestResult> {
     requireRequestId(input.requestId);
+    const authorizedTree = await this.dependencies.repository.read("groupTrees", input.groupTreeId);
+    if (!authorizedTree) throw new DomainError("NOT_FOUND", "分组果树不存在");
+    await this.requireManagedGroup(actor, authorizedTree.groupId);
     const repeated = (
       await this.dependencies.repository.query("groupMemorials", {
         groupTreeId: input.groupTreeId,
@@ -211,6 +214,7 @@ export class GroupOrchardService {
   }
 
   private async requireManagedGroup(actor: ActorContext, groupId: string): Promise<Group> {
+    await this.policy.requireGroupAccess(actor, groupId);
     const group = await this.dependencies.repository.read("groups", groupId);
     if (group?.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "分组不存在或已停用");

@@ -24,14 +24,10 @@ export interface ReviewResult {
 }
 
 export class ReviewService {
-  private readonly policy: AccessPolicy;
-
   constructor(
     private readonly dependencies: ApplicationDependencies,
     private readonly sunlight: SunlightService,
-  ) {
-    this.policy = new AccessPolicy(dependencies.repository);
-  }
+  ) {}
 
   async familyReview(
     actor: ActorContext,
@@ -42,32 +38,33 @@ export class ReviewService {
     },
   ): Promise<ReviewResult> {
     requireRequestId(input.requestId);
-    const repeated = await this.findRepeatedReview(actor, input, "FAMILY");
-    if (repeated !== undefined) {
-      return repeated;
-    }
-    const { assignment, task, family } = await this.loadContext(input.assignmentId);
-    if (task.source !== "FAMILY") {
-      throw new DomainError("FORBIDDEN", "分组任务只能由老师进行学习审核");
-    }
-    const guardian = await this.policy.requireGuardian(actor, assignment.childId);
-    if (guardian.familyId !== assignment.familyId) {
-      throw new DomainError("FORBIDDEN", "监护关系不属于任务家庭");
-    }
-    if (assignment.taskState !== "SUBMITTED") {
-      throw new DomainError("CONFLICT", "只有已提交任务可以审核");
-    }
-    const now = this.dependencies.clock.now();
-    const review = makeReview(
-      this.dependencies.ids.next("review"),
-      assignment.id,
-      actor.accountId,
-      input,
-      "FAMILY",
-      now,
-    );
-
     return this.dependencies.repository.transaction(async (tx) => {
+      const { assignment, task, family } = await this.loadContext(input.assignmentId, tx);
+      if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用成人监护身份");
+      const guardian = await new AccessPolicy(tx).requireGuardian(actor, assignment.childId);
+      if (guardian.familyId !== assignment.familyId) {
+        throw new DomainError("FORBIDDEN", "监护关系不属于任务家庭");
+      }
+      if (task.source !== "FAMILY") {
+        throw new DomainError("FORBIDDEN", "分组任务只能由老师进行学习审核");
+      }
+      const repeated = await this.findRepeatedReview(actor, input, "FAMILY", tx);
+      if (repeated !== undefined) {
+        return repeated;
+      }
+      if (assignment.taskState !== "SUBMITTED") {
+        throw new DomainError("CONFLICT", "只有已提交任务可以审核");
+      }
+      const now = this.dependencies.clock.now();
+      const review = makeReview(
+        this.dependencies.ids.next("review"),
+        assignment.id,
+        actor.accountId,
+        input,
+        "FAMILY",
+        now,
+      );
+
       let ledger: SunlightLedger | undefined;
       let patch: Parameters<Transaction["update"]>[2];
       if (input.decision === "APPROVE") {
@@ -333,11 +330,21 @@ export class ReviewService {
       organizationMemberId: assignment.organizationMemberId,
       status: "ACTIVE",
     });
+    const childMember = (
+      await tx.query("organizationMembers", {
+        organizationMemberId: assignment.organizationMemberId,
+        organizationId: assignment.organizationId,
+        childId: assignment.childId,
+        memberType: "CHILD",
+        status: "ACTIVE",
+      })
+    )[0];
     if (
       group?.status !== "ACTIVE" ||
       organization?.status !== "ACTIVE" ||
       group.organizationId !== assignment.organizationId ||
-      memberships.length === 0
+      memberships.length === 0 ||
+      childMember === undefined
     ) {
       throw new DomainError("FORBIDDEN", "孩子已撤回授权或分组已停用");
     }

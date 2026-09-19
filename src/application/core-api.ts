@@ -1,4 +1,5 @@
 import { CommercialService } from "./commercial-service.js";
+import { authorizedReceipt } from "./authorized-receipt.js";
 import { GovernanceService } from "./governance-service.js";
 import { GroupOrchardService } from "./group-orchard-service.js";
 import { IdentityService } from "./identity-service.js";
@@ -191,6 +192,7 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
         if (command.action === "BOOTSTRAP_ACCOUNT") {
           const requestId = requireRequestId(command.requestId);
           if (account !== undefined) {
+            if (account.status !== "ACTIVE") throw new DomainError("UNAUTHORIZED", "账号已停用");
             const replay = await findReceipt(dependencies, account.id, command.action, requestId);
             if (replay !== undefined) {
               return commandSuccess(replay.result);
@@ -209,12 +211,18 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
 
         const actor = await resolveActor(dependencies, account.id, command.actor, authContext);
         mvpPolicy.assertAllowed(command.action, actor);
-        // These services reauthorize retries against current membership/consent before
-        // returning their own idempotent result. Cached write receipts cannot do that.
+        // Only these services opt out of guarded transactional receipts: they own
+        // authorization-before-replay, external IO, or lifecycle retry semantics.
+        // Every other write (including future actions) defaults to authorizedReceipt.
         if (
           (TEACHER_ACTIVATION_ACTIONS as readonly string[]).includes(command.action) ||
           [
             "ACADEMIC_REVIEW",
+            "FAMILY_REVIEW",
+            "PUBLISH_FAMILY_TASK",
+            "PUBLISH_GROUP_TASK",
+            "PUBLISH_TASK_DRAFT",
+            "DELETE_EXPIRED_MEDIA",
             "COMPLETE_REVISION",
             "CLAIM_INVITATION",
             "RECOGNIZE_TASK_DRAFT",
@@ -236,19 +244,23 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
         }
         if (isWrite) {
           const requestId = requireRequestId(command.requestId);
-          const replay = await findReceipt(dependencies, account.id, command.action, requestId);
-          if (replay !== undefined) {
-            return commandSuccess(replay.result);
-          }
-          const result = await dispatch(
-            services,
-            command.action,
-            actor,
-            command.payload,
-            requestId,
+          return commandSuccess(
+            await authorizedReceipt(
+              dependencies,
+              actor,
+              command.action,
+              requestId,
+              command.payload,
+              (repository) =>
+                dispatch(
+                  createServices({ ...dependencies, repository }),
+                  command.action,
+                  actor,
+                  command.payload,
+                  requestId,
+                ),
+            ),
           );
-          await saveReceipt(dependencies, account.id, command.action, requestId, result);
-          return commandSuccess(result);
         }
         return commandSuccess(
           await dispatch(services, command.action, actor, command.payload, command.requestId),

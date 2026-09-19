@@ -2,6 +2,7 @@ import { createHash, createHmac } from "node:crypto";
 import type { ActorContext, Organization, TeacherActivationCode } from "../domain/model.js";
 import { DomainError } from "../shared/errors.js";
 import { CryptoIdGenerator } from "../shared/ids.js";
+import { AccessPolicy } from "../domain/policy.js";
 import type { ApplicationDependencies, Transaction } from "./ports.js";
 
 export const TEACHER_ACTIVATION_ACTIONS = [
@@ -124,6 +125,12 @@ export class TeacherActivationService {
       if (receipt !== undefined) {
         if (receipt.action !== action)
           throw new DomainError("CONFLICT", "requestId 已用于其他操作");
+        if (action === "ACTIVATE_TEACHER_WORKSPACE") {
+          const workspace = receipt.result as Organization;
+          await new AccessPolicy(tx).requireOrganizationRole(actor, workspace.id, [
+            "ORGANIZATION_ADMIN",
+          ]);
+        }
         return receipt.result as T;
       }
       const result = await work(tx);

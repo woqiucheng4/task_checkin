@@ -17,6 +17,8 @@
 
 ## 2. 远端变量与私有存储门禁
 
+部署前由 owner 确认 `task_checkin_command_receipts` 的现有数据与索引兼容性：本版唯一键为 `accountId, action, requestId`，本地 manifest 索引名为 `actor_action_request_unique`。评估历史数据是否冲突后，在批准的 dry run 中明确替换旧 `actor_request_unique` 索引的步骤；不能只增加新索引而保留限制更强的旧索引。此门禁只允许操作本项目 `task_checkin_*` 集合，不得修改其他应用索引；本地改动不代表远端已执行。无授权依赖证明的历史通用 receipt 不再作为缓存回放依据；通过当前授权后若仍需执行旧写入，会返回 `CONFLICT`，应由用户确认当前资源状态后重新操作，禁止批量删除 receipt。
+
 由目标环境 owner 在云函数配置面板中确认变量**名称存在且值按环境配置**，不在终端、日志、截图或工单中打印其值：
 
 - `ALLOWED_CALLER_APPIDS`：仅目标小程序 AppID；未配置应拒绝调用。

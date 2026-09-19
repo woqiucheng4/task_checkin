@@ -532,6 +532,14 @@ export interface CommandReceipt extends BaseRecord {
   readonly requestId: string;
   readonly action: string;
   readonly result: unknown;
+  readonly authorization?: {
+    readonly command: string;
+    readonly dependencies: readonly {
+      readonly collection: CollectionName;
+      readonly id: string;
+      readonly snapshot: string;
+    }[];
+  };
 }
 
 export interface PublicPoolEvent extends BaseRecord {

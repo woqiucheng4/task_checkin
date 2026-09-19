@@ -33,6 +33,7 @@ it("lists only active templates of the authorized group's organization without c
   expect(receiptsBeforeRead.map((receipt) => receipt.action)).toEqual([
     "ISSUE_TEACHER_ACTIVATION",
     "ACTIVATE_TEACHER_WORKSPACE",
+    "PUBLISH_GROUP_TASK",
   ]);
   const result = await api.handle(request, { openId: "wx-scenario-teacher" });
   expect(result).toMatchObject({

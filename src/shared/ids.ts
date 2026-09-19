@@ -1,4 +1,15 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+
+export function commandReceiptId(
+  namespace: string,
+  accountId: string,
+  action: string,
+  requestId: string,
+): string {
+  return `${namespace}_${createHash("sha256")
+    .update(JSON.stringify([accountId, action, requestId]))
+    .digest("hex")}`;
+}
 
 export interface IdGenerator {
   next(prefix: string): string;

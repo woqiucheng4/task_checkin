@@ -15,6 +15,7 @@ import type {
 import { AccessPolicy } from "../domain/policy.js";
 import { assignmentBusinessKey, assertValidSchedule, isScheduledOn } from "../domain/tasks.js";
 import { DomainError } from "../shared/errors.js";
+import { commandReceiptId } from "../shared/ids.js";
 import { MediaService } from "./media-service.js";
 
 interface RequestBase {
@@ -117,9 +118,21 @@ export class TaskService {
     input: RequestBase &
       TaskFields & { readonly familyId: string; readonly childIds: readonly string[] },
   ): Promise<Task> {
+    return this.dependencies.repository.transaction((tx) =>
+      this.inTransaction(tx).publishAuthorizedFamilyTask(actor, input),
+    );
+  }
+
+  private async publishAuthorizedFamilyTask(
+    actor: ActorContext,
+    input: RequestBase &
+      TaskFields & { readonly familyId: string; readonly childIds: readonly string[] },
+  ): Promise<Task> {
     requireRequestId(input.requestId);
     validateTaskFields(input);
     await this.policy.requireFamilyRole(actor, input.familyId);
+    const family = await this.dependencies.repository.read("families", input.familyId);
+    if (family?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "家庭已停用");
     const childIds = [...new Set(input.childIds)];
     if (childIds.length === 0) {
       throw new DomainError("INVALID_INPUT", "至少选择一个孩子");
@@ -129,6 +142,8 @@ export class TaskService {
       if (guardian.familyId !== input.familyId) {
         throw new DomainError("FORBIDDEN", "孩子不属于当前家庭");
       }
+      const child = await this.dependencies.repository.read("children", childId);
+      if (child?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "孩子已停用");
     }
     const scope: TenantScope = { kind: "FAMILY", familyId: input.familyId };
     const sourceAssetIds = await MediaService.assertTaskSourceAssets(
@@ -144,7 +159,13 @@ export class TaskService {
         familyId: input.familyId,
       }),
     );
-    return this.persistPublication(actor, input.requestId, task, assignments);
+    return this.persistPublication(
+      actor,
+      input.requestId,
+      task,
+      assignments,
+      JSON.stringify({ actor, input }),
+    );
   }
 
   async publishGroupTask(
@@ -225,6 +246,10 @@ export class TaskService {
       if (guardianLink === undefined) {
         throw new DomainError("CONFLICT", "分组成员缺少有效家庭关系");
       }
+      const child = await this.dependencies.repository.read("children", membership.childId);
+      const family = await this.dependencies.repository.read("families", guardianLink.familyId);
+      if (child?.status !== "ACTIVE" || family?.status !== "ACTIVE")
+        throw new DomainError("FORBIDDEN", "分组成员的孩子或家庭已停用");
       assignments.push(
         this.makeAssignment(task, input.occurrenceDate, {
           childId: membership.childId,
@@ -236,7 +261,13 @@ export class TaskService {
       );
     }
     if (!assignments.length) throw new DomainError("INVALID_INPUT", "分组中没有有效孩子成员");
-    return this.persistPublication(actor, input.requestId, task, assignments);
+    return this.persistPublication(
+      actor,
+      input.requestId,
+      task,
+      assignments,
+      JSON.stringify({ actor, input }),
+    );
   }
 
   async cancelTask(
@@ -405,6 +436,7 @@ export class TaskService {
     requestId: string,
     task: Task,
     assignments: readonly TaskAssignment[],
+    command: string,
   ): Promise<Task> {
     return this.dependencies.repository.transaction(async (tx) => {
       // Recheck attachments inside the publication transaction, against cleanup claims.
@@ -414,6 +446,15 @@ export class TaskService {
         task.sourceScope,
         task.sourceAssetIds ?? [],
       );
+      const action = task.source === "FAMILY" ? "PUBLISH_FAMILY_TASK" : "PUBLISH_GROUP_TASK";
+      const receiptId = commandReceiptId("publication", actor.accountId, action, requestId);
+      const receipt = await tx.read("commandReceipts", receiptId);
+      if (receipt !== undefined) {
+        if (receipt.authorization?.command !== command)
+          throw new DomainError("CONFLICT", "requestId 已用于另一发布请求");
+        await this.inTransaction(tx).assertPublicationAccess(actor, receipt.result as Task);
+        return receipt.result as Task;
+      }
       await tx.insert("tasks", task);
       for (const assignment of assignments) {
         const duplicate = await tx.query("taskAssignments", {
@@ -425,8 +466,63 @@ export class TaskService {
         await tx.insert("taskAssignments", assignment);
       }
       await this.audit(tx, actor, requestId, "TASK_PUBLISHED", task.sourceScope, task.id);
+      await tx.insert("commandReceipts", {
+        id: receiptId,
+        accountId: actor.accountId,
+        action,
+        requestId,
+        createdAt: this.dependencies.clock.now(),
+        result: task,
+        authorization: { command, dependencies: [] },
+      });
       return task;
     });
+  }
+
+  private inTransaction(tx: Transaction): TaskService {
+    return new TaskService({
+      ...this.dependencies,
+      repository: {
+        read: tx.read.bind(tx),
+        query: tx.query.bind(tx),
+        transaction: (work) => work(tx),
+      },
+    });
+  }
+
+  async assertPublicationAccess(actor: ActorContext, task: Task): Promise<void> {
+    await this.authorizeTask(actor, task);
+    const assignments = await this.dependencies.repository.query("taskAssignments", {
+      taskId: task.id,
+    });
+    for (const assignment of assignments) {
+      const child = await this.dependencies.repository.read("children", assignment.childId);
+      const family = await this.dependencies.repository.read("families", assignment.familyId);
+      if (child?.status !== "ACTIVE" || family?.status !== "ACTIVE")
+        throw new DomainError("FORBIDDEN", "原任务的孩子或家庭已停用");
+      if (task.source === "FAMILY") {
+        const guardian = await this.policy.requireGuardian(actor, assignment.childId);
+        if (guardian.familyId !== assignment.familyId)
+          throw new DomainError("FORBIDDEN", "原任务监护授权已失效");
+      } else {
+        const memberships = await this.dependencies.repository.query("childGroupMemberships", {
+          childId: assignment.childId,
+          groupId: task.groupId ?? "",
+          organizationId: assignment.organizationId ?? "",
+          organizationMemberId: assignment.organizationMemberId ?? "",
+          status: "ACTIVE",
+        });
+        const members = await this.dependencies.repository.query("organizationMembers", {
+          childId: assignment.childId,
+          organizationId: assignment.organizationId ?? "",
+          organizationMemberId: assignment.organizationMemberId ?? "",
+          memberType: "CHILD",
+          status: "ACTIVE",
+        });
+        if (!memberships.length || !members.length)
+          throw new DomainError("FORBIDDEN", "原任务收件成员授权已失效");
+      }
+    }
   }
 
   private async resolveTemplateScope(

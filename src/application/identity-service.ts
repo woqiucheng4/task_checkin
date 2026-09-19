@@ -411,10 +411,21 @@ export class IdentityService {
     actor: ActorContext,
     organizationMemberId: string,
   ): Promise<OrganizationChildView> {
-    const { member } = await this.policy.requireOrganizationChild(actor, organizationMemberId);
+    const { member, memberships } = await this.policy.requireOrganizationChild(
+      actor,
+      organizationMemberId,
+    );
+    const child =
+      member.childId === undefined
+        ? undefined
+        : await this.dependencies.repository.read("children", member.childId);
     return {
-      displayName: member.displayName,
-      grade: member.grade,
+      displayName: memberships.some((membership) => membership.disclosure.displayName)
+        ? member.displayName
+        : "未披露昵称",
+      grade: memberships.some((membership) => membership.disclosure.grade)
+        ? child?.grade
+        : undefined,
       organizationMemberId: member.organizationMemberId,
     };
   }

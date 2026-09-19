@@ -51,6 +51,9 @@ export class AccessPolicy {
       "STAFF",
     ],
   ): Promise<OrganizationMember> {
+    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用成人机构身份");
+    const organization = await this.repository.read("organizations", organizationId);
+    if (organization?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "机构已停用");
     const members = await this.repository.query("organizationMembers", {
       accountId: actor.accountId,
       organizationId,
@@ -73,12 +76,21 @@ export class AccessPolicy {
     groupId: string,
     roles: readonly GroupRoleBinding["role"][] = ["TEACHER", "ASSISTANT"],
   ): Promise<GroupRoleBinding> {
+    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用成人机构身份");
+    const group = await this.repository.read("groups", groupId);
+    const organization =
+      group && (await this.repository.read("organizations", group.organizationId));
+    if (group?.status !== "ACTIVE" || organization?.status !== "ACTIVE")
+      throw new DomainError("FORBIDDEN", "分组或机构授权已失效");
+    await this.requireOrganizationRole(actor, organization.id);
     const bindings = await this.repository.query("groupRoleBindings", {
       accountId: actor.accountId,
       groupId,
       status: "ACTIVE",
     });
-    const binding = bindings.find((candidate) => roles.includes(candidate.role));
+    const binding = bindings.find(
+      (candidate) => roles.includes(candidate.role) && candidate.organizationId === organization.id,
+    );
     if (binding === undefined) {
       throw new DomainError("FORBIDDEN", "当前账号没有分组权限");
     }
@@ -121,11 +133,22 @@ export class AccessPolicy {
       throw new DomainError("NOT_FOUND", "机构成员不存在");
     }
     await this.requireOrganizationRole(actor, member.organizationId);
-    const memberships = await this.repository.query("childGroupMemberships", {
+    const candidates = await this.repository.query("childGroupMemberships", {
       organizationId: member.organizationId,
       organizationMemberId,
       status: "ACTIVE",
     });
+    const memberships: ChildGroupMembership[] = [];
+    for (const membership of candidates) {
+      try {
+        await this.requireGroupAccess(actor, membership.groupId);
+        memberships.push(membership);
+      } catch (error) {
+        if (!(error instanceof DomainError) || !["FORBIDDEN", "NOT_FOUND"].includes(error.code))
+          throw error;
+      }
+    }
+    if (!memberships.length) throw new DomainError("FORBIDDEN", "没有当前可查看的孩子分组授权");
     return { member, memberships };
   }
 

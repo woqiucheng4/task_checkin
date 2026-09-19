@@ -57,6 +57,10 @@ export class SubmissionService {
         const memberships = await this.dependencies.repository.query("childGroupMemberships", {
           childId: assignment.childId,
           groupId: assignment.groupId,
+          organizationId: assignment.organizationId,
+          ...(assignment.organizationMemberId === undefined
+            ? {}
+            : { organizationMemberId: assignment.organizationMemberId }),
           status: "ACTIVE",
         });
         if (!memberships.length)
@@ -67,12 +71,14 @@ export class SubmissionService {
           await this.dependencies.repository.query("organizationMembers", {
             organizationId: assignment.organizationId,
             organizationMemberId,
+            childId: assignment.childId,
+            memberType: "CHILD",
             status: "ACTIVE",
           })
         )[0];
         if (!member) throw new DomainError("FORBIDDEN", "机构授权已失效");
         teacherAccess = true;
-        childLabel = member.displayName;
+        childLabel = memberships[0]?.disclosure.displayName ? member.displayName : "未披露昵称";
       }
     } else throw new DomainError("FORBIDDEN", "当前身份不能读取孩子提交内容");
     if (!teacherAccess)
