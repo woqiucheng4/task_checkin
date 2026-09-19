@@ -28,7 +28,7 @@ const session = vi.hoisted(() => ({
         nickname: "",
       },
       selectionRequired: !state.childId,
-      today: { items: [], pendingReviewCount: 0 },
+      today: { items: [] as ReturnType<typeof task>[], pendingReviewCount: 0 },
       groups: [],
     };
   }),
@@ -226,6 +226,188 @@ describe("parent-operated child workflows", () => {
     expect(runtime.navigate).toHaveBeenCalledWith(
       "/pages/parent/task-submit/index?id=assignment-child-a&childId=child-a",
     );
+  });
+  it.each([
+    ["PENDING", "待完成", true],
+    ["REVISION_REQUIRED", "需要订正", true],
+    ["SUBMITTED", "完成情况已提交", false],
+    ["COMPLETED", "任务已完成", false],
+    ["EXPIRED", "任务已过期", false],
+    ["CANCELLED", "任务已取消", false],
+    ["EXCUSED", "任务已免做", false],
+  ] as const)(
+    "preserves %s without treating terminal tasks as submitted",
+    async (taskState, statusTitle, canSubmit) => {
+      const base = cloud.execute.getMockImplementation();
+      cloud.execute.mockImplementation(async (action, payload) =>
+        action === "GET_ASSIGNMENT_DETAIL"
+          ? { ok: true, data: { ...task("child-a"), taskState } }
+          : base?.(action, payload),
+      );
+      const detail = await pageAt("task-detail");
+      await detail.onLoad({ id: "assignment-child-a", childId: "child-a" });
+      expect(detail.data).toMatchObject({
+        ready: true,
+        state: taskState,
+        statusTitle,
+        canSubmit,
+        hasSubmission: false,
+        submissionImages: [],
+      });
+      await detail.openSubmit();
+      if (canSubmit)
+        expect(runtime.navigate).toHaveBeenCalledWith(
+          "/pages/parent/task-submit/index?id=assignment-child-a&childId=child-a",
+        );
+      else expect(runtime.navigate).not.toHaveBeenCalled();
+      if (["EXPIRED", "CANCELLED", "EXCUSED"].includes(taskState))
+        expect(detail.data.statusTitle).not.toMatch(/已提交|已记录|已完成/);
+    },
+  );
+  it.each([
+    ["home", "FAMILY"],
+    ["home", "LEARNING_GROUP"],
+    ["tasks", "FAMILY"],
+    ["tasks", "LEARNING_GROUP"],
+  ] as const)(
+    "keeps submitted %s / %s results accessible with private evidence",
+    async (entry, source) => {
+      const result = {
+        ...task("child-a"),
+        source,
+        taskState: "SUBMITTED",
+        academicState: source === "FAMILY" ? "NOT_REQUIRED" : "PENDING",
+        submission: {
+          id: "submission-a",
+          text: "已完成第二页练习",
+          mediaAssetIds: ["evidence-private"],
+          submittedAt: "2026-09-19T09:00:00Z",
+          revision: 1,
+        },
+      };
+      session.dashboard.mockResolvedValueOnce({
+        ...(await session.dashboard()),
+        today: { items: [result], pendingReviewCount: 1 },
+      });
+      const base = cloud.execute.getMockImplementation();
+      cloud.execute.mockImplementation(async (action, payload) => {
+        if (action === "GET_PARENT_TASK_CENTER")
+          return { ok: true, data: { child: { id: "child-a" }, items: [result] } };
+        if (action === "GET_ASSIGNMENT_DETAIL") return { ok: true, data: result };
+        if (action === "READ_MEDIA_ASSET")
+          return {
+            ok: true,
+            data: { downloadUrl: `https://private.invalid/signed-${payload.assetId}` },
+          };
+        return base?.(action, payload);
+      });
+      const list = await pageAt(entry);
+      await list.onShow();
+      expect(list.data.tasks).toEqual([
+        expect.objectContaining({ assignmentId: "assignment-child-a" }),
+      ]);
+      list.openTask({ detail: { assignmentId: "assignment-child-a" } });
+      expect(runtime.navigate).toHaveBeenCalledWith(
+        "/pages/parent/task-detail/index?id=assignment-child-a&childId=child-a",
+      );
+      const detail = await pageAt("task-detail");
+      await detail.onLoad({ id: "assignment-child-a", childId: "child-a" });
+      expect(detail.data).toMatchObject({
+        state: "SUBMITTED",
+        hasSubmission: true,
+        submissionText: "已完成第二页练习",
+        submittedAt: "2026-09-19T09:00:00Z",
+        submissionRevision: 1,
+        images: ["https://private.invalid/signed-source-private"],
+        submissionImages: ["https://private.invalid/signed-evidence-private"],
+        academicState: result.academicState,
+        academicLabel: source === "FAMILY" ? "无需老师审核" : "等待老师审核",
+        showAcademic: source !== "FAMILY",
+        canSubmit: false,
+      });
+      expect(cloud.execute).toHaveBeenCalledWith(
+        "READ_MEDIA_ASSET",
+        { assetId: "evidence-private", childId: "child-a" },
+        { mode: "ACCOUNT" },
+      );
+      expect(cloud.execute.mock.calls.map(([action]) => action)).not.toContain("ACADEMIC_REVIEW");
+      state.childId = "child-b";
+      await detail.onShow();
+      expect(detail.data).toMatchObject({
+        ready: false,
+        hasSubmission: false,
+        submissionText: "",
+        submissionImages: [],
+        images: [],
+        academicState: "",
+        academicLabel: "",
+      });
+    },
+  );
+  it.each([
+    ["APPROVED", "COMPLETED", "老师已通过"],
+    ["REVISION_REQUIRED", "REVISION_REQUIRED", "老师要求订正"],
+    ["EXCUSED", "EXCUSED", "老师已免除"],
+  ])(
+    "displays the teacher's %s evaluation as read-only",
+    async (academicState, taskState, academicLabel) => {
+      const base = cloud.execute.getMockImplementation();
+      cloud.execute.mockImplementation(async (action, payload) =>
+        action === "GET_ASSIGNMENT_DETAIL"
+          ? {
+              ok: true,
+              data: { ...task("child-a"), source: "LEARNING_GROUP", academicState, taskState },
+            }
+          : base?.(action, payload),
+      );
+      const detail = await pageAt("task-detail");
+      await detail.onLoad({ id: "assignment-child-a" });
+      expect(detail.data).toMatchObject({
+        showAcademic: true,
+        academicState,
+        academicLabel,
+        state: taskState,
+      });
+      const template = readFileSync("miniprogram/pages/parent/task-detail/index.wxml", "utf8");
+      expect(template).toContain("{{academicLabel}}");
+      expect(template).toContain("{{submissionText");
+      expect(template).toContain('wx:for="{{submissionImages}}"');
+      expect(template).not.toMatch(/bindtap="(?:approve|revise|waive)"/);
+    },
+  );
+  it("does not expose submission results when private evidence authorization fails", async () => {
+    const base = cloud.execute.getMockImplementation();
+    cloud.execute.mockImplementation(async (action, payload) => {
+      if (action === "GET_ASSIGNMENT_DETAIL")
+        return {
+          ok: true,
+          data: {
+            ...task("child-a"),
+            taskState: "SUBMITTED",
+            source: "LEARNING_GROUP",
+            submission: {
+              text: "私密提交",
+              mediaAssetIds: ["evidence-revoked"],
+              submittedAt: "2026-09-19T09:00:00Z",
+              revision: 1,
+            },
+          },
+        };
+      if (action === "READ_MEDIA_ASSET" && payload.assetId === "evidence-revoked")
+        return { ok: false, error: { message: "授权已失效" } };
+      return base?.(action, payload);
+    });
+    const detail = await pageAt("task-detail");
+    await detail.onLoad({ id: "assignment-child-a" });
+    expect(detail.data).toMatchObject({
+      ready: false,
+      error: "授权已失效",
+      hasSubmission: false,
+      submissionText: "",
+      submissionImages: [],
+      images: [],
+      canSubmit: false,
+    });
   });
   it.each(["task-detail", "task-submit", "review-detail"])(
     "%s blocks stale child routes and provides recovery",

@@ -8,9 +8,16 @@
     <view class="title">{{task.title}}</view>
     <view class="meta"><text>{{task.due}}</text><text>{{task.mode}}</text></view>
     <view class="section"><view class="section__title">任务要求</view><view class="section__copy">{{task.description}}</view><image wx:for="{{images}}" wx:key="*this" class="task-image" src="{{item}}" mode="widthFix" /></view>
+    <view wx:if="{{hasSubmission}}" class="section">
+      <view class="section__title">孩子的提交记录</view>
+      <view wx:if="{{submittedAt}}" class="meta">提交于 {{submittedAt}} · 第 {{submissionRevision}} 次提交</view>
+      <view class="section__copy">{{submissionText || (submissionImages.length ? '本次提交包含以下图片' : '已确认完成，无文字或图片说明')}}</view>
+      <image wx:for="{{submissionImages}}" wx:key="*this" class="task-image" src="{{item}}" mode="widthFix" />
+    </view>
+    <view wx:if="{{showAcademic}}" class="section"><view class="section__title">教师学习评价</view><view class="section__copy">{{academicLabel}}</view><view class="section__copy">家长可以查看评价结果；学习审核由老师完成。</view></view>
     <view class="reward"><t-icon name="sunny" size="42rpx" color="#EE9A25" /><text>{{task.reward}}</text></view>
-    <view wx:if="{{state === 'revision'}}" class="revision">请和孩子一起订正后再次提交。</view>
-    <button wx:if="{{state === 'pending' || state === 'revision'}}" class="primary" bindtap="openSubmit">为孩子提交完成情况</button>
-    <status-view wx:else kind="success" title="完成情况已记录" description="已提交的任务可在家长审核中确认阳光；共育任务由老师进行学习评价。" asset="/assets/orchard/scene-watering.webp" />
+    <view wx:if="{{state === 'REVISION_REQUIRED'}}" class="revision">请和孩子一起订正后再次提交。</view>
+    <button wx:if="{{canSubmit}}" class="primary" bindtap="openSubmit">为孩子提交完成情况</button>
+    <status-view wx:else kind="{{state === 'SUBMITTED' || state === 'COMPLETED' ? 'success' : 'empty'}}" title="{{statusTitle}}" description="{{statusDescription}}" />
   </block>
 </view>
