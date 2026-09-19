@@ -147,8 +147,12 @@ export interface CoreAuthContext {
 }
 
 export interface CoreActorSelection {
-  readonly mode: "ACCOUNT" | "CHILD" | "CONTENT_PROVIDER" | "PLATFORM";
-  readonly childId?: string;
+  /**
+   * An actor selection can refine an authenticated account for platform or
+   * content-provider operations. Children are resources owned by an account,
+   * never a public request identity.
+   */
+  readonly mode: "ACCOUNT" | "CONTENT_PROVIDER" | "PLATFORM";
   readonly contentProviderId?: string;
 }
 
@@ -328,14 +332,34 @@ function parseCommand(raw: unknown): CoreCommand {
   if (!isRecord(raw.payload)) {
     throw new DomainError("INVALID_COMMAND", "payload 必须是对象");
   }
-  if (raw.actor !== undefined && !isRecord(raw.actor)) {
+  const actor = parseActorSelection(raw.actor);
+  return {
+    action: raw.action as CoreAction,
+    ...(actor === undefined ? {} : { actor }),
+    payload: raw.payload,
+    ...(typeof raw.requestId === "string" ? { requestId: raw.requestId } : {}),
+  };
+}
+
+function parseActorSelection(value: unknown): CoreActorSelection | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new DomainError("INVALID_COMMAND", "actor 选择无效");
+  }
+  if (value.mode === "CHILD") {
+    throw new DomainError("INVALID_COMMAND", "孩子不能作为登录或请求身份");
+  }
+  if (value.mode === "ACCOUNT" || value.mode === "PLATFORM") {
+    return { mode: value.mode };
+  }
+  if (value.mode !== "CONTENT_PROVIDER") {
     throw new DomainError("INVALID_COMMAND", "actor 选择无效");
   }
   return {
-    action: raw.action as CoreAction,
-    ...(raw.actor === undefined ? {} : { actor: raw.actor as unknown as CoreActorSelection }),
-    payload: raw.payload,
-    ...(typeof raw.requestId === "string" ? { requestId: raw.requestId } : {}),
+    mode: "CONTENT_PROVIDER",
+    ...(typeof value.contentProviderId === "string"
+      ? { contentProviderId: value.contentProviderId }
+      : {}),
   };
 }
 
@@ -351,24 +375,6 @@ async function resolveActor(
       throw new DomainError("FORBIDDEN", "当前运行时身份不是平台运营人员");
     }
     return { accountId, mode: "PLATFORM" };
-  }
-  if (mode === "CHILD") {
-    if (selection?.childId === undefined) {
-      throw new DomainError("INVALID_COMMAND", "孩子模式必须选择孩子");
-    }
-    const guardian = (
-      await dependencies.repository.query(
-        "guardianLinks",
-        (link) =>
-          link.accountId === accountId &&
-          link.childId === selection.childId &&
-          link.status === "ACTIVE",
-      )
-    )[0];
-    if (guardian === undefined) {
-      throw new DomainError("FORBIDDEN", "当前账号没有该孩子的有效监护关系");
-    }
-    return { accountId, childId: selection.childId, mode: "CHILD" };
   }
   if (mode === "CONTENT_PROVIDER") {
     if (selection?.contentProviderId === undefined) {

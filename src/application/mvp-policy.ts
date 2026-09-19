@@ -63,34 +63,18 @@ const MVP_ACTIONS = new Set<CoreAction>([
   "DELETE_EXPIRED_MEDIA",
 ]);
 
-const CHILD_ACTIONS = new Set<CoreAction>([
-  "GET_CHILD_GROUPS",
-  "GET_CHILD_TODAY",
-  "GET_ASSIGNMENT_DETAIL",
-  "SUBMIT_TASK",
-  "SUPPLEMENT_SUBMISSION",
-  "COMPLETE_REVISION",
-  "GET_CHILD_ORCHARD",
-  "START_TREE",
-  "RENAME_TREE",
-  "HARVEST_TREE",
-  "CREATE_UPLOAD_INTENT",
-  "UPLOAD_MEDIA_CONTENT",
-  "RECORD_UPLOAD",
-  "ATTACH_SUBMISSION_EVIDENCE",
-  "READ_MEDIA_ASSET",
-]);
-
 export class MvpPolicy {
   constructor(private readonly config: MvpPolicyConfig) {}
 
   assertAllowed(action: CoreAction, actor: ActorContext): void {
+    // ActorContext still includes CHILD while service migration is in progress,
+    // but it is never a valid Core API request identity.
+    if (actor.mode === "CHILD") {
+      throw new DomainError("INVALID_COMMAND", "孩子不能作为登录或请求身份");
+    }
     if (!this.config.enabled) return;
     if (!MVP_ACTIONS.has(action)) {
       throw new DomainError("FEATURE_DISABLED", "该功能暂未在内测版开放");
-    }
-    if (actor.mode === "CHILD" && !CHILD_ACTIONS.has(action)) {
-      throw new DomainError("FEATURE_DISABLED", "孩子视图暂不支持该操作");
     }
   }
 }

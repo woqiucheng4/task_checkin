@@ -35,7 +35,7 @@ describe("core API authentication", () => {
     expect(membership?.accountId).not.toBe(attacker.id);
   });
 
-  it("validates a selected child against an active guardian link", async () => {
+  it("rejects a client child selection before it can resolve as an account actor", async () => {
     const harness = createHarness();
     const identity = new IdentityService(harness);
     await identity.createAccount({ openId: "wx-outsider", requestId: "seed-outsider-account" });
@@ -50,7 +50,55 @@ describe("core API authentication", () => {
       { openId: "wx-outsider" },
     );
 
-    expect(result).toMatchObject({ error: { code: "FORBIDDEN" }, ok: false });
+    expect(result).toMatchObject({ error: { code: "INVALID_COMMAND" }, ok: false });
+  });
+
+  it("keeps valid content-provider and platform selections working", async () => {
+    const harness = createHarness();
+    const identity = new IdentityService(harness);
+    const providerAccount = await identity.createAccount({
+      openId: "wx-provider",
+      requestId: "seed-provider-account",
+    });
+    await identity.createAccount({
+      openId: "wx-platform",
+      requestId: "seed-platform-account",
+    });
+    const now = harness.clock.now();
+    await harness.repository.transaction((tx) =>
+      tx.insert("contentProviders", {
+        accountId: providerAccount.id,
+        createdAt: now,
+        id: "provider-1",
+        name: "可信内容方",
+        status: "ACTIVE",
+        updatedAt: now,
+      }),
+    );
+    const api = createCoreApi(harness);
+
+    await expect(
+      api.handle(
+        {
+          action: "GET_PROVIDER_DASHBOARD",
+          actor: { contentProviderId: "provider-1", mode: "CONTENT_PROVIDER" },
+          payload: {},
+        },
+        { openId: "wx-provider" },
+      ),
+    ).resolves.toMatchObject({ data: { provider: { name: "可信内容方" } }, ok: true });
+    await expect(
+      api.handle(
+        { action: "GET_PROVIDER_DASHBOARD", actor: { mode: "CONTENT_PROVIDER" }, payload: {} },
+        { openId: "wx-provider" },
+      ),
+    ).resolves.toMatchObject({ error: { code: "INVALID_COMMAND" }, ok: false });
+    await expect(
+      api.handle(
+        { action: "GET_PLATFORM_DASHBOARD", actor: { mode: "PLATFORM" }, payload: {} },
+        { isPlatformOperator: true, openId: "wx-platform" },
+      ),
+    ).resolves.toMatchObject({ ok: true });
   });
 
   it("does not grant platform mode from an event payload", async () => {

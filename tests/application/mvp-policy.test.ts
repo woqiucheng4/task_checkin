@@ -18,8 +18,12 @@ describe("MvpPolicy", () => {
     );
   });
 
-  it("allows family task publication for an authenticated adult", () => {
+  it("allows family task publication for an authenticated account actor", () => {
     expect(() => policy.assertAllowed("PUBLISH_FAMILY_TASK", guardian)).not.toThrow();
+  });
+
+  it("allows child-scoped work from an authenticated account actor", () => {
+    expect(() => policy.assertAllowed("GET_CHILD_TODAY", guardian)).not.toThrow();
   });
 
   it("rejects hidden wish actions at the service boundary", () => {
@@ -34,15 +38,23 @@ describe("MvpPolicy", () => {
     );
   });
 
-  it("rejects parent-only actions from a resolved child actor", () => {
+  it("rejects child-mode actors instead of feature-gating a child view", () => {
     expect(() => policy.assertAllowed("PUBLISH_FAMILY_TASK", child)).toThrowError(
-      expect.objectContaining({ code: "FEATURE_DISABLED" }),
+      expect.objectContaining({ code: "INVALID_COMMAND" }),
     );
   });
 
-  it("rejects the account shell from a child actor because it is not child-scoped", () => {
+  it("rejects child-mode actors for the account shell", () => {
     expect(() => policy.assertAllowed("GET_ACCOUNT_SHELL", child)).toThrowError(
-      expect.objectContaining({ code: "FEATURE_DISABLED" }),
+      expect.objectContaining({ code: "INVALID_COMMAND" }),
+    );
+  });
+
+  it("rejects child-mode actors when the MVP feature gate is disabled", () => {
+    const legacyPolicy = new MvpPolicy({ enabled: false });
+
+    expect(() => legacyPolicy.assertAllowed("GET_CHILD_TODAY", child)).toThrowError(
+      expect.objectContaining({ code: "INVALID_COMMAND" }),
     );
   });
 
