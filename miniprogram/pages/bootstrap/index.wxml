@@ -7,26 +7,27 @@
   <image class="tree" src="/assets/orchard/apple-mature.webp" mode="aspectFit" aria-label="成熟的苹果树" />
   <view wx:if="{{notice}}" class="privacy">{{notice}}</view>
   <view wx:if="{{setup}}" class="roles">
+    <button class="setup__back" bindtap="cancelSetup">‹ 返回选择身份</button>
     <view>由家长创建家庭，添加孩子后即可布置任务。</view>
     <input placeholder="家庭名称" value="{{familyName}}" bindinput="editFamily" />
     <input placeholder="孩子昵称（不必填真实姓名）" value="{{nickname}}" bindinput="editChild" maxlength="30" />
-    <button class="role role--primary" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
+    <button class="setup__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
   </view>
   <view wx:else class="roles">
-    <button class="role role--primary" disabled="{{loading}}" data-role="child" bindtap="chooseRole">
-      <t-icon name="user" size="42rpx" color="#FFFDF7" />
+    <button class="role {{activeRole === 'child' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="child" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
+      <t-icon name="user" size="42rpx" />
       <view><text>我是孩子</text><text class="role__hint">完成任务，让果树长大</text></view>
-      <t-icon name="chevron-right" size="34rpx" color="#FFFDF7" />
+      <t-icon name="chevron-right" size="34rpx" />
     </button>
-    <button class="role" disabled="{{loading}}" data-role="parent" bindtap="chooseRole">
-      <t-icon name="home" size="42rpx" color="#174E2A" />
+    <button class="role {{activeRole === 'parent' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="parent" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
+      <t-icon name="home" size="42rpx" />
       <view><text>我是家长</text><text class="role__hint">布置、查看和确认阳光</text></view>
-      <t-icon name="chevron-right" size="34rpx" color="#174E2A" />
+      <t-icon name="chevron-right" size="34rpx" />
     </button>
-    <button class="role" disabled="{{loading}}" data-role="teacher" bindtap="chooseRole">
-      <t-icon name="education" size="42rpx" color="#174E2A" />
+    <button class="role {{activeRole === 'teacher' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="teacher" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
+      <t-icon name="education" size="42rpx" />
       <view><text>我是教师／助教</text><text class="role__hint">管理班级任务和学习审核</text></view>
-      <t-icon name="chevron-right" size="34rpx" color="#174E2A" />
+      <t-icon name="chevron-right" size="34rpx" />
     </button>
   </view>
   <view class="privacy">孩子的任务与作品只向已授权的家庭和分组成员展示</view>

@@ -14,6 +14,9 @@ Component({
     title: { type: String, value: "成长果园" },
   },
   methods: {
+    backToBootstrap() {
+      wx.reLaunch({ url: "/pages/bootstrap/index" });
+    },
     openRoleSwitcher() {
       this.triggerEvent("roleswitch");
     },

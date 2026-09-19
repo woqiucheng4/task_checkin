@@ -1,6 +1,10 @@
 <view class="shell">
   <view class="shell__header" style="padding-top: {{headerTop}}px;">
     <view class="shell__heading">
+      <button class="shell__back" aria-label="返回身份选择" bindtap="backToBootstrap">
+        <text class="shell__back-icon">‹</text>
+        <text>返回</text>
+      </button>
       <view class="shell__title">{{title}}</view>
       <view wx:if="{{subtitle}}" class="shell__subtitle">{{subtitle}}</view>
     </view>

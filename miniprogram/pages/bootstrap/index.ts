@@ -7,12 +7,15 @@ const ROLE_HOME = {
 } as const;
 
 Page({
-  data: { loading: false, setup: false, familyName: "", nickname: "", notice: "", familyId: "" },
+  data: { loading: false, setup: false, familyName: "", nickname: "", notice: "", familyId: "", activeRole: "" },
   editFamily(event: { detail: { value: string } }) {
     this.setData({ familyName: event.detail.value });
   },
   editChild(event: { detail: { value: string } }) {
     this.setData({ nickname: event.detail.value });
+  },
+  cancelSetup() {
+    this.setData({ notice: "", setup: false });
   },
   async createFamily() {
     if (this.data.loading) return;
@@ -41,7 +44,7 @@ Page({
   }) {
     const role = event.currentTarget.dataset.role;
     if (role === "child" || role === "parent" || role === "teacher") {
-      this.setData({ loading: true, notice: "" });
+      this.setData({ activeRole: role, loading: true, notice: "" });
       try {
         const shell = await accountShell(true);
         if (role !== "teacher" && !shell.families.some((f) => f.children.length)) {
@@ -50,7 +53,7 @@ Page({
       } catch (error) {
         this.setData({ notice: error instanceof Error ? error.message : "连接失败，请重试" });
       } finally {
-        this.setData({ loading: false });
+        this.setData({ activeRole: "", loading: false });
       }
     }
   },
