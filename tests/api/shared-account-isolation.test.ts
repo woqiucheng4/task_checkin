@@ -347,6 +347,7 @@ describe("final shared-account and withdrawal boundaries", () => {
     const pending = s.call("UPLOAD_MEDIA_CONTENT", { assetId: asset.id, base64: jpeg });
     await started;
     await s.invitations.withdrawChild(s.guardian, {
+      childId: s.firstChild.id,
       childGroupMembershipId: required(s.memberships[0]).id,
       requestId: "withdraw-during-upload",
     });
@@ -446,6 +447,7 @@ describe("final shared-account and withdrawal boundaries", () => {
       if (first) {
         first = false;
         await s.invitations.withdrawChild(s.guardian, {
+          childId: s.firstChild.id,
           childGroupMembershipId: required(s.memberships[0]).id,
           requestId: "withdraw-before-publish",
         });
@@ -556,6 +558,7 @@ describe("final shared-account and withdrawal boundaries", () => {
       await started;
       if (revoked === "withdrawal")
         await s.invitations.withdrawChild(s.guardian, {
+          childId: s.firstChild.id,
           childGroupMembershipId: required(s.memberships[0]).id,
           requestId: "draft-withdraw-before-tx",
         });

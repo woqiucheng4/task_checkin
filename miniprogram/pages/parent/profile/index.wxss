@@ -4,3 +4,5 @@
 .family__name { color: #174e2a; font-size: 31rpx; font-weight: 700; }
 .family__note { color: #6c7068; font-size: 22rpx; }
 .setting-row { width: 100%; margin: 0; padding: 0; border: 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }
+.child-setup__input { margin-top: 20rpx; padding: 20rpx; border: 2rpx solid #dedbd0; border-radius: 12rpx; font-size: 26rpx; }
+.child-setup__submit { margin-top: 18rpx; border-radius: 12rpx; background: #174e2a; color: #fffdf7; font-size: 26rpx; }

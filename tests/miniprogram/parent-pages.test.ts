@@ -35,7 +35,11 @@ describe("家长端核心旅程", () => {
 
     expect(execute).toHaveBeenCalledWith(
       "FAMILY_REVIEW",
-      expect.objectContaining({ assignmentId: "assignment-1", decision: "APPROVE" }),
+      expect.objectContaining({
+        childId: "child-a",
+        assignmentId: "assignment-1",
+        decision: "APPROVE",
+      }),
     );
     expect(controller.current().notice).toBe("已确认，6 阳光已存入果树");
   });

@@ -1,4 +1,4 @@
-import { buildNavigation, buildTaskRow } from "../../../presentation/page-models.js";
+import { buildNavigation, buildParentTaskRow } from "../../../presentation/page-models.js";
 import { navigate } from "../../../services/page-runtime.js";
 import { dashboard, selectChild, showError, today } from "../../../services/session-runtime.js";
 import { childSelection, guardedNavigate, openSelection, taskPath } from "../child-context.js";
@@ -16,10 +16,7 @@ async function load(page: MiniPageInstance) {
     const view = await dashboard();
     page.setData({
       ...childSelection(view),
-      tasks: view.today.items.map((item) => ({
-        ...buildTaskRow(item),
-        action: { kind: "PRIMARY", label: "为孩子查看任务" },
-      })),
+      tasks: view.today.items.map(buildParentTaskRow),
       pendingReviews: view.today.pendingReviewCount,
       current: view.currentTree?.progress || 0,
       target: view.currentTree?.threshold || 30,

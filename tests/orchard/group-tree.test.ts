@@ -69,6 +69,7 @@ describe("group co-growing tree", () => {
     const seed = await createSubmittedTaskScenario("FAMILY");
     const reviews = new ReviewService(seed.harness, new SunlightService(seed.harness));
     await reviews.familyReview(seed.guardian, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       decision: "APPROVE",
       requestId: "family-no-group-review",

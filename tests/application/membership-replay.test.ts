@@ -50,6 +50,7 @@ describe("membership-sensitive Core API replays", () => {
         }),
       );
       await seed.invitations.withdrawChild(seed.guardian, {
+        childId: seed.firstChild.id,
         childGroupMembershipId: membership.id,
         requestId: "replay-withdraw-child",
       });

@@ -219,6 +219,7 @@ describe("task source images", () => {
     });
     await expect(media.readAsset(seed.teacher, asset.id)).resolves.toMatchObject({ id: asset.id });
     await seed.invitations.withdrawChild(seed.guardian, {
+      childId: seed.firstChild.id,
       childGroupMembershipId: seed.memberships[0]!.id,
       requestId: "withdraw-source-child",
     });

@@ -140,11 +140,13 @@ describe("membership and group orchard boundaries", () => {
       requestId: "roster-approve-valid",
     });
     await invitations.withdrawChild(seed.guardian, {
+      childId: second.id,
       childGroupMembershipId: membership.id,
       requestId: "membership-withdraw-valid",
     });
     await expect(
       invitations.withdrawChild(seed.guardian, {
+        childId: second.id,
         childGroupMembershipId: membership.id,
         requestId: "membership-withdraw-repeat",
       }),

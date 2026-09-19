@@ -27,6 +27,7 @@ describe("family growth orchard acceptance", () => {
         { actor: childActor },
       );
       await scenario.call(family.openId, "FAMILY_REVIEW", {
+        childId: family.child.id,
         assignmentId: assignment.id,
         decision: "APPROVE",
       });

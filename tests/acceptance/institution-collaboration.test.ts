@@ -120,10 +120,12 @@ describe("institution collaboration acceptance", () => {
       { actor: childActor },
     );
     await scenario.call(family.openId, "FAMILY_REVIEW", {
+      childId: family.child.id,
       assignmentId: assignment.id,
       decision: "APPROVE",
     });
     await scenario.call(family.openId, "WITHDRAW_CHILD", {
+      childId: family.child.id,
       childGroupMembershipId: membership.id,
     });
 

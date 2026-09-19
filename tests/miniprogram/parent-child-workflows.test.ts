@@ -138,6 +138,47 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("parent-operated child workflows", () => {
+  it.each(["home", "tasks"])(
+    "%s retains visible task states while every row opens its details",
+    async (name) => {
+      const states = [
+        ["PENDING", "NOT_ELIGIBLE", "为孩子查看任务", "PRIMARY"],
+        ["SUBMITTED", "PROTECTED", "待确认 · 阳光已保护", "STATUS"],
+        ["SUBMITTED", "PENDING_CONFIRMATION", "等待确认", "STATUS"],
+        ["REVISION_REQUIRED", "PROTECTED", "去订正", "REVISION"],
+        ["COMPLETED", "GRANTED", "已完成", "STATUS"],
+        ["EXPIRED", "NOT_ELIGIBLE", "已过期", "STATUS"],
+        ["CANCELLED", "NOT_ELIGIBLE", "已取消", "STATUS"],
+        ["EXCUSED", "WAIVED", "已免做", "STATUS"],
+      ];
+      const items = states.map(([taskState, rewardState]) => ({
+        ...task("child-a"),
+        assignmentId: `assignment-${taskState}-${rewardState}`,
+        taskState: taskState!,
+        rewardState: rewardState!,
+      }));
+      session.dashboard.mockResolvedValueOnce({
+        ...(await session.dashboard()),
+        today: { items, pendingReviewCount: 2 },
+      });
+      cloud.execute.mockResolvedValueOnce({ ok: true, data: { items } });
+      const page = await pageAt(name);
+      await page.onShow();
+      expect(page.data.tasks).toMatchObject(
+        states.map(([, , label, kind]) => ({ action: { label, kind } })),
+      );
+      for (const item of items) {
+        page.openTask({ detail: { assignmentId: item.assignmentId } });
+        expect(runtime.navigate).toHaveBeenLastCalledWith(
+          `/pages/parent/task-detail/index?id=${item.assignmentId}&childId=child-a`,
+        );
+      }
+      const markup = readFileSync("miniprogram/components/task-row/index.wxml", "utf8");
+      expect(markup).toContain("{{item.action.label}}");
+      expect(markup).toMatch(/wx:else class="task__status" bindtap="activate"/);
+    },
+  );
+
   it.each(["home", "tasks", "orchard", "groups", "reviews"])(
     "%s offers a selection without a child-scoped request",
     async (name) => {

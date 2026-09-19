@@ -80,6 +80,13 @@ export function buildTaskRow(task: PresentationTaskItemView): TaskRowPageModel {
   };
 }
 
+export function buildParentTaskRow(task: PresentationTaskItemView): TaskRowPageModel {
+  const row = buildTaskRow(task);
+  return row.action.kind === "PRIMARY"
+    ? { ...row, action: { kind: "PRIMARY", label: "为孩子查看任务" } }
+    : row;
+}
+
 export function buildChildTodayPage(input: ChildTodayInput): ChildTodayPageModel {
   const target = Math.max(input.sunlight.target, 1);
   return {
@@ -240,14 +247,17 @@ export function buildNavigation(
 }
 
 function resolveTaskAction(task: PresentationTaskItemView): TaskRowAction {
-  if (task.rewardState === "PROTECTED") {
-    return { kind: "STATUS", label: "待确认 · 阳光已保护" };
+  if (task.taskState === "COMPLETED") {
+    return { kind: "STATUS", label: "已完成" };
   }
+  if (task.taskState === "EXPIRED") return { kind: "STATUS", label: "已过期" };
+  if (task.taskState === "CANCELLED") return { kind: "STATUS", label: "已取消" };
+  if (task.taskState === "EXCUSED") return { kind: "STATUS", label: "已免做" };
   if (task.taskState === "REVISION_REQUIRED" || task.academicState === "REVISION_REQUIRED") {
     return { kind: "REVISION", label: "去订正" };
   }
-  if (task.taskState === "COMPLETED") {
-    return { kind: "STATUS", label: "已完成" };
+  if (task.rewardState === "PROTECTED") {
+    return { kind: "STATUS", label: "待确认 · 阳光已保护" };
   }
   if (task.taskState === "SUBMITTED") {
     return { kind: "STATUS", label: "等待确认" };

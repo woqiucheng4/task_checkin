@@ -198,6 +198,7 @@ describe("submission, review, and sunlight boundaries", () => {
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
     const revised = await familyReviews.familyReview(familyRevision.guardian, {
+      childId: familyRevision.firstChild.id,
       assignmentId: familyRevision.assignment.id,
       decision: "REVISION_REQUIRED",
       note: "请修改",
@@ -213,6 +214,7 @@ describe("submission, review, and sunlight boundaries", () => {
     expect(
       (
         await excuseReviews.familyReview(familyExcuse.guardian, {
+          childId: familyExcuse.firstChild.id,
           assignmentId: familyExcuse.assignment.id,
           decision: "EXCUSE",
           requestId: "workflow-family-excuse",
@@ -228,6 +230,7 @@ describe("submission, review, and sunlight boundaries", () => {
     expect(
       (
         await waiveReviews.familyReview(familyWaive.guardian, {
+          childId: familyWaive.firstChild.id,
           assignmentId: familyWaive.assignment.id,
           decision: "WAIVE",
           requestId: "workflow-family-waive",
@@ -242,6 +245,7 @@ describe("submission, review, and sunlight boundaries", () => {
     );
     await expect(
       organizationReviews.familyReview(organization.guardian, {
+        childId: organization.firstChild.id,
         assignmentId: organization.assignment.id,
         decision: "REVISION_REQUIRED",
         requestId: "workflow-org-family-revision",

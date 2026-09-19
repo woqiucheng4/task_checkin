@@ -31,6 +31,7 @@ describe("teacher workspace authorization", () => {
     const membership = seed.memberships[0];
     if (!membership) throw new Error("Missing membership");
     await seed.invitations.withdrawChild(seed.guardian, {
+      childId: seed.firstChild.id,
       childGroupMembershipId: membership.id,
       requestId: "queue-withdraw-0001",
     });

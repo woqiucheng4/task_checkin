@@ -81,7 +81,10 @@ export class ParentController {
     successNotice: string,
   ): Promise<void> {
     try {
-      const result = await this.client.execute(action, payload);
+      const result = await this.client.execute(action, {
+        ...payload,
+        childId: this.state.selectedChildId,
+      });
       this.state = {
         ...this.state,
         notice: result.ok ? successNotice : result.error.message,

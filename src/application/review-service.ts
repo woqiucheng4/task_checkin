@@ -32,6 +32,7 @@ export class ReviewService {
   async familyReview(
     actor: ActorContext,
     input: RequestBase & {
+      readonly childId: string;
       readonly assignmentId: string;
       readonly decision: "APPROVE" | "REVISION_REQUIRED" | "EXCUSE" | "WAIVE";
       readonly note?: string;
@@ -40,8 +41,10 @@ export class ReviewService {
     requireRequestId(input.requestId);
     return this.dependencies.repository.transaction(async (tx) => {
       const { assignment, task, family } = await this.loadContext(input.assignmentId, tx);
-      if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用成人监护身份");
-      const guardian = await new AccessPolicy(tx).requireGuardian(actor, assignment.childId);
+      const guardian = await new AccessPolicy(tx).requireChildScope(actor, input.childId);
+      if (assignment.childId !== input.childId) {
+        throw new DomainError("FORBIDDEN", "任务不属于当前选择的孩子");
+      }
       if (guardian.familyId !== assignment.familyId) {
         throw new DomainError("FORBIDDEN", "监护关系不属于任务家庭");
       }

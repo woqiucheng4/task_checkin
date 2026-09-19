@@ -2,7 +2,7 @@ import type {
   ParentTaskCenterView,
   PresentationTaskItemView,
 } from "../../../../src/application/presentation-models.js";
-import { buildNavigation, buildTaskRow } from "../../../presentation/page-models.js";
+import { buildNavigation, buildParentTaskRow } from "../../../presentation/page-models.js";
 import { dashboard, selectChild, showError, today } from "../../../services/session-runtime.js";
 import {
   childCommand,
@@ -95,8 +95,7 @@ function display(page: MiniPageInstance, filter: string): void {
     tasks: all
       .filter((task) => filter === "ALL" || task.source === filter)
       .map((task) => ({
-        ...buildTaskRow(task),
-        action: { kind: "PRIMARY", label: "为孩子查看任务" },
+        ...buildParentTaskRow(task),
         focus: task.importance === "REQUIRED",
       })),
   });

@@ -1,13 +1,117 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import { createCoreApi } from "../../src/application/core-api.js";
 import { IdentityService } from "../../src/application/identity-service.js";
 import { InvitationService } from "../../src/application/invitation-service.js";
 import type { ActorContext } from "../../src/domain/model.js";
 import { createHarness } from "../helpers/harness.js";
+import { createIdentityScenario } from "../helpers/identity-scenario.js";
 
 const platform: ActorContext = { accountId: "platform", mode: "PLATFORM" };
 
 describe("group withdrawal", () => {
+  it("rejects a sibling membership without consent or organization changes and binds replay to the child", async () => {
+    const seed = await createIdentityScenario(2);
+    const membership = seed.memberships[0]!;
+    const sibling = seed.children[1]!;
+    const api = createCoreApi(seed.harness);
+    const command = {
+      action: "WITHDRAW_CHILD",
+      requestId: "withdraw-explicit-child",
+      payload: { childId: seed.firstChild.id, childGroupMembershipId: membership.id },
+    };
+    const auth = { openId: "wx-scenario-guardian" };
+    const mismatched = { ...command, payload: { ...command.payload, childId: sibling.id } };
+    const beforeMembers = await seed.harness.repository.query("organizationMembers");
+    const beforeConsents = await seed.harness.repository.query("consentRecords");
+
+    expect(await api.handle(mismatched, auth)).toMatchObject({
+      ok: false,
+      error: { code: "FORBIDDEN" },
+    });
+    expect(await seed.harness.repository.read("childGroupMemberships", membership.id)).toEqual(
+      membership,
+    );
+    expect(await seed.harness.repository.query("organizationMembers")).toEqual(beforeMembers);
+    expect(await seed.harness.repository.query("consentRecords")).toEqual(beforeConsents);
+    expect(
+      await seed.harness.repository.query("commandReceipts", { action: "WITHDRAW_CHILD" }),
+    ).toHaveLength(0);
+
+    const withdrawn = await api.handle(command, auth);
+    expect(withdrawn).toMatchObject({ ok: true, data: { status: "WITHDRAWN" } });
+    expect(await api.handle(command, auth)).toEqual(withdrawn);
+    expect(await api.handle(mismatched, auth)).toMatchObject({
+      ok: false,
+      error: { code: "CONFLICT" },
+    });
+    expect(
+      await seed.harness.repository.query("consentRecords", { action: "REVOKED" }),
+    ).toMatchObject([{ childId: seed.firstChild.id, guardianAccountId: seed.guardian.accountId }]);
+    expect(
+      await seed.harness.repository.read("childGroupMemberships", seed.memberships[1]!.id),
+    ).toMatchObject({ status: "ACTIVE", childId: sibling.id });
+  });
+
+  it.each([undefined, "", null])("requires an explicit withdrawal childId: %s", async (childId) => {
+    const seed = await createIdentityScenario(1);
+    const membership = seed.memberships[0]!;
+    expect(
+      await createCoreApi(seed.harness).handle(
+        {
+          action: "WITHDRAW_CHILD",
+          requestId: "withdraw-missing-child",
+          payload: { childId, childGroupMembershipId: membership.id },
+        },
+        { openId: "wx-scenario-guardian" },
+      ),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_INPUT" },
+    });
+    expect(await seed.harness.repository.read("childGroupMemberships", membership.id)).toEqual(
+      membership,
+    );
+  });
+
+  it.each(["membership-child", "guardian"])(
+    "rechecks %s inside the withdrawal transaction",
+    async (changed) => {
+      const seed = await createIdentityScenario(2);
+      const membership = seed.memberships[0]!;
+      const original = seed.harness.repository.transaction.bind(seed.harness.repository);
+      vi.spyOn(seed.harness.repository, "transaction").mockImplementationOnce(async (work) => {
+        await original(async (tx) => {
+          if (changed === "membership-child") {
+            await tx.update("childGroupMemberships", membership.id, {
+              childId: seed.children[1]!.id,
+            });
+          } else {
+            for (const link of await tx.query("guardianLinks", { childId: seed.firstChild.id }))
+              await tx.update("guardianLinks", link.id, { status: "WITHDRAWN" });
+          }
+        });
+        return original(work);
+      });
+      await expect(
+        seed.invitations.withdrawChild(seed.guardian, {
+          childId: seed.firstChild.id,
+          childGroupMembershipId: membership.id,
+          requestId: "withdraw-transaction-scope",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(
+        await seed.harness.repository.read("childGroupMemberships", membership.id),
+      ).toMatchObject({ status: "ACTIVE" });
+      expect(
+        await seed.harness.repository.query("consentRecords", { action: "REVOKED" }),
+      ).toHaveLength(0);
+      expect(
+        await seed.harness.repository.query("organizationMembers", { status: "WITHDRAWN" }),
+      ).toHaveLength(0);
+    },
+  );
+
   it("stops future membership while preserving personal sunlight and trees", async () => {
     const harness = createHarness();
     const identity = new IdentityService(harness);
@@ -78,6 +182,7 @@ describe("group withdrawal", () => {
     });
 
     await invitations.withdrawChild(guardian, {
+      childId: child.id,
       childGroupMembershipId: membership.id,
       requestId: "withdraw-1",
     });

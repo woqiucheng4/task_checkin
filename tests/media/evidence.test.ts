@@ -237,6 +237,7 @@ describe("submission evidence", () => {
     const membership = seed.memberships[0];
     if (!membership) throw new Error("Membership missing");
     await seed.invitations.withdrawChild(seed.guardian, {
+      childId: seed.firstChild.id,
       childGroupMembershipId: membership.id,
       requestId: "evidence-withdraw-child-0001",
     });

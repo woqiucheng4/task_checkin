@@ -1,16 +1,87 @@
 import { describe, expect, it } from "vitest";
 
+import { createCoreApi } from "../../src/application/core-api.js";
 import { ReviewService } from "../../src/application/review-service.js";
 import { SunlightService } from "../../src/application/sunlight-service.js";
 import { createSubmittedTaskScenario } from "../helpers/task-scenario.js";
 
 describe("family and academic review", () => {
+  it.each(["APPROVE", "REVISION_REQUIRED", "EXCUSE", "WAIVE"])(
+    "rejects a sibling target before %s and before replaying a family review",
+    async (decision) => {
+      const seed = await createSubmittedTaskScenario("FAMILY", "CONFIRM", 2);
+      const sibling = seed.children[1]!;
+      const api = createCoreApi(seed.harness);
+      const command = {
+        action: "FAMILY_REVIEW",
+        requestId: `family-child-scope-${decision.replaceAll("_", "-")}`,
+        payload: { childId: seed.firstChild.id, assignmentId: seed.assignment.id, decision },
+      };
+      const auth = { openId: "wx-scenario-guardian" };
+      const mismatched = { ...command, payload: { ...command.payload, childId: sibling.id } };
+
+      expect(await api.handle(mismatched, auth)).toMatchObject({
+        ok: false,
+        error: { code: "FORBIDDEN" },
+      });
+      expect(await seed.harness.repository.query("reviewRecords")).toHaveLength(0);
+      expect(await seed.harness.repository.query("sunlightLedgers")).toHaveLength(0);
+      expect(
+        await seed.harness.repository.read("taskAssignments", seed.assignment.id),
+      ).toMatchObject({ taskState: "SUBMITTED" });
+
+      const approved = await api.handle(command, auth);
+      expect(approved).toMatchObject({ ok: true });
+      expect(await api.handle(command, auth)).toEqual(approved);
+      expect(await api.handle(mismatched, auth)).toMatchObject({
+        ok: false,
+        error: { code: "FORBIDDEN" },
+      });
+      expect(await seed.harness.repository.query("reviewRecords")).toHaveLength(1);
+      expect(await seed.harness.repository.query("sunlightLedgers")).toHaveLength(
+        decision === "APPROVE" ? 1 : 0,
+      );
+
+      await seed.harness.repository.transaction(async (tx) => {
+        for (const link of await tx.query("guardianLinks", { childId: seed.firstChild.id }))
+          await tx.update("guardianLinks", link.id, { status: "WITHDRAWN" });
+      });
+      expect(await api.handle(command, auth)).toMatchObject({
+        ok: false,
+        error: { code: "FORBIDDEN" },
+      });
+    },
+  );
+
+  it.each([undefined, "", null])(
+    "requires an explicit family-review childId: %s",
+    async (childId) => {
+      const seed = await createSubmittedTaskScenario("FAMILY");
+      const api = createCoreApi(seed.harness);
+      expect(
+        await api.handle(
+          {
+            action: "FAMILY_REVIEW",
+            requestId: "family-review-missing-child",
+            payload: { childId, assignmentId: seed.assignment.id, decision: "APPROVE" },
+          },
+          { openId: "wx-scenario-guardian" },
+        ),
+      ).toMatchObject({
+        ok: false,
+        error: { code: "INVALID_INPUT" },
+      });
+      expect(await seed.harness.repository.query("reviewRecords")).toHaveLength(0);
+    },
+  );
+
   it("family approval completes a family task and grants configured sunlight", async () => {
     const seed = await createSubmittedTaskScenario("FAMILY");
     const sunlight = new SunlightService(seed.harness);
     const reviews = new ReviewService(seed.harness, sunlight);
 
     const result = await reviews.familyReview(seed.guardian, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       decision: "APPROVE",
       requestId: "review-family-approve",
@@ -28,6 +99,7 @@ describe("family and academic review", () => {
     const reviews = new ReviewService(seed.harness, new SunlightService(seed.harness));
 
     const result = await reviews.familyReview(seed.guardian, {
+      childId: seed.firstChild.id,
       assignmentId: seed.assignment.id,
       decision: "REVISION_REQUIRED",
       note: "请补一张完成照片",
@@ -46,6 +118,7 @@ describe("family and academic review", () => {
 
     await expect(
       reviews.familyReview(seed.guardian, {
+        childId: seed.firstChild.id,
         assignmentId: seed.assignment.id,
         decision: "APPROVE",
         requestId: "review-family-group-denied",

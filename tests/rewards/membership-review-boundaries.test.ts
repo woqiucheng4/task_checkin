@@ -12,6 +12,7 @@ describe("academic review uses current transactional membership", () => {
       if (!membership) throw new Error("Membership fixture missing");
       const withdraw = () =>
         seed.invitations.withdrawChild(seed.guardian, {
+          childId: seed.firstChild.id,
           childGroupMembershipId: membership.id,
           requestId: "review-withdraw-boundary",
         });
@@ -114,6 +115,7 @@ describe("academic review uses current transactional membership", () => {
     const membership = seed.memberships[0];
     if (!membership) throw new Error("Membership fixture missing");
     await seed.invitations.withdrawChild(seed.guardian, {
+      childId: seed.firstChild.id,
       childGroupMembershipId: membership.id,
       requestId: "withdraw-after-approved",
     });

@@ -113,6 +113,7 @@ describe("verified upload failure compensation", () => {
     const membership = s.memberships[0];
     if (!membership) throw new Error("membership missing");
     await s.invitations.withdrawChild(s.guardian, {
+      childId: s.firstChild.id,
       childGroupMembershipId: membership.id,
       requestId: "upload-compensation-withdraw",
     });

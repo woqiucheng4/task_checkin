@@ -402,20 +402,19 @@ export class InvitationService {
 
   async withdrawChild(
     actor: ActorContext,
-    input: RequestBase & { readonly childGroupMembershipId: string },
+    input: RequestBase & { readonly childId: string; readonly childGroupMembershipId: string },
   ): Promise<ChildGroupMembership> {
     requireRequestId(input.requestId);
-    const membership = await this.dependencies.repository.read(
-      "childGroupMemberships",
-      input.childGroupMembershipId,
-    );
-    if (membership?.status !== "ACTIVE") {
-      throw new DomainError("NOT_FOUND", "有效分组关系不存在");
-    }
-    const guardian = await this.policy.requireGuardian(actor, membership.childId);
-    const now = this.dependencies.clock.now();
-
     return this.dependencies.repository.transaction(async (tx) => {
+      const guardian = await new AccessPolicy(tx).requireChildScope(actor, input.childId);
+      const membership = await tx.read("childGroupMemberships", input.childGroupMembershipId);
+      if (membership?.status !== "ACTIVE") {
+        throw new DomainError("NOT_FOUND", "有效分组关系不存在");
+      }
+      if (membership.childId !== input.childId) {
+        throw new DomainError("FORBIDDEN", "分组关系不属于当前选择的孩子");
+      }
+      const now = this.dependencies.clock.now();
       const withdrawn = await tx.update("childGroupMemberships", membership.id, {
         status: "WITHDRAWN",
         updatedAt: now,

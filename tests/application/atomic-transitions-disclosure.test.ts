@@ -57,7 +57,11 @@ describe("atomic transitions and current disclosure", () => {
     const command = {
       action: "FAMILY_REVIEW",
       requestId: "family-approval-atomic-01",
-      payload: { assignmentId: seed.assignment.id, decision: "APPROVE" },
+      payload: {
+        childId: seed.firstChild.id,
+        assignmentId: seed.assignment.id,
+        decision: "APPROVE",
+      },
     };
     const auth = { openId: "wx-scenario-guardian" };
     const results = await Promise.all([
