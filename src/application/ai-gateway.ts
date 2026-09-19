@@ -103,17 +103,43 @@ export class AiGateway {
     if (asset?.status !== "ACTIVE" || asset.purpose !== "TASK_SOURCE") {
       throw new DomainError("NOT_FOUND", "任务图片不存在或不可识别");
     }
+    if (asset.uploaderAccountId !== actor.accountId) {
+      throw new DomainError("FORBIDDEN", "只能识别自己上传的任务图片");
+    }
     if (!asset.storageKey.startsWith("task-checkin/")) {
       throw new DomainError("FORBIDDEN", "任务图片不属于当前应用存储范围");
     }
     if (asset.ownerScope.kind === "FAMILY") {
       await this.policy.requireFamilyRole(actor, asset.ownerScope.familyId);
     } else if (asset.ownerScope.kind === "ORGANIZATION") {
-      await this.policy.requireOrganizationRole(actor, asset.ownerScope.organizationId);
+      await this.requireOrganizationTaskPublisher(actor, asset.ownerScope.organizationId);
     } else {
       throw new DomainError("FORBIDDEN", "当前空间不支持任务图片识别");
     }
     return asset;
+  }
+
+  private async requireOrganizationTaskPublisher(
+    actor: ActorContext,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
+      return;
+    } catch (error) {
+      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
+    }
+    const bindings = await this.dependencies.repository.query("groupRoleBindings", {
+      accountId: actor.accountId,
+      organizationId,
+      status: "ACTIVE",
+    });
+    for (const binding of bindings) {
+      if (binding.role !== "TEACHER" && binding.role !== "ASSISTANT") continue;
+      const group = await this.dependencies.repository.read("groups", binding.groupId);
+      if (group?.status === "ACTIVE" && group.organizationId === organizationId) return;
+    }
+    throw new DomainError("FORBIDDEN", "当前账号没有有效的任务发布权限");
   }
 }
 

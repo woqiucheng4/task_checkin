@@ -27,3 +27,13 @@
 ## Remaining risk
 
 - This task deliberately contains no network provider, secret handling, or remote deployment work. The runtime currently uses an unavailable local provider until Task 6 supplies the DeepSeek adapter; manual task creation and publishing remain independent of that provider.
+
+## Fix round 1 — publisher authorization hardening
+
+- Added red tests for a same-organization different teacher's image and an unbound STAFF member's own image. Before the fix, both incorrectly produced drafts.
+- Organization images now require the uploader to match the actor and require either an active organization-admin membership or an active `TEACHER`/`ASSISTANT` group-role binding for an active group in the organization. These checks complete before storage reads or provider calls.
+- Family images retain the adult family-role path, with uploader ownership required; child actors remain rejected.
+- `npm test -- --run tests/application/ai-gateway.test.ts tests/media/drafts.test.ts tests/media/evidence.test.ts` — PASS (14 tests).
+- `npm test -- --run` — PASS (78 files, 289 tests).
+- `npm run typecheck` and `git diff --check` — PASS.
+- Commit: `fix: enforce AI task draft publisher authorization`.
