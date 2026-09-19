@@ -1,4 +1,5 @@
-import type { ApplicationDependencies, MediaStorage, OcrProvider, Transaction } from "./ports.js";
+import type { ApplicationDependencies, MediaStorage, TaskDraftProvider, Transaction } from "./ports.js";
+import { AiGateway } from "./ai-gateway.js";
 import { TaskService } from "./task-service.js";
 import type {
   ActorContext,
@@ -28,13 +29,18 @@ export interface UploadIntentResult {
 
 export class MediaService {
   private readonly policy: AccessPolicy;
+  private readonly aiGateway: AiGateway;
 
   constructor(
     private readonly dependencies: ApplicationDependencies,
     private readonly storage: MediaStorage,
-    private readonly ocr: OcrProvider,
+    gatewayOrProvider: AiGateway | TaskDraftProvider,
   ) {
     this.policy = new AccessPolicy(dependencies.repository);
+    this.aiGateway =
+      gatewayOrProvider instanceof AiGateway
+        ? gatewayOrProvider
+        : new AiGateway(dependencies, storage, gatewayOrProvider);
   }
 
   static async assertTaskSourceAssets(
@@ -212,39 +218,7 @@ export class MediaService {
     actor: ActorContext,
     input: RequestBase & { readonly assetId: string },
   ): Promise<TaskDraft> {
-    requireRequestId(input.requestId);
-    const asset = await this.requireReadableSourceAsset(actor, input.assetId);
-    const result = await this.ocr.recognize(asset.storageKey);
-    const now = this.dependencies.clock.now();
-    const draft: TaskDraft = {
-      id: this.dependencies.ids.next("task_draft"),
-      confidence: result.confidence,
-      createdAt: now,
-      createdByAccountId: actor.accountId,
-      ...(result.description === undefined ? {} : { description: result.description }),
-      ...(result.dueAt === undefined ? {} : { dueAt: result.dueAt }),
-      ownerScope: asset.ownerScope,
-      provider: result.provider,
-      providerVersion: result.providerVersion,
-      sourceAssetId: asset.id,
-      ...(result.startsAt === undefined ? {} : { startsAt: result.startsAt }),
-      status: "DRAFT",
-      ...(isTaskCategory(result.category) ? { category: result.category } : {}),
-      ...(result.title === undefined ? {} : { title: result.title }),
-      updatedAt: now,
-    };
-    return this.dependencies.repository.transaction(async (tx) => {
-      await tx.insert("taskDrafts", stripUndefined(draft));
-      await this.audit(
-        tx,
-        actor,
-        input.requestId,
-        "TASK_DRAFT_RECOGNIZED",
-        asset.ownerScope,
-        draft.id,
-      );
-      return stripUndefined(draft);
-    });
+    return this.aiGateway.generateTaskDraft(actor, input);
   }
 
   async editDraft(
@@ -554,18 +528,6 @@ export class MediaService {
     return asset;
   }
 
-  private async requireReadableSourceAsset(
-    actor: ActorContext,
-    assetId: string,
-  ): Promise<MediaAsset> {
-    const asset = await this.dependencies.repository.read("mediaAssets", assetId);
-    if (asset?.status !== "ACTIVE" || asset.purpose !== "TASK_SOURCE") {
-      throw new DomainError("NOT_FOUND", "任务图片不存在或不可识别");
-    }
-    await this.authorizeAdultScope(actor, asset.ownerScope);
-    return asset;
-  }
-
   private async requireDraftManager(actor: ActorContext, draftId: string): Promise<TaskDraft> {
     const draft = await this.dependencies.repository.read("taskDrafts", draftId);
     if (draft === undefined) {
@@ -632,19 +594,6 @@ export class MediaService {
       tenantScope,
     });
   }
-}
-
-function isTaskCategory(value: string | undefined): value is TaskCategory {
-  return [
-    "LIFE",
-    "LANGUAGE",
-    "MATHEMATICS",
-    "ENGLISH",
-    "SCIENCE",
-    "ART",
-    "SPORT",
-    "OTHER",
-  ].includes(value ?? "");
 }
 
 function requireRequestId(requestId: string): void {

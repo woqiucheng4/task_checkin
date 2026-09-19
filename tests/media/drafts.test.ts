@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { MediaService } from "../../src/application/media-service.js";
 import { createIdentityScenario } from "../helpers/identity-scenario.js";
-import { FakeMediaStorage, FakeOcrProvider } from "../helpers/media-fakes.js";
+import { FakeOcrProvider, FakeVerifiedMediaStorage } from "../helpers/media-fakes.js";
 
 async function draftScenario() {
   const seed = await createIdentityScenario(1);
-  const storage = new FakeMediaStorage();
+  const storage = new FakeVerifiedMediaStorage();
   const ocr = new FakeOcrProvider({
     confidence: 0.91,
     provider: "fake-ocr",
@@ -22,10 +22,9 @@ async function draftScenario() {
     requestId: "draft-upload-intent",
     retentionDays: 30,
   });
-  await media.recordUpload(seed.teacher, {
+  await media.uploadContent(seed.teacher, {
     assetId: upload.asset.id,
-    observedByteSize: 512_000,
-    observedMimeType: "image/jpeg",
+    base64: Buffer.concat([Buffer.from([255, 216, 255]), Buffer.alloc(511_997)]).toString("base64"),
     requestId: "draft-upload-recorded",
   });
   return { ...seed, media, ocr, storage, upload };
@@ -47,7 +46,8 @@ describe("OCR task drafts", () => {
       title: "完成数学练习册",
     });
     expect(await seed.harness.repository.query("tasks", { draftId: draft.id })).toHaveLength(0);
-    expect(seed.ocr.calls).toEqual([seed.upload.asset.storageKey]);
+    expect(seed.ocr.calls).toHaveLength(1);
+    expect(seed.ocr.calls[0]).toMatchObject({ mimeType: "image/jpeg", requestId: "draft-recognize-1" });
   });
 
   it("refuses to publish until an adult confirms all required fields", async () => {

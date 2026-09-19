@@ -1,6 +1,7 @@
 import type { CollectionName } from "../domain/model.js";
 
 export const COLLECTIONS = {
+  aiInvocations: "task_checkin_ai_invocations",
   teacherActivationCodes: "task_checkin_teacher_activation_codes",
   accounts: "task_checkin_accounts",
   auditLogs: "task_checkin_audit_logs",

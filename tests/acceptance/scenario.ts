@@ -25,7 +25,7 @@ export class AcceptanceScenario {
     this.api = createCoreApi({
       ...this.harness,
       mediaStorage: this.storage,
-      ocrProvider: this.ocr,
+      taskDraftProvider: this.ocr,
     });
   }
 

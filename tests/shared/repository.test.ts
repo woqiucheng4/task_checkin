@@ -79,6 +79,7 @@ describe("collection manifest", () => {
     expect(Object.keys(COLLECTIONS).sort()).toEqual(
       [
         "accounts",
+        "aiInvocations",
         "auditLogs",
         "childGroupMemberships",
         "childTrees",

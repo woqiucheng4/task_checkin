@@ -215,6 +215,11 @@ describe("feature validation boundaries", () => {
         requestId: "media-recognize-missing",
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    const sourceFileId = `cloud://test/${upload.asset.storageKey}`;
+    storage.setPrivateFile(sourceFileId, new Uint8Array(10));
+    await seed.harness.repository.transaction((tx) =>
+      tx.update("mediaAssets", upload.asset.id, { fileId: sourceFileId }),
+    );
     const draft = await media.recognizeTaskDraft(seed.teacher, {
       assetId: upload.asset.id,
       requestId: "media-recognize-valid",
@@ -291,6 +296,11 @@ describe("feature validation boundaries", () => {
       observedMimeType: "image/jpeg",
       requestId: "media-family-source-record",
     });
+    const sourceFileId = `cloud://test/${upload.asset.storageKey}`;
+    storage.setPrivateFile(sourceFileId, new Uint8Array(20));
+    await seed.harness.repository.transaction((tx) =>
+      tx.update("mediaAssets", upload.asset.id, { fileId: sourceFileId }),
+    );
     const draft = await media.recognizeTaskDraft(seed.guardian, {
       assetId: upload.asset.id,
       requestId: "media-family-recognize",

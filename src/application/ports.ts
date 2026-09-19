@@ -1,4 +1,4 @@
-import type { AuditLog, CollectionName, DomainSchema } from "../domain/model.js";
+import type { AuditLog, CollectionName, DomainSchema, MediaAsset } from "../domain/model.js";
 import type { IdGenerator } from "../shared/ids.js";
 import type { Clock } from "../shared/time.js";
 
@@ -48,11 +48,16 @@ export interface RecognizedTaskFields {
   readonly providerVersion: string;
 }
 
-export interface OcrProvider {
-  recognize(storageKey: string): Promise<RecognizedTaskFields>;
+export interface TaskDraftProvider {
+  generateTaskDraft(input: {
+    readonly image: Uint8Array;
+    readonly mimeType: MediaAsset["mimeType"];
+    readonly requestId: string;
+  }): Promise<RecognizedTaskFields>;
 }
 
 export interface MediaStorage {
+  read(fileId: string): Promise<Uint8Array>;
   upload?(storageKey: string, content: Uint8Array): Promise<string>;
   downloadUrl?(fileId: string): Promise<string>;
   createUploadUrl(storageKey: string, expiresAt: string): Promise<string>;

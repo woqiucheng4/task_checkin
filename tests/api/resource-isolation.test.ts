@@ -61,8 +61,8 @@ describe("independent checkin application boundary", () => {
     const repository = new CloudBaseRepository({ collection } as never);
     for (const name of Object.keys(COLLECTIONS))
       await repository.read(name as keyof typeof COLLECTIONS, "id");
-    expect(names).toHaveLength(42);
-    expect(new Set(names).size).toBe(42);
+    expect(names).toHaveLength(43);
+    expect(new Set(names).size).toBe(43);
     expect(names.every((name) => name.startsWith("task_checkin_"))).toBe(true);
     expect(names).not.toContain("accounts");
     expect(names).not.toContain("tasks");

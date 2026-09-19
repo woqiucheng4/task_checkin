@@ -6,6 +6,7 @@ import { COLLECTIONS } from "./collections.js";
 export { COLLECTIONS } from "./collections.js";
 
 export const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
+  "aiInvocations",
   "auditLogs",
   "commandReceipts",
   "consentRecords",

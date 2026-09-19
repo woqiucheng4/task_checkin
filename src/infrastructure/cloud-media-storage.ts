@@ -2,6 +2,7 @@ import type { MediaStorage } from "../application/ports.js";
 import { DomainError } from "../shared/errors.js";
 
 export interface CloudStorage {
+  downloadFile?(input: { fileID: string }): Promise<{ fileContent?: Buffer }>;
   uploadFile(input: { cloudPath: string; fileContent: Buffer }): Promise<{ fileID?: string }>;
   deleteFile(input: { fileList: string[] }): Promise<{ fileList?: { status: number }[] }>;
   getTempFileURL?(input: {
@@ -33,6 +34,16 @@ export class CloudMediaStorage implements MediaStorage {
     });
     if (!result.fileID) throw new DomainError("INTERNAL_ERROR", "图片上传失败，请重试");
     return result.fileID;
+  }
+  async read(fileId: string): Promise<Uint8Array> {
+    const match = /^cloud:\/\/[^/]+\/(.+)$/.exec(fileId);
+    if (!match?.[1]) throw new DomainError("FORBIDDEN", "读取必须使用本项目云文件 ID");
+    requireOwnPath(match[1]);
+    const result = await this.cloud.downloadFile?.({ fileID: fileId });
+    if (!result?.fileContent?.byteLength) {
+      throw new DomainError("INTERNAL_ERROR", "图片暂时无法读取");
+    }
+    return new Uint8Array(result.fileContent);
   }
   async delete(fileId: string): Promise<void> {
     const match = /^cloud:\/\/[^/]+\/(.+)$/.exec(fileId);

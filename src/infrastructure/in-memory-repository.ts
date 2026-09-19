@@ -6,6 +6,7 @@ type DatabaseState = { [K in CollectionName]: Map<string, DomainSchema[K]> };
 export type SeedState = { [K in CollectionName]?: readonly DomainSchema[K][] };
 
 const APPEND_ONLY_COLLECTIONS = new Set<CollectionName>([
+  "aiInvocations",
   "auditLogs",
   "commandReceipts",
   "consentRecords",
@@ -172,6 +173,7 @@ function cloneState(state: DatabaseState): DatabaseState {
 
 function emptyState(): DatabaseState {
   return {
+    aiInvocations: new Map(),
     teacherActivationCodes: new Map(),
     accounts: new Map(),
     auditLogs: new Map(),

@@ -21,10 +21,11 @@ const api = createCoreApi({
   clock: new SystemClock(),
   ids: new CryptoIdGenerator(),
   repository,
+  aiTaskDraftEnabled: process.env.AI_TASK_DRAFT_ENABLED !== "false",
   mediaStorage: new CloudMediaStorage(cloud as unknown as CloudStorage),
   mvpPolicy: new MvpPolicy({ enabled: process.env.PRODUCT_EDITION === "CHILD_TEACHER_MVP" }),
-  ocrProvider: {
-    async recognize() {
+  taskDraftProvider: {
+    async generateTaskDraft() {
       throw new DomainError("CONFLICT", "图片识别服务尚未配置，请手动填写任务");
     },
   },

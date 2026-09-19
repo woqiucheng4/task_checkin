@@ -5,8 +5,9 @@ import { IdentityService } from "./identity-service.js";
 import { InvitationService } from "./invitation-service.js";
 import { MediaService } from "./media-service.js";
 import { MvpPolicy } from "./mvp-policy.js";
+import { AiGateway } from "./ai-gateway.js";
 import { OrchardService } from "./orchard-service.js";
-import type { ApplicationDependencies, MediaStorage, OcrProvider } from "./ports.js";
+import type { ApplicationDependencies, MediaStorage, TaskDraftProvider } from "./ports.js";
 import { PresentationService } from "./presentation-service.js";
 import { ReviewService } from "./review-service.js";
 import { SubmissionService } from "./submission-service.js";
@@ -159,8 +160,10 @@ export interface CoreCommand {
 
 export interface CoreApiDependencies extends ApplicationDependencies {
   readonly mediaStorage?: MediaStorage;
+  /** Defaults to enabled; the runtime maps AI_TASK_DRAFT_ENABLED into this switch. */
+  readonly aiTaskDraftEnabled?: boolean;
   readonly mvpPolicy?: MvpPolicy;
-  readonly ocrProvider?: OcrProvider;
+  readonly taskDraftProvider?: TaskDraftProvider;
 }
 
 export interface CoreApi {
@@ -262,13 +265,15 @@ function createServices(dependencies: CoreApiDependencies): Services {
     groupOrchard: new GroupOrchardService(dependencies),
     identity: new IdentityService(dependencies),
     invitations: new InvitationService(dependencies),
-    ...(dependencies.mediaStorage === undefined || dependencies.ocrProvider === undefined
+    ...(dependencies.mediaStorage === undefined || dependencies.taskDraftProvider === undefined
       ? {}
       : {
           media: new MediaService(
             dependencies,
             dependencies.mediaStorage,
-            dependencies.ocrProvider,
+            new AiGateway(dependencies, dependencies.mediaStorage, dependencies.taskDraftProvider, {
+              enabled: dependencies.aiTaskDraftEnabled ?? true,
+            }),
           ),
         }),
     orchard: new OrchardService(dependencies),

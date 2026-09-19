@@ -51,6 +51,11 @@ describe("media governance acceptance", () => {
       observedByteSize: 512_000,
       observedMimeType: "image/jpeg",
     });
+    const sourceFileId = `cloud://test/${upload.asset.storageKey}`;
+    scenario.storage.setPrivateFile(sourceFileId, new Uint8Array(512_000));
+    await scenario.harness.repository.transaction((tx) =>
+      tx.update("mediaAssets", upload.asset.id, { fileId: sourceFileId }),
+    );
     const draft = await scenario.call<TaskDraft>(
       institution.teacherOpenId,
       "RECOGNIZE_TASK_DRAFT",

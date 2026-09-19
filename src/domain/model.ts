@@ -442,6 +442,23 @@ export interface TaskDraft extends MutableRecord {
   status: "DRAFT" | "PUBLISHED" | "DISCARDED";
 }
 
+/** Immutable, privacy-preserving record of an AI task-draft invocation. */
+export interface AiInvocation extends BaseRecord {
+  readonly actorAccountId: string;
+  readonly assetId: string;
+  readonly inputByteSize: number;
+  readonly inputImageCount: number;
+  readonly inputSha256: string;
+  readonly provider: string;
+  readonly providerVersion: string;
+  readonly requestId: string;
+  readonly resultSummary: Readonly<{
+    readonly confidence: number;
+    readonly recognizedFieldCount: number;
+  }>;
+  readonly tenantScope: TenantScope;
+}
+
 export interface AuditLog extends BaseRecord {
   readonly action: string;
   readonly actorAccountId: string;
@@ -518,6 +535,7 @@ export interface PublicPoolEvent extends BaseRecord {
 }
 
 export interface DomainSchema {
+  aiInvocations: AiInvocation;
   teacherActivationCodes: TeacherActivationCode;
   accounts: Account;
   families: Family;
