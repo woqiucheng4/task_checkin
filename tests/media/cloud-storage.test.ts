@@ -5,6 +5,9 @@ describe("CloudMediaStorage", () => {
   it("passes verified bytes to the exclusive path and returns the cloud file identifier", async () => {
     const uploads: unknown[] = [];
     const storage = new CloudMediaStorage({
+      async downloadFile() {
+        throw new Error("unexpected download");
+      },
       async uploadFile(input) {
         uploads.push(input);
         return { fileID: "cloud://env/task-checkin/family/a" };
@@ -22,6 +25,9 @@ describe("CloudMediaStorage", () => {
   });
   it("refuses foreign or traversal paths before contacting storage", async () => {
     const storage = new CloudMediaStorage({
+      async downloadFile() {
+        throw new Error("external call forbidden");
+      },
       async uploadFile() {
         throw new Error("external call forbidden");
       },
@@ -35,6 +41,29 @@ describe("CloudMediaStorage", () => {
       });
     }
     await expect(storage.delete("cloud://env/rental/photo.jpg")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+  it("downloads private bytes only after validating the app namespace", async () => {
+    const downloads: unknown[] = [];
+    const storage = new CloudMediaStorage({
+      async downloadFile(input) {
+        downloads.push(input);
+        return { fileContent: Buffer.from([9, 8, 7]) };
+      },
+      async uploadFile() {
+        throw new Error("unexpected upload");
+      },
+      async deleteFile() {
+        throw new Error("unexpected deletion");
+      },
+    });
+
+    await expect(storage.read("cloud://env/task-checkin/family/source.jpg")).resolves.toEqual(
+      new Uint8Array([9, 8, 7]),
+    );
+    expect(downloads).toEqual([{ fileID: "cloud://env/task-checkin/family/source.jpg" }]);
+    await expect(storage.read("cloud://env/other-app/source.jpg")).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

@@ -107,6 +107,9 @@ const manifest = {
   mode,
   resourceAppId,
   configured,
+  runtimeEnvironmentRequirements: {
+    optional: ["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "AI_TASK_DRAFT_ENABLED"],
+  },
   functionEnvironment: { ALLOWED_CALLER_APPIDS: appId },
   storagePrefix: "task-checkin/",
   collections: Object.values(COLLECTIONS),

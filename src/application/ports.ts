@@ -43,6 +43,7 @@ export interface RecognizedTaskFields {
   readonly category?: string;
   readonly startsAt?: string;
   readonly dueAt?: string;
+  readonly submissionMode?: string;
   readonly confidence: number;
   readonly provider: string;
   readonly providerVersion: string;

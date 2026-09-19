@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { ApplicationDependencies, MediaStorage, RecognizedTaskFields, TaskDraftProvider } from "./ports.js";
-import type { ActorContext, MediaAsset, TaskCategory, TaskDraft } from "../domain/model.js";
+import type { ActorContext, MediaAsset, SubmissionMode, TaskCategory, TaskDraft } from "../domain/model.js";
 import { AccessPolicy } from "../domain/policy.js";
 import { DomainError } from "../shared/errors.js";
 
@@ -68,6 +68,7 @@ export class AiGateway {
       ...(fields.startsAt === undefined ? {} : { startsAt: fields.startsAt }),
       status: "DRAFT",
       ...(fields.category === undefined ? {} : { category: fields.category }),
+      ...(fields.submissionMode === undefined ? {} : { submissionMode: fields.submissionMode }),
       ...(fields.title === undefined ? {} : { title: fields.title }),
       updatedAt: now,
     };
@@ -150,6 +151,7 @@ interface NormalizedRecognizedTaskFields {
   readonly dueAt?: string;
   readonly provider: string;
   readonly providerVersion: string;
+  readonly submissionMode?: SubmissionMode;
   readonly startsAt?: string;
   readonly title?: string;
 }
@@ -159,6 +161,7 @@ function normalizeRecognizedFields(result: RecognizedTaskFields): NormalizedReco
   const category = normalizeCategory(result.category);
   const dueAt = nonEmpty(result.dueAt);
   const startsAt = nonEmpty(result.startsAt);
+  const submissionMode = normalizeSubmissionMode(result.submissionMode);
   const title = nonEmpty(result.title);
   return {
     ...(description === undefined ? {} : { description }),
@@ -168,8 +171,16 @@ function normalizeRecognizedFields(result: RecognizedTaskFields): NormalizedReco
     provider: safeProviderValue(result.provider, "unknown"),
     providerVersion: safeProviderValue(result.providerVersion, "unknown"),
     ...(startsAt === undefined ? {} : { startsAt }),
+    ...(submissionMode === undefined ? {} : { submissionMode }),
     ...(title === undefined ? {} : { title }),
   };
+}
+
+function normalizeSubmissionMode(value: string | undefined): SubmissionMode | undefined {
+  const normalized = value?.trim().toUpperCase();
+  return ["CONFIRM", "TEXT", "PHOTO", "TEXT_AND_PHOTO"].includes(normalized ?? "")
+    ? (normalized as SubmissionMode)
+    : undefined;
 }
 
 function normalizeCategory(value: string | undefined): TaskCategory | undefined {
