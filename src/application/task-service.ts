@@ -151,6 +151,23 @@ export class TaskService {
     actor: ActorContext,
     input: RequestBase & TaskFields & { readonly groupId: string },
   ): Promise<Task> {
+    return this.dependencies.repository.transaction(async (tx) => {
+      const service = new TaskService({
+        ...this.dependencies,
+        repository: {
+          read: tx.read.bind(tx),
+          query: tx.query.bind(tx),
+          transaction: (work) => work(tx),
+        },
+      });
+      return service.publishAuthorizedGroupTask(actor, input);
+    });
+  }
+
+  private async publishAuthorizedGroupTask(
+    actor: ActorContext,
+    input: RequestBase & TaskFields & { readonly groupId: string },
+  ): Promise<Task> {
     requireRequestId(input.requestId);
     validateTaskFields(input);
     const group = await this.dependencies.repository.read("groups", input.groupId);
@@ -189,6 +206,16 @@ export class TaskService {
     const task = this.makeTask(actor, { ...input, sourceAssetIds }, source, scope, group.id);
     const assignments = [];
     for (const membership of memberships) {
+      const member = (
+        await this.dependencies.repository.query("organizationMembers", {
+          organizationId: group.organizationId,
+          organizationMemberId: membership.organizationMemberId,
+          childId: membership.childId,
+          memberType: "CHILD",
+          status: "ACTIVE",
+        })
+      )[0];
+      if (!member || membership.organizationId !== group.organizationId) continue;
       const guardianLink = (
         await this.dependencies.repository.query("guardianLinks", {
           childId: membership.childId,
@@ -208,6 +235,7 @@ export class TaskService {
         }),
       );
     }
+    if (!assignments.length) throw new DomainError("INVALID_INPUT", "分组中没有有效孩子成员");
     return this.persistPublication(actor, input.requestId, task, assignments);
   }
 
@@ -442,14 +470,9 @@ export class TaskService {
     groupId: string,
     organizationId: string,
   ): Promise<void> {
-    try {
-      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
-        throw error;
-      }
-      await this.policy.requireGroupRole(actor, groupId);
-    }
+    const access = await this.policy.requireGroupAccess(actor, groupId);
+    if (access.organizationId !== organizationId)
+      throw new DomainError("FORBIDDEN", "任务机构不匹配");
   }
 
   private async audit(

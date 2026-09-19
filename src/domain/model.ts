@@ -412,6 +412,9 @@ export interface FruitWishLink extends BaseRecord {
 }
 
 export interface MediaAsset extends MutableRecord {
+  readonly uploadRequestId?: string;
+  readonly uploadConfirmationRequestId?: string;
+  readonly uploadedAt?: IsoInstant;
   readonly fileId?: string;
   readonly assignmentId?: string;
   readonly ownerScope: TenantScope;

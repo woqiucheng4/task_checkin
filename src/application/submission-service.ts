@@ -51,15 +51,9 @@ export class SubmissionService {
       } catch (error) {
         if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
         if (!assignment.groupId || !assignment.organizationId) throw error;
-        try {
-          await this.policy.requireOrganizationRole(actor, assignment.organizationId, [
-            "ORGANIZATION_ADMIN",
-          ]);
-        } catch (organizationError) {
-          if (!(organizationError instanceof DomainError) || organizationError.code !== "FORBIDDEN")
-            throw organizationError;
-          await this.policy.requireGroupRole(actor, assignment.groupId);
-        }
+        const access = await this.policy.requireGroupAccess(actor, assignment.groupId);
+        if (access.organizationId !== assignment.organizationId)
+          throw new DomainError("FORBIDDEN", "任务机构不匹配");
         const memberships = await this.dependencies.repository.query("childGroupMemberships", {
           childId: assignment.childId,
           groupId: assignment.groupId,
@@ -156,6 +150,9 @@ export class SubmissionService {
     await this.requireChildActor(actor, assignment.childId);
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
+      await new AccessPolicy(tx).requireGuardian(actor, assignment.childId);
+      const current = await tx.read("taskAssignments", assignment.id);
+      if (current?.acceptedLateChallenge) return current;
       const accepted = await tx.update("taskAssignments", assignment.id, {
         acceptedLateChallenge: true,
         updatedAt: now,
@@ -228,6 +225,24 @@ export class SubmissionService {
     input: SubmissionInput,
     expectedState: "PENDING" | "REVISION_REQUIRED",
   ): Promise<SubmissionResult> {
+    return this.dependencies.repository.transaction(async (tx) => {
+      const service = new SubmissionService({
+        ...this.dependencies,
+        repository: {
+          read: tx.read.bind(tx),
+          query: tx.query.bind(tx),
+          transaction: (work) => work(tx),
+        },
+      });
+      return service.createAuthorizedSubmission(actor, input, expectedState);
+    });
+  }
+
+  private async createAuthorizedSubmission(
+    actor: ActorContext,
+    input: SubmissionInput,
+    expectedState: "PENDING" | "REVISION_REQUIRED",
+  ): Promise<SubmissionResult> {
     requireRequestId(input.requestId);
     const mediaAssetIds = normalizeMediaAssetIds(input.mediaAssetIds);
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
@@ -235,6 +250,7 @@ export class SubmissionService {
     const repeated = (
       await this.dependencies.repository.query("submissions", {
         assignmentId: input.assignmentId,
+        childId: assignment.childId,
         requestId: input.requestId,
       })
     )[0];

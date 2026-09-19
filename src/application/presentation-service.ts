@@ -695,18 +695,7 @@ export class PresentationService {
     actor: ActorContext,
     groupId: string,
   ): Promise<{ organizationId: string }> {
-    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用教师或机构管理员身份");
-    const group = await this.requireRecord("groups", groupId, "分组不存在");
-    if (group.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "分组已停用");
-    try {
-      return await this.policy.requireGroupRole(actor, groupId);
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") throw error;
-      await this.policy.requireOrganizationRole(actor, group.organizationId, [
-        "ORGANIZATION_ADMIN",
-      ]);
-      return { organizationId: group.organizationId };
-    }
+    return this.policy.requireGroupAccess(actor, groupId);
   }
 
   private async presentationTask(assignmentId: string): Promise<PresentationTaskItemView> {

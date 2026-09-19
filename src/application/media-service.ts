@@ -96,6 +96,7 @@ export class MediaService {
     const uploadUrlExpiresAt = new Date(Date.parse(now) + 15 * 60 * 1000).toISOString();
     const storageKey = `task-checkin/${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
     const asset: MediaAsset = {
+      uploadRequestId: input.requestId,
       id: this.dependencies.ids.next("media"),
       ...(input.purpose === "SUBMISSION_EVIDENCE" ? { assignmentId: input.assignmentId } : {}),
       byteSize: input.byteSize,
@@ -113,8 +114,20 @@ export class MediaService {
           ? ["GUARDIAN", "TEACHER", "ASSISTANT"]
           : ["ORGANIZATION_ADMIN", "TEACHER", "ASSISTANT"],
     };
-    const uploadUrl = await this.storage.createUploadUrl(storageKey, uploadUrlExpiresAt);
-    await this.dependencies.repository.transaction(async (tx) => {
+    const persisted = await this.dependencies.repository.transaction(async (tx) => {
+      await this.resolveUploadScope(actor, input, tx);
+      const repeated = (
+        await tx.query("mediaAssets", {
+          uploaderAccountId: actor.accountId,
+          uploadRequestId: input.requestId,
+          purpose: input.purpose,
+        })
+      ).find(
+        (candidate) =>
+          candidate.assignmentId === asset.assignmentId &&
+          sameScope(candidate.ownerScope, ownerScope),
+      );
+      if (repeated) return repeated;
       await tx.insert("mediaAssets", asset);
       await this.audit(
         tx,
@@ -124,8 +137,12 @@ export class MediaService {
         ownerScope,
         asset.id,
       );
+      return asset;
     });
-    return { asset, uploadUrl, uploadUrlExpiresAt };
+    if (persisted.status !== "PENDING_UPLOAD" && persisted.status !== "ACTIVE")
+      throw new DomainError("CONFLICT", "上传申请已失效");
+    const uploadUrl = await this.storage.createUploadUrl(persisted.storageKey, uploadUrlExpiresAt);
+    return { asset: persisted, uploadUrl, uploadUrlExpiresAt };
   }
 
   async uploadContent(
@@ -174,9 +191,13 @@ export class MediaService {
       throw new DomainError("CONFLICT", "云存储未返回有效文件 ID");
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
+      const current = await this.requireUploader(actor, asset.id, tx);
+      if (current.status === "ACTIVE" && current.fileId) return current;
+      if (current.status !== "PENDING_UPLOAD") throw new DomainError("CONFLICT", "上传申请已失效");
       const active = await tx.update("mediaAssets", asset.id, {
         fileId,
         status: "ACTIVE",
+        uploadedAt: now,
         updatedAt: now,
       });
       await this.audit(
@@ -202,6 +223,13 @@ export class MediaService {
     requireRequestId(input.requestId);
     if (this.storage.upload) throw new DomainError("FORBIDDEN", "必须上传实际文件，由服务端验证");
     const asset = await this.requireUploader(actor, input.assetId);
+    if (
+      asset.status === "ACTIVE" &&
+      asset.uploadConfirmationRequestId === input.requestId &&
+      input.observedMimeType === asset.mimeType &&
+      input.observedByteSize === asset.byteSize
+    )
+      return asset;
     if (asset.status !== "PENDING_UPLOAD") {
       throw new DomainError("CONFLICT", "图片上传状态无效");
     }
@@ -210,7 +238,16 @@ export class MediaService {
     }
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
-      const active = await tx.update("mediaAssets", asset.id, { status: "ACTIVE", updatedAt: now });
+      const current = await this.requireUploader(actor, asset.id, tx);
+      if (current.status === "ACTIVE" && current.uploadConfirmationRequestId === input.requestId)
+        return current;
+      if (current.status !== "PENDING_UPLOAD") throw new DomainError("CONFLICT", "上传申请已失效");
+      const active = await tx.update("mediaAssets", asset.id, {
+        status: "ACTIVE",
+        uploadConfirmationRequestId: input.requestId,
+        uploadedAt: now,
+        updatedAt: now,
+      });
       await this.audit(
         tx,
         actor,
@@ -373,6 +410,7 @@ export class MediaService {
     return this.dependencies.repository.transaction(async (tx) => {
       const currentSubmission = await tx.read("submissions", submission.id);
       const assignment = await tx.read("taskAssignments", submission.assignmentId);
+      await new AccessPolicy(tx).requireGuardian(actor, submission.childId);
       const asset = await tx.read("mediaAssets", assetId);
       const links = await tx.query("submissionEvidenceLinks", { submissionId: submission.id });
       if (
@@ -487,6 +525,8 @@ export class MediaService {
             const members = await this.dependencies.repository.query("organizationMembers", {
               organizationMemberId: assignment.organizationMemberId,
               organizationId: assignment.organizationId,
+              childId: assignment.childId,
+              memberType: "CHILD",
               status: "ACTIVE",
             });
             if (!members.length) continue;
@@ -537,6 +577,18 @@ export class MediaService {
       });
       if (!memberships.length)
         throw new DomainError("FORBIDDEN", "孩子已退出分组，不能读取作业图片");
+      if (!assignment.organizationMemberId)
+        throw new DomainError("FORBIDDEN", "孩子机构授权已失效");
+      const member = (
+        await this.dependencies.repository.query("organizationMembers", {
+          organizationId: assignment.organizationId,
+          organizationMemberId: assignment.organizationMemberId,
+          childId: assignment.childId,
+          memberType: "CHILD",
+          status: "ACTIVE",
+        })
+      )[0];
+      if (!member) throw new DomainError("FORBIDDEN", "孩子机构授权已失效");
       await this.authorizeGroupReviewer(actor, assignment.groupId, assignment.organizationId);
       return asset;
     }
@@ -557,7 +609,8 @@ export class MediaService {
       (asset) =>
         (asset.status === "ACTIVE" &&
           (asset.purpose === "TASK_SOURCE" || Date.parse(asset.expiresAt) < Date.parse(now))) ||
-        (asset.status === "PENDING_UPLOAD" && asset.purpose === "TASK_SOURCE") ||
+        (asset.status === "PENDING_UPLOAD" &&
+          ["TASK_SOURCE", "SUBMISSION_EVIDENCE"].includes(asset.purpose)) ||
         asset.status === "DELETING",
     );
     let deletedCount = 0;
@@ -567,26 +620,33 @@ export class MediaService {
         if (!current || current.status === "DELETED") return undefined;
         if (current.status === "DELETING") return current;
         let expiresAt = current.expiresAt;
-        if (current.purpose === "TASK_SOURCE") {
-          expiresAt = addDays(current.createdAt, 90);
+        if (["TASK_SOURCE", "SUBMISSION_EVIDENCE"].includes(current.purpose)) {
+          expiresAt = addDays(current.uploadedAt ?? current.createdAt, 90);
           const tasks = await tx.query(
             "tasks",
             (task) => task.sourceAssetIds?.includes(current.id) === true,
           );
+          const relatedAssignments = [];
           for (const task of tasks) {
             const assignments = await tx.query("taskAssignments", { taskId: task.id });
-            if (
-              !assignments.length ||
-              assignments.some(
-                (assignment) =>
-                  !["COMPLETED", "EXCUSED", "CANCELLED", "EXPIRED"].includes(assignment.taskState),
-              )
-            )
+            if (!assignments.length) return undefined;
+            relatedAssignments.push(...assignments);
+          }
+          const evidenceLinks = await tx.query("submissionEvidenceLinks", {
+            mediaAssetId: current.id,
+          });
+          const assignmentIds = new Set(evidenceLinks.map((link) => link.assignmentId));
+          if (current.assignmentId) assignmentIds.add(current.assignmentId);
+          for (const assignmentId of assignmentIds) {
+            const assignment = await tx.read("taskAssignments", assignmentId);
+            if (!assignment) return undefined;
+            relatedAssignments.push(assignment);
+          }
+          for (const assignment of relatedAssignments) {
+            if (!["COMPLETED", "EXCUSED", "CANCELLED", "EXPIRED"].includes(assignment.taskState))
               return undefined;
-            for (const assignment of assignments) {
-              const completedExpiry = addDays(assignment.updatedAt, 90);
-              if (completedExpiry > expiresAt) expiresAt = completedExpiry;
-            }
+            const completedExpiry = addDays(assignment.updatedAt, 90);
+            if (completedExpiry > expiresAt) expiresAt = completedExpiry;
           }
         }
         if (Date.parse(expiresAt) >= Date.parse(now)) return undefined;
@@ -651,23 +711,57 @@ export class MediaService {
       readonly ownerScope?: TenantScope;
       readonly assignmentId?: string;
     },
+    repository: ReadRepository = this.dependencies.repository,
   ): Promise<TenantScope> {
+    const policy = new AccessPolicy(repository);
     if (input.purpose === "SUBMISSION_EVIDENCE") {
-      if (
-        input.assignmentId === undefined ||
-        actor.mode !== "CHILD" ||
-        actor.childId === undefined
-      ) {
+      if (input.assignmentId === undefined) {
         throw new DomainError("INVALID_INPUT", "作业证据必须关联孩子任务实例");
       }
-      const assignment = await this.dependencies.repository.read(
-        "taskAssignments",
-        input.assignmentId,
-      );
-      if (assignment?.childId !== actor.childId) {
+      const assignment = await repository.read("taskAssignments", input.assignmentId);
+      if (
+        !assignment ||
+        (actor.mode !== "ACCOUNT" && actor.mode !== "CHILD") ||
+        (actor.mode === "CHILD" && assignment.childId !== actor.childId)
+      ) {
         throw new DomainError("FORBIDDEN", "作业证据不属于当前孩子任务");
       }
-      await this.requireChildActor(actor, assignment.childId);
+      const guardian = await policy.requireGuardian(actor, assignment.childId);
+      const task = await repository.read("tasks", assignment.taskId);
+      const family = await repository.read("families", assignment.familyId);
+      if (family?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "家庭已停用");
+      if (
+        guardian.familyId !== assignment.familyId ||
+        task?.status !== "PUBLISHED" ||
+        ["COMPLETED", "CANCELLED", "EXCUSED", "EXPIRED"].includes(assignment.taskState)
+      )
+        throw new DomainError("FORBIDDEN", "任务已失效，不能上传证据");
+      if (assignment.groupId && assignment.organizationId) {
+        const group = await repository.read("groups", assignment.groupId);
+        const organization = await repository.read("organizations", assignment.organizationId);
+        const memberships = await repository.query("childGroupMemberships", {
+          childId: assignment.childId,
+          groupId: assignment.groupId,
+          organizationId: assignment.organizationId,
+          status: "ACTIVE",
+        });
+        const members = await repository.query("organizationMembers", {
+          childId: assignment.childId,
+          organizationId: assignment.organizationId,
+          memberType: "CHILD",
+          status: "ACTIVE",
+        });
+        if (
+          group?.status !== "ACTIVE" ||
+          group.organizationId !== assignment.organizationId ||
+          organization?.status !== "ACTIVE" ||
+          !memberships.some(
+            (membership) => membership.organizationMemberId === assignment.organizationMemberId,
+          ) ||
+          !members.some((member) => member.organizationMemberId === assignment.organizationMemberId)
+        )
+          throw new DomainError("FORBIDDEN", "孩子分组授权已失效");
+      }
       return assignment.organizationId === undefined
         ? { kind: "FAMILY", familyId: assignment.familyId }
         : { kind: "ORGANIZATION", organizationId: assignment.organizationId };
@@ -675,18 +769,25 @@ export class MediaService {
     if (input.ownerScope === undefined) {
       throw new DomainError("INVALID_INPUT", "任务图片必须指定所属空间");
     }
-    await this.authorizeAdultScope(actor, input.ownerScope);
+    await this.authorizeAdultScope(actor, input.ownerScope, repository);
     return input.ownerScope;
   }
 
-  private async requireUploader(actor: ActorContext, assetId: string): Promise<MediaAsset> {
-    const asset = await this.dependencies.repository.read("mediaAssets", assetId);
+  private async requireUploader(
+    actor: ActorContext,
+    assetId: string,
+    repository: ReadRepository = this.dependencies.repository,
+  ): Promise<MediaAsset> {
+    const asset = await repository.read("mediaAssets", assetId);
     if (asset === undefined) {
       throw new DomainError("NOT_FOUND", "图片记录不存在");
     }
     if (asset.uploaderAccountId !== actor.accountId) {
       throw new DomainError("FORBIDDEN", "只能确认自己申请上传的图片");
     }
+    const scope = await this.resolveUploadScope(actor, asset, repository);
+    if (!sameScope(scope, asset.ownerScope))
+      throw new DomainError("FORBIDDEN", "上传申请空间不匹配");
     return asset;
   }
 
@@ -723,11 +824,33 @@ export class MediaService {
       throw new DomainError("FORBIDDEN", "只有成人账号可以管理任务图片");
     }
     if (scope.kind === "FAMILY") {
+      const family = await repository.read("families", scope.familyId);
+      if (family?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "家庭已停用");
       await policy.requireFamilyRole(actor, scope.familyId);
       return;
     }
     if (scope.kind === "ORGANIZATION") {
-      await policy.requireOrganizationRole(actor, scope.organizationId);
+      const organization = await repository.read("organizations", scope.organizationId);
+      if (organization?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "机构已停用");
+      const member = await policy.requireOrganizationRole(actor, scope.organizationId);
+      if (member.organizationRole !== "ORGANIZATION_ADMIN") {
+        const bindings = await repository.query("groupRoleBindings", {
+          accountId: actor.accountId,
+          organizationId: scope.organizationId,
+          status: "ACTIVE",
+        });
+        let allowed = false;
+        for (const binding of bindings) {
+          const group = await repository.read("groups", binding.groupId);
+          if (
+            group?.status === "ACTIVE" &&
+            group.organizationId === scope.organizationId &&
+            ["TEACHER", "ASSISTANT"].includes(binding.role)
+          )
+            allowed = true;
+        }
+        if (!allowed) throw new DomainError("FORBIDDEN", "当前账号没有有效分组权限");
+      }
       return;
     }
     throw new DomainError("FORBIDDEN", "当前空间不支持任务图片");
@@ -738,14 +861,9 @@ export class MediaService {
     groupId: string,
     organizationId: string,
   ): Promise<void> {
-    try {
-      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
-        throw error;
-      }
-      await this.policy.requireGroupRole(actor, groupId);
-    }
+    const access = await this.policy.requireGroupAccess(actor, groupId);
+    if (access.organizationId !== organizationId)
+      throw new DomainError("FORBIDDEN", "任务机构不匹配");
   }
 
   private async requireChildActor(actor: ActorContext, childId: string): Promise<void> {

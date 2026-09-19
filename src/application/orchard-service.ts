@@ -70,8 +70,33 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly catalogId: string },
   ): Promise<ChildTree> {
+    return this.dependencies.repository.transaction((tx) =>
+      new OrchardService({
+        ...this.dependencies,
+        repository: {
+          read: tx.read.bind(tx),
+          query: tx.query.bind(tx),
+          transaction: (work) => work(tx),
+        },
+      }).startAuthorizedTree(actor, input),
+    );
+  }
+
+  private async startAuthorizedTree(
+    actor: ActorContext,
+    input: RequestBase & { readonly catalogId: string },
+  ): Promise<ChildTree> {
     const childId = await this.requireSelectedChild(actor);
     requireRequestId(input.requestId);
+    const audits = await this.dependencies.repository.query("auditLogs", {
+      actorAccountId: actor.accountId,
+      requestId: input.requestId,
+      action: "CHILD_TREE_STARTED",
+    });
+    for (const audit of audits) {
+      const tree = await this.dependencies.repository.read("childTrees", audit.resourceId);
+      if (tree?.childId === childId) return tree;
+    }
     const existing = await this.dependencies.repository.query(
       "childTrees",
       (tree) => tree.childId === childId && (tree.status === "GROWING" || tree.status === "MATURE"),
@@ -105,6 +130,22 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly treeId: string; readonly name: string },
   ): Promise<ChildTree> {
+    return this.dependencies.repository.transaction((tx) =>
+      new OrchardService({
+        ...this.dependencies,
+        repository: {
+          read: tx.read.bind(tx),
+          query: tx.query.bind(tx),
+          transaction: (work) => work(tx),
+        },
+      }).renameAuthorizedTree(actor, input),
+    );
+  }
+
+  private async renameAuthorizedTree(
+    actor: ActorContext,
+    input: RequestBase & { readonly treeId: string; readonly name: string },
+  ): Promise<ChildTree> {
     const childId = await this.requireSelectedChild(actor);
     requireRequestId(input.requestId);
     const name = input.name.trim();
@@ -115,6 +156,13 @@ export class OrchardService {
     if (tree?.childId !== childId) {
       throw new DomainError("FORBIDDEN", "只能命名自己的果树");
     }
+    const replay = await this.dependencies.repository.query("auditLogs", {
+      actorAccountId: actor.accountId,
+      requestId: input.requestId,
+      resourceId: tree.id,
+      action: "CHILD_TREE_RENAMED",
+    });
+    if (replay.length) return tree;
     const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
       const renamed = await tx.update("childTrees", tree.id, { name, updatedAt: now });
@@ -127,12 +175,32 @@ export class OrchardService {
     actor: ActorContext,
     input: RequestBase & { readonly treeId: string; readonly name?: string },
   ): Promise<HarvestResult> {
+    return this.dependencies.repository.transaction((tx) =>
+      new OrchardService({
+        ...this.dependencies,
+        repository: {
+          read: tx.read.bind(tx),
+          query: tx.query.bind(tx),
+          transaction: (work) => work(tx),
+        },
+      }).harvestAuthorizedTree(actor, input),
+    );
+  }
+
+  private async harvestAuthorizedTree(
+    actor: ActorContext,
+    input: RequestBase & { readonly treeId: string; readonly name?: string },
+  ): Promise<HarvestResult> {
     const childId = await this.requireSelectedChild(actor);
     requireRequestId(input.requestId);
+    const authorizedTree = await this.dependencies.repository.read("childTrees", input.treeId);
+    if (authorizedTree?.childId !== childId)
+      throw new DomainError("FORBIDDEN", "只能采摘自己的果树");
     const repeatedCard = (
       await this.dependencies.repository.query("growthCards", {
         requestId: input.requestId,
         treeId: input.treeId,
+        childId,
       })
     )[0];
     if (repeatedCard !== undefined) {

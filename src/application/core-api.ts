@@ -218,6 +218,16 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
             "COMPLETE_REVISION",
             "CLAIM_INVITATION",
             "RECOGNIZE_TASK_DRAFT",
+            "SUBMIT_TASK",
+            "SUPPLEMENT_SUBMISSION",
+            "ACCEPT_LATE_CHALLENGE",
+            "CREATE_UPLOAD_INTENT",
+            "UPLOAD_MEDIA_CONTENT",
+            "RECORD_UPLOAD",
+            "ATTACH_SUBMISSION_EVIDENCE",
+            "START_TREE",
+            "RENAME_TREE",
+            "HARVEST_TREE",
           ].includes(command.action)
         ) {
           return commandSuccess(

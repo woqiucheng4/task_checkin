@@ -85,6 +85,26 @@ export class AccessPolicy {
     return binding;
   }
 
+  async requireGroupAccess(
+    actor: ActorContext,
+    groupId: string,
+  ): Promise<{ organizationId: string }> {
+    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用成人机构身份");
+    const group = await this.repository.read("groups", groupId);
+    const organization =
+      group && (await this.repository.read("organizations", group.organizationId));
+    if (group?.status !== "ACTIVE" || organization?.status !== "ACTIVE") {
+      throw new DomainError("FORBIDDEN", "分组或机构授权已失效");
+    }
+    const member = await this.requireOrganizationRole(actor, organization.id);
+    if (member.organizationRole !== "ORGANIZATION_ADMIN") {
+      const binding = await this.requireGroupRole(actor, group.id);
+      if (binding.organizationId !== organization.id)
+        throw new DomainError("FORBIDDEN", "分组授权已失效");
+    }
+    return { organizationId: organization.id };
+  }
+
   async requireOrganizationChild(
     actor: ActorContext,
     organizationMemberId: string,

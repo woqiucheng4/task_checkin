@@ -173,6 +173,12 @@ describe("media governance acceptance", () => {
     await expect(
       scenario.call<MediaAsset>(family.openId, "READ_MEDIA_ASSET", { assetId: upload.asset.id }),
     ).resolves.toMatchObject({ id: upload.asset.id, status: "ACTIVE" });
+    await scenario.harness.repository.transaction((tx) =>
+      tx.update("taskAssignments", assignment.id, {
+        taskState: "COMPLETED",
+        updatedAt: scenario.harness.clock.now(),
+      }),
+    );
     scenario.harness.clock.set("2026-12-05T10:00:00.000Z");
     await scenario.call(
       platformOpenId,

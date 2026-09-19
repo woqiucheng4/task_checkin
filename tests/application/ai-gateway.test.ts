@@ -387,7 +387,7 @@ describe("AiGateway", () => {
         memberType: "ADULT",
         organizationId: seed.organization.id,
         organizationMemberId: "ai-gateway-unbound-staff-person",
-        organizationRole: "STAFF",
+        organizationRole: "ORGANIZATION_ADMIN",
         status: "ACTIVE",
         updatedAt: now,
       }),
@@ -415,6 +415,12 @@ describe("AiGateway", () => {
       base64: Buffer.from([255, 216, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0]).toString("base64"),
       requestId: "ai-gateway-staff-source-upload",
     });
+    // The upload was authorized; revoke publishing authority before AI access.
+    await seed.harness.repository.transaction((tx) =>
+      tx.update("organizationMembers", "ai-gateway-unbound-staff-membership", {
+        organizationRole: "STAFF",
+      }),
+    );
     const provider = new FakeOcrProvider({
       confidence: 0.9,
       provider: "fake",
