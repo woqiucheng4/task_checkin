@@ -25,7 +25,7 @@ async function sourceScenario() {
     ownerScope: { kind: "ORGANIZATION", organizationId: seed.organization.id },
     purpose: "TASK_SOURCE",
     requestId: "ai-draft-upload-intent",
-    retentionDays: 30,
+    retentionDays: 90,
   });
   await media.uploadContent(seed.teacher, {
     assetId: upload.asset.id,
@@ -111,7 +111,7 @@ describe("AiGateway", () => {
         ownerScope: { kind: "ORGANIZATION", organizationId: seed.organization.id },
         purpose: "TASK_SOURCE",
         requestId: "ai-gateway-other-source-intent",
-        retentionDays: 30,
+        retentionDays: 90,
       },
     );
     await media.uploadContent(
@@ -169,7 +169,7 @@ describe("AiGateway", () => {
       ownerScope: { kind: "ORGANIZATION", organizationId: seed.organization.id },
       purpose: "TASK_SOURCE",
       requestId: "ai-gateway-staff-source-intent",
-      retentionDays: 30,
+      retentionDays: 90,
     });
     await media.uploadContent(actor, {
       assetId: upload.asset.id,

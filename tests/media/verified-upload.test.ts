@@ -26,7 +26,7 @@ async function scenario() {
     ownerScope: { kind: "FAMILY", familyId: seed.family.id },
     byteSize: content.length,
     mimeType: "image/jpeg",
-    retentionDays: 30,
+    retentionDays: 90,
     requestId: "verified-upload-intent",
   });
   return { ...seed, media, content, intent, objects };

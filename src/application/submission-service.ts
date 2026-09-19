@@ -90,6 +90,9 @@ export class SubmissionService {
     )[0];
     return {
       title: task.title,
+      category: task.category,
+      dueAt: task.dueAt,
+      sourceAssetIds: task.sourceAssetIds ?? [],
       childLabel,
       source: task.source,
       description: task.description ?? "",

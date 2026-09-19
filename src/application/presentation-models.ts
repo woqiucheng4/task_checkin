@@ -47,6 +47,7 @@ export interface AccountShellView {
 
 export interface PresentationTaskItemView {
   readonly assignmentId: string;
+  readonly sourceAssetIds?: readonly string[];
   readonly title: string;
   readonly description?: string;
   readonly source: TaskSource;

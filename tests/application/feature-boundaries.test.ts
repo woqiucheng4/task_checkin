@@ -177,7 +177,7 @@ describe("feature validation boundaries", () => {
       ownerScope: { kind: "ORGANIZATION", organizationId: seed.organization.id },
       purpose: "TASK_SOURCE",
       requestId: "media-upload-valid",
-      retentionDays: 1,
+      retentionDays: 90,
     });
     await expect(
       media.recordUpload(seed.guardian, {
@@ -288,7 +288,7 @@ describe("feature validation boundaries", () => {
       ownerScope: { familyId: seed.family.id, kind: "FAMILY" },
       purpose: "TASK_SOURCE",
       requestId: "media-family-source-intent",
-      retentionDays: 10,
+      retentionDays: 90,
     });
     await media.recordUpload(seed.guardian, {
       assetId: upload.asset.id,

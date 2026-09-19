@@ -422,7 +422,7 @@ export interface MediaAsset extends MutableRecord {
   readonly storageKey: string;
   readonly visibleRoles: readonly string[];
   readonly expiresAt: IsoInstant;
-  status: "PENDING_UPLOAD" | "ACTIVE" | "DELETED";
+  status: "PENDING_UPLOAD" | "ACTIVE" | "DELETING" | "DELETED";
   deletedAt?: IsoInstant;
 }
 

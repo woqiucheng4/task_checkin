@@ -379,6 +379,13 @@ export class TaskService {
     assignments: readonly TaskAssignment[],
   ): Promise<Task> {
     return this.dependencies.repository.transaction(async (tx) => {
+      // Recheck attachments inside the publication transaction, against cleanup claims.
+      await MediaService.assertTaskSourceAssets(
+        { repository: tx },
+        actor,
+        task.sourceScope,
+        task.sourceAssetIds ?? [],
+      );
       await tx.insert("tasks", task);
       for (const assignment of assignments) {
         const duplicate = await tx.query("taskAssignments", {

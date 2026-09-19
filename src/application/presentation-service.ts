@@ -720,6 +720,7 @@ export class PresentationService {
       academicState: assignment.academicState,
       assignmentId: assignment.id,
       category: task.category,
+      sourceAssetIds: task.sourceAssetIds ?? [],
       ...(task.description === undefined ? {} : { description: task.description }),
       dueAt: task.dueAt,
       ...(assignment.familyFocusRank === undefined

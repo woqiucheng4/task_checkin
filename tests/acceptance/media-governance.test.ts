@@ -43,7 +43,7 @@ describe("media governance acceptance", () => {
         mimeType: "image/jpeg",
         ownerScope: { kind: "ORGANIZATION", organizationId: institution.organization.id },
         purpose: "TASK_SOURCE",
-        retentionDays: 30,
+        retentionDays: 90,
       },
     );
     await scenario.call(institution.teacherOpenId, "RECORD_UPLOAD", {

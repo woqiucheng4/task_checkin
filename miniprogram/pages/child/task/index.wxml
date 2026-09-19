@@ -13,6 +13,7 @@
   <view class="section">
     <view class="section__title">任务要求</view>
     <view class="section__copy">{{task.description}}</view>
+    <image wx:for="{{images}}" wx:key="*this" class="task-image" src="{{item}}" mode="widthFix" />
   </view>
   <view class="reward"><t-icon name="sunny" size="42rpx" color="#EE9A25" /><text>{{task.reward}}</text></view>
   <button wx:if="{{state === 'pending'}}" class="primary" bindtap="openSubmit">开始完成</button>
