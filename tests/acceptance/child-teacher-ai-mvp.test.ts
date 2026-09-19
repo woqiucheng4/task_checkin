@@ -10,6 +10,12 @@ import { createIdentityScenario } from "../helpers/identity-scenario.js";
 import { FakeOcrProvider, FakeVerifiedMediaStorage } from "../helpers/media-fakes.js";
 
 describe("child-teacher AI MVP acceptance", () => {
+  it("requires at least one selected child for its invitation-and-approval fixture", async () => {
+    await expect(createIdentityScenario(2, 0)).rejects.toThrow(
+      "joined child count must be between one and child count",
+    );
+  });
+
   it("keeps sibling data private through activation, join, image task, AI draft and review", async () => {
     // The fixture activates the teacher, creates its workspace/group, and only claims/approves child A.
     const seed = await createIdentityScenario(2, 1);

@@ -10,10 +10,10 @@ export async function createIdentityScenario(childCount = 2, joinedChildCount = 
   }
   if (
     !Number.isInteger(joinedChildCount) ||
-    joinedChildCount < 0 ||
+    joinedChildCount < 1 ||
     joinedChildCount > childCount
   ) {
-    throw new Error("joined child count must be between zero and child count");
+    throw new Error("joined child count must be between one and child count");
   }
   const harness = createHarness();
   const identity = new IdentityService(harness);

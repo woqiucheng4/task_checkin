@@ -3,7 +3,7 @@
 ## 实现
 
 - 新增本地端到端验收：激活教师、工作区/学习小组、仅 child A 入组并获批准、私有题图、本地 fake AI 草稿、child A 提交、教师重复批准仅产生一笔奖励；断言 child B 无任务、奖励、AI 操作或题图读取权限。
-- `createIdentityScenario(childCount, joinedChildCount)` 仅增加可控的入组数量，默认行为保持原有“所有孩子入组”。
+- `createIdentityScenario(childCount, joinedChildCount)` 仅增加可控的入组数量，默认行为保持原有“所有孩子入组”；该完整邀请/批准 fixture 要求 `joinedChildCount >= 1`，并有测试稳定拒绝 `0`。
 - 发布手册改为人工发布前门禁：不声称真实 AppID、环境、owner、变量或部署已确认；限制 dry run 与变更范围；覆盖私有存储、变量名、真机、受控 DeepSeek 和手工回退。
 - 隐私边界限定在当前 MVP：题图 AI 默认开启、原图私有、作业证据 90 天、成人审核后奖励；未来总结/评价/推荐需要逐 child guardian opt-in，当前未实现自动评分或奖励。
 
@@ -11,8 +11,8 @@
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm test -- --run tests/acceptance/child-teacher-ai-mvp.test.ts` | PASS：1 文件、1 测试。 |
-| `npm test -- --run` | PASS：84 文件、320 测试。 |
+| `npm test -- --run tests/acceptance/child-teacher-ai-mvp.test.ts` | PASS：1 文件、2 测试。 |
+| `npm test -- --run` | PASS：84 文件、321 测试。 |
 | `npm run typecheck` | PASS。 |
 | `npm run lint` | PASS：266 文件，无修复。 |
 | `npm run format:check` | FAIL：本任务格式化后仍有 15 个前置文件不符合 Biome 格式；未批量格式化无关文件。 |
