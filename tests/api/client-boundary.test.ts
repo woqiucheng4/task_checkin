@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { CoreApiClient } from "../../miniprogram/services/core-api.js";
+import {
+  AccountChildApiClient,
+  CoreApiClient,
+  withRequiredChildId,
+} from "../../miniprogram/services/core-api.js";
 
 describe("mini-program core API client", () => {
   it("has a valid placeholder page while the visual UI remains replaceable", () => {
@@ -48,6 +52,28 @@ describe("mini-program core API client", () => {
       payload: { childId: "child-1", date: "2026-09-05" },
       requestId: "request-generated-0002",
     });
+  });
+
+  it("attaches an explicit child resource to account-scoped requests", async () => {
+    const cloud = new FakeCloudCaller();
+    const client = new AccountChildApiClient(
+      new CoreApiClient(cloud, () => "request-generated-child-0001"),
+    );
+
+    await client.execute("GET_CHILD_TODAY", "child-1", { date: "2026-09-19" });
+
+    expect(cloud.lastPayload).toEqual({
+      action: "GET_CHILD_TODAY",
+      actor: { mode: "ACCOUNT" },
+      payload: { childId: "child-1", date: "2026-09-19" },
+      requestId: "request-generated-child-0001",
+    });
+  });
+
+  it("requires a non-empty child resource instead of reading authority from local state", () => {
+    expect(() => withRequiredChildId("  ", { date: "2026-09-19" })).toThrow(
+      "请选择孩子",
+    );
   });
 
   it("returns the client-safe result from the cloud function", async () => {

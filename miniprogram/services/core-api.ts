@@ -44,6 +44,34 @@ export class CoreApiClient {
   }
 }
 
+/**
+ * Child identifiers scope an already authenticated account request. They are
+ * resources, not an actor identity or proof of permission.
+ */
+export function withRequiredChildId<T extends Readonly<Record<string, unknown>>>(
+  childId: string,
+  payload: T,
+): T & { readonly childId: string } {
+  const normalizedChildId = childId.trim();
+  if (!normalizedChildId) throw new Error("请选择孩子");
+  return { ...structuredClone(payload), childId: normalizedChildId };
+}
+
+/** Routes child-scoped operations through the authenticated account client. */
+export class AccountChildApiClient {
+  constructor(private readonly accountClient: CoreApiClient) {}
+
+  execute(
+    action: CoreAction,
+    childId: string,
+    payload: Readonly<Record<string, unknown>>,
+  ): Promise<CommandResult<unknown>> {
+    return this.accountClient.execute(action, withRequiredChildId(childId, payload), {
+      mode: "ACCOUNT",
+    });
+  }
+}
+
 export async function callCoreApi(
   cloud: CloudFunctionCaller,
   action: CoreAction,

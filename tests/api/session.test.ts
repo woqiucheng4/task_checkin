@@ -2,33 +2,56 @@ import { describe, expect, it } from "vitest";
 import { SessionStore } from "../../miniprogram/store/session.js";
 
 describe("local navigation session", () => {
-  it("clears a stale child selection when switching workspaces", () => {
+  it("has no child selection when the account has no linked children", () => {
     const session = new SessionStore();
-    session.selectWorkspace({ id: "family-1", kind: "FAMILY" });
-    session.selectRoleMode("CHILD");
-    session.selectChild("child-1");
 
-    session.selectWorkspace({ id: "org-1", kind: "ORGANIZATION" });
+    session.reconcileChildren([]);
 
-    expect(session.current().childId).toBeUndefined();
-    expect(session.current().roleMode).toBe("ACCOUNT");
+    expect(session.current().selectedChildId).toBeUndefined();
   });
 
-  it("persists navigation preferences but marks them as untrusted", () => {
+  it("selects the sole linked child as the deterministic single option", () => {
+    const session = new SessionStore();
+
+    session.reconcileChildren(["child-1"]);
+
+    expect(session.current()).toMatchObject({
+      authorizationProof: false,
+      roleMode: "ACCOUNT",
+      selectedChildId: "child-1",
+    });
+  });
+
+  it("requires an explicit choice when multiple linked children have no preference", () => {
+    const session = new SessionStore();
+
+    session.reconcileChildren(["child-1", "child-2"]);
+
+    expect(session.current().selectedChildId).toBeUndefined();
+  });
+
+  it("switches the local child preference without treating it as authorization", () => {
+    const session = new SessionStore();
+    session.reconcileChildren(["child-1", "child-2"]);
+
+    session.selectChild("child-2");
+
+    expect(session.current()).toMatchObject({
+      authorizationProof: false,
+      roleMode: "ACCOUNT",
+      selectedChildId: "child-2",
+    });
+  });
+
+  it("clears a persisted preference when bootstrap no longer reports that child", () => {
     const persistence = new MemoryPersistence();
     const first = new SessionStore(persistence);
-    first.selectWorkspace({ id: "family-1", kind: "FAMILY" });
-    first.selectRoleMode("CHILD");
     first.selectChild("child-1");
 
-    const restored = new SessionStore(persistence).current();
+    const restored = new SessionStore(persistence);
+    restored.reconcileChildren(["child-2"]);
 
-    expect(restored).toMatchObject({
-      authorizationProof: false,
-      childId: "child-1",
-      roleMode: "CHILD",
-      workspace: { id: "family-1", kind: "FAMILY" },
-    });
+    expect(restored.current().selectedChildId).toBe("child-2");
   });
 
   it("returns snapshots that cannot mutate the store", () => {

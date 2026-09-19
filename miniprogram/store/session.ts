@@ -3,13 +3,14 @@ export type WorkspaceSelection =
   | { readonly kind: "ORGANIZATION"; readonly id: string }
   | { readonly kind: "CONTENT_PROVIDER"; readonly id: string };
 
-export type RoleMode = "ACCOUNT" | "CHILD" | "CONTENT_PROVIDER";
+export type RoleMode = "ACCOUNT" | "CONTENT_PROVIDER";
 
 export interface NavigationSession {
   readonly authorizationProof: false;
   readonly workspace?: WorkspaceSelection;
   readonly roleMode: RoleMode;
-  readonly childId?: string;
+  /** Local UX preference; server authorization always validates child scope. */
+  readonly selectedChildId?: string;
 }
 
 export interface SessionPersistence {
@@ -40,18 +41,16 @@ export class SessionStore {
       authorizationProof: false,
       roleMode: changed ? "ACCOUNT" : this.state.roleMode,
       workspace: structuredClone(workspace),
-      ...(changed || this.state.childId === undefined ? {} : { childId: this.state.childId }),
+      ...(this.state.selectedChildId === undefined
+        ? {}
+        : { selectedChildId: this.state.selectedChildId }),
     };
     return this.persist();
   }
 
   selectRoleMode(roleMode: RoleMode): NavigationSession {
-    const { childId: selectedChildId, ...withoutChild } = this.state;
     this.state = {
-      ...withoutChild,
-      ...(roleMode === "CHILD" && selectedChildId !== undefined
-        ? { childId: selectedChildId }
-        : {}),
+      ...this.state,
       authorizationProof: false,
       roleMode,
     };
@@ -59,10 +58,29 @@ export class SessionStore {
   }
 
   selectChild(childId: string): NavigationSession {
-    if (this.state.roleMode !== "CHILD" || childId.trim().length === 0) {
-      throw new Error("选择孩子前必须进入孩子模式");
-    }
-    this.state = { ...this.state, authorizationProof: false, childId };
+    const selectedChildId = childId.trim();
+    if (!selectedChildId) throw new Error("请选择孩子");
+    this.state = { ...this.state, authorizationProof: false, selectedChildId };
+    return this.persist();
+  }
+
+  /**
+   * Reconciles a local preference against children returned for the current
+   * authenticated account. A sole option is deterministic; multiple options
+   * require an explicit parent choice.
+   */
+  reconcileChildren(childIds: readonly string[]): NavigationSession {
+    const linkedChildIds = [...new Set(childIds.map((childId) => childId.trim()).filter(Boolean))];
+    const { selectedChildId, ...withoutSelection } = this.state;
+    this.state = {
+      ...withoutSelection,
+      authorizationProof: false,
+      ...(selectedChildId !== undefined && linkedChildIds.includes(selectedChildId)
+        ? { selectedChildId }
+        : linkedChildIds.length === 1
+          ? { selectedChildId: linkedChildIds[0] }
+          : {}),
+    };
     return this.persist();
   }
 
@@ -84,12 +102,15 @@ function parsePersistedSession(value: unknown): NavigationSession {
   const record = value as Readonly<Record<string, unknown>>;
   const roleMode = isRoleMode(record.roleMode) ? record.roleMode : "ACCOUNT";
   const workspace = parseWorkspace(record.workspace);
-  const childId = typeof record.childId === "string" ? record.childId : undefined;
+  const selectedChildId =
+    typeof record.selectedChildId === "string" && record.selectedChildId.trim().length > 0
+      ? record.selectedChildId
+      : undefined;
   return {
     authorizationProof: false,
     roleMode,
     ...(workspace === undefined ? {} : { workspace }),
-    ...(roleMode === "CHILD" && childId !== undefined ? { childId } : {}),
+    ...(selectedChildId === undefined ? {} : { selectedChildId }),
   };
 }
 
@@ -108,5 +129,5 @@ function parseWorkspace(value: unknown): WorkspaceSelection | undefined {
 }
 
 function isRoleMode(value: unknown): value is RoleMode {
-  return value === "ACCOUNT" || value === "CHILD" || value === "CONTENT_PROVIDER";
+  return value === "ACCOUNT" || value === "CONTENT_PROVIDER";
 }

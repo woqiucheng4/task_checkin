@@ -6,12 +6,13 @@ import type {
   PresentationTaskItemView,
 } from "../../src/application/presentation-models.js";
 import type { CoreAction, CoreActorSelection } from "../../src/application/core-api.js";
-import { CoreApiClient } from "./core-api.js";
+import { AccountChildApiClient, CoreApiClient } from "./core-api.js";
 import { cloudReady } from "./cloud-runtime.js";
 
 const client = new CoreApiClient({
   callFunction: async (input) => (await cloudReady()).callFunction(input),
 });
+const accountChildApi = new AccountChildApiClient(client);
 const KEY = "task_checkin_session_v1";
 let shell: AccountShellView | undefined;
 let selectedChildId = "";
@@ -33,10 +34,17 @@ export async function accountShell(refresh = false): Promise<AccountShellView> {
     init = (async () => {
       await command("BOOTSTRAP_ACCOUNT");
       shell = await command<AccountShellView>("GET_ACCOUNT_SHELL");
-      const stored = wx.getStorageSync(KEY) as { childId?: string } | undefined;
+      const stored = wx.getStorageSync(KEY) as { selectedChildId?: string } | undefined;
       const all = shell.families.flatMap((f) => f.children);
-      selectedChildId =
-        all.find((c) => c.id === (selectedChildId || stored?.childId))?.id || all[0]?.id || "";
+      const preferredChildId = selectedChildId || stored?.selectedChildId || "";
+      if (all.some((child) => child.id === preferredChildId)) {
+        selectedChildId = preferredChildId;
+      } else if (all.length === 1) {
+        selectedChildId = all[0]?.id || "";
+      } else {
+        selectedChildId = "";
+        if (preferredChildId) wx.setStorageSync(KEY, {});
+      }
       return shell;
     })().finally(() => {
       init = undefined;
@@ -46,22 +54,35 @@ export async function accountShell(refresh = false): Promise<AccountShellView> {
 
 export async function selectedFamily(): Promise<FamilyWorkspaceView> {
   const childIdAtStart =
-    selectedChildId || (wx.getStorageSync(KEY) as { childId?: string } | undefined)?.childId;
+    selectedChildId ||
+    (wx.getStorageSync(KEY) as { selectedChildId?: string } | undefined)?.selectedChildId;
   const current = await accountShell();
+  const selectedId =
+    childIdAtStart && current.families.some((family) => family.children.some((c) => c.id === childIdAtStart))
+      ? childIdAtStart
+      : selectedChildId;
   const family =
     current.families.find((f) =>
-      f.children.some((c) => c.id === (childIdAtStart || selectedChildId)),
-    ) || current.families[0];
-  if (!family) throw new Error("请先创建家庭并添加孩子");
+      f.children.some((c) => c.id === selectedId),
+    );
+  if (!family) {
+    if (!current.families.some((item) => item.children.length)) throw new Error("请先创建家庭并添加孩子");
+    throw new Error("请选择孩子");
+  }
   return family;
 }
 
 export async function selectedChild(): Promise<string> {
   const childIdAtStart =
-    selectedChildId || (wx.getStorageSync(KEY) as { childId?: string } | undefined)?.childId;
-  await accountShell();
-  const childId = childIdAtStart || selectedChildId;
-  if (!childId) throw new Error("请先添加孩子");
+    selectedChildId ||
+    (wx.getStorageSync(KEY) as { selectedChildId?: string } | undefined)?.selectedChildId;
+  const current = await accountShell();
+  const children = current.families.flatMap((family) => family.children);
+  if (children.length === 0) throw new Error("请先添加孩子");
+  const childId = children.some((child) => child.id === childIdAtStart)
+    ? childIdAtStart
+    : selectedChildId;
+  if (!childId || !children.some((child) => child.id === childId)) throw new Error("请选择孩子");
   return childId;
 }
 
@@ -70,7 +91,7 @@ export async function selectChild(id: string): Promise<void> {
   if (!current.families.some((f) => f.children.some((c) => c.id === id)))
     throw new Error("未找到该孩子");
   selectedChildId = id;
-  wx.setStorageSync(KEY, { childId: id });
+  wx.setStorageSync(KEY, { selectedChildId: id });
 }
 
 export function today(): string {
@@ -78,23 +99,30 @@ export function today(): string {
 }
 
 export async function dashboard(): Promise<ParentDashboardView> {
-  return command("GET_PARENT_DASHBOARD", { childId: await selectedChild(), date: today() });
+  return accountChildCommand("GET_PARENT_DASHBOARD", { date: today() });
 }
 
 export async function taskDetail(id: string): Promise<PresentationTaskItemView> {
-  const center = await command<ParentTaskCenterView>("GET_PARENT_TASK_CENTER", {
-    childId: await selectedChild(),
-  });
+  const center = await accountChildCommand<ParentTaskCenterView>("GET_PARENT_TASK_CENTER", {});
   const task = center.items.find((t) => t.assignmentId === id);
   if (!task) throw new Error("任务不存在或已无访问权限");
   return task;
 }
 
-export const childClient = {
+export const accountChildClient = {
   async execute(action: CoreAction, payload: Readonly<Record<string, unknown>>) {
-    return client.execute(action, payload, { mode: "CHILD", childId: await selectedChild() });
+    return accountChildApi.execute(action, await selectedChild(), payload);
   },
 };
+
+async function accountChildCommand<T>(
+  action: CoreAction,
+  payload: Readonly<Record<string, unknown>>,
+): Promise<T> {
+  const result = await accountChildClient.execute(action, payload);
+  if (!result.ok) throw new Error(result.error.message);
+  return result.data as T;
+}
 
 export function showError(error: unknown): void {
   wx.showToast({

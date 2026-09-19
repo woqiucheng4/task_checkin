@@ -5,6 +5,9 @@ vi.mock("../../miniprogram/services/core-api.js", () => ({
   CoreApiClient: class {
     execute = bridge.execute;
   },
+  AccountChildApiClient: class {
+    execute = bridge.execute;
+  },
 }));
 vi.mock("../../miniprogram/services/cloud-runtime.js", () => ({ cloudReady: vi.fn() }));
 afterEach(() => {
@@ -18,7 +21,10 @@ it("freezes both child and family before an already queued selection switch reso
     { id: "family-a", children: [{ id: "child-a" }] },
     { id: "family-b", children: [{ id: "child-b" }] },
   ];
-  vi.stubGlobal("wx", { getStorageSync: () => ({ childId: "child-a" }), setStorageSync: vi.fn() });
+  vi.stubGlobal("wx", {
+    getStorageSync: () => ({ selectedChildId: "child-a" }),
+    setStorageSync: vi.fn(),
+  });
   bridge.execute.mockImplementation(async (action: string) => ({
     ok: true,
     data: action === "GET_ACCOUNT_SHELL" ? { families } : {},
