@@ -226,9 +226,7 @@ export class SubmissionService {
     expectedState: "PENDING" | "REVISION_REQUIRED",
   ): Promise<SubmissionResult> {
     requireRequestId(input.requestId);
-    if (input.mediaAssetIds.length > 3) {
-      throw new DomainError("INVALID_INPUT", "一次提交最多附加三张图片");
-    }
+    const mediaAssetIds = normalizeMediaAssetIds(input.mediaAssetIds);
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
     await this.requireChildActor(actor, assignment.childId);
     const repeated = (
@@ -250,7 +248,7 @@ export class SubmissionService {
     if (assignment.taskState !== expectedState) {
       throw new DomainError("CONFLICT", "当前任务状态不能提交");
     }
-    this.validateEvidence(task, input);
+    this.validateEvidence(task, { ...input, mediaAssetIds });
     if (
       !task.allowLateSubmission &&
       Date.parse(this.dependencies.clock.now()) > Date.parse(task.dueAt)
@@ -266,14 +264,14 @@ export class SubmissionService {
       assignmentId: assignment.id,
       childId: assignment.childId,
       createdAt: now,
-      mediaAssetIds: [...input.mediaAssetIds],
+      mediaAssetIds,
       requestId: input.requestId,
       revision: previous.length + 1,
       submittedAt: now,
       ...(input.text === undefined ? {} : { text: input.text.trim() }),
     };
     return this.dependencies.repository.transaction(async (tx) => {
-      for (const assetId of new Set(input.mediaAssetIds)) {
+      for (const assetId of mediaAssetIds) {
         const asset = await tx.read("mediaAssets", assetId);
         const inScope =
           asset?.ownerScope.kind === "FAMILY"
@@ -285,6 +283,7 @@ export class SubmissionService {
           !asset ||
           !inScope ||
           asset.uploaderAccountId !== actor.accountId ||
+          asset.assignmentId !== assignment.id ||
           asset.status !== "ACTIVE" ||
           asset.purpose !== "SUBMISSION_EVIDENCE" ||
           !asset.storageKey.startsWith("task-checkin/") ||
@@ -376,6 +375,21 @@ export class SubmissionService {
       tenantScope,
     });
   }
+}
+
+function normalizeMediaAssetIds(value: unknown): readonly string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > 3 ||
+    value.some((id) => typeof id !== "string" || id.trim().length === 0)
+  ) {
+    throw new DomainError("INVALID_INPUT", "一次提交最多附加三张有效图片");
+  }
+  const ids = value.map((id) => id.trim());
+  if (new Set(ids).size !== ids.length) {
+    throw new DomainError("INVALID_INPUT", "同一图片不能重复提交");
+  }
+  return ids;
 }
 
 function requireRequestId(requestId: string): void {

@@ -131,13 +131,13 @@ export class TaskService {
       }
     }
     const scope: TenantScope = { kind: "FAMILY", familyId: input.familyId };
-    await MediaService.assertTaskSourceAssets(
+    const sourceAssetIds = await MediaService.assertTaskSourceAssets(
       this.dependencies,
       actor,
       scope,
-      input.sourceAssetIds ?? [],
+      input.sourceAssetIds === undefined ? [] : input.sourceAssetIds,
     );
-    const task = this.makeTask(actor, input, "FAMILY", scope);
+    const task = this.makeTask(actor, { ...input, sourceAssetIds }, "FAMILY", scope);
     const assignments = childIds.map((childId) =>
       this.makeAssignment(task, input.occurrenceDate, {
         childId,
@@ -182,13 +182,13 @@ export class TaskService {
       kind: "ORGANIZATION",
       organizationId: group.organizationId,
     };
-    await MediaService.assertTaskSourceAssets(
+    const sourceAssetIds = await MediaService.assertTaskSourceAssets(
       this.dependencies,
       actor,
       scope,
-      input.sourceAssetIds ?? [],
+      input.sourceAssetIds === undefined ? [] : input.sourceAssetIds,
     );
-    const task = this.makeTask(actor, input, source, scope, group.id);
+    const task = this.makeTask(actor, { ...input, sourceAssetIds }, source, scope, group.id);
     const assignments = [];
     for (const membership of memberships) {
       const guardianLink = (

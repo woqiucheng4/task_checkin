@@ -41,12 +41,10 @@ export class MediaService {
     dependencies: ApplicationDependencies,
     actor: ActorContext,
     ownerScope: TenantScope,
-    assetIds: readonly string[],
-  ): Promise<void> {
-    if (assetIds.length > 3) {
-      throw new DomainError("INVALID_INPUT", "任务最多附加三张图片");
-    }
-    for (const assetId of assetIds) {
+    assetIds: unknown,
+  ): Promise<readonly string[]> {
+    const normalizedAssetIds = normalizeAssetIds(assetIds, "任务图片");
+    for (const assetId of normalizedAssetIds) {
       const asset = await dependencies.repository.read("mediaAssets", assetId);
       if (
         asset?.status !== "ACTIVE" ||
@@ -58,6 +56,7 @@ export class MediaService {
         throw new DomainError("FORBIDDEN", "任务图片不属于当前发布者或空间");
       }
     }
+    return normalizedAssetIds;
   }
 
   async createUploadIntent(
@@ -83,6 +82,7 @@ export class MediaService {
     const storageKey = `task-checkin/${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
     const asset: MediaAsset = {
       id: this.dependencies.ids.next("media"),
+      ...(input.purpose === "SUBMISSION_EVIDENCE" ? { assignmentId: input.assignmentId } : {}),
       byteSize: input.byteSize,
       createdAt: now,
       expiresAt,
@@ -362,21 +362,39 @@ export class MediaService {
       throw new DomainError("NOT_FOUND", "提交记录不存在");
     }
     await this.requireChildActor(actor, submission.childId);
-    const asset = await this.requireUploader(actor, input.assetId);
-    if (asset.status !== "ACTIVE" || asset.purpose !== "SUBMISSION_EVIDENCE") {
-      throw new DomainError("INVALID_INPUT", "图片不是有效的作业证据");
-    }
-    const now = this.dependencies.clock.now();
-    const link: SubmissionEvidenceLink = {
-      id: this.dependencies.ids.next("submission_evidence"),
-      assignmentId: submission.assignmentId,
-      childId: submission.childId,
-      createdAt: now,
-      mediaAssetId: asset.id,
-      requestId: input.requestId,
-      submissionId: submission.id,
-    };
     return this.dependencies.repository.transaction(async (tx) => {
+      const currentSubmission = await tx.read("submissions", submission.id);
+      const assignment = await tx.read("taskAssignments", submission.assignmentId);
+      const asset = await tx.read("mediaAssets", input.assetId);
+      const links = await tx.query("submissionEvidenceLinks", { submissionId: submission.id });
+      if (
+        currentSubmission === undefined ||
+        assignment === undefined ||
+        asset === undefined ||
+        asset.status !== "ACTIVE" ||
+        asset.purpose !== "SUBMISSION_EVIDENCE" ||
+        asset.uploaderAccountId !== actor.accountId ||
+        asset.assignmentId !== submission.assignmentId ||
+        !isAssignmentScope(asset.ownerScope, assignment) ||
+        !asset.storageKey.startsWith("task-checkin/")
+      ) {
+        throw new DomainError("FORBIDDEN", "图片未上传完成或不属于当前任务实例");
+      }
+      const existing = links.find((link) => link.mediaAssetId === asset.id);
+      if (existing !== undefined) return existing;
+      if (links.length >= 3) {
+        throw new DomainError("INVALID_INPUT", "一次提交最多附加三张图片");
+      }
+      const now = this.dependencies.clock.now();
+      const link: SubmissionEvidenceLink = {
+        id: this.dependencies.ids.next("submission_evidence"),
+        assignmentId: submission.assignmentId,
+        childId: submission.childId,
+        createdAt: now,
+        mediaAssetId: asset.id,
+        requestId: input.requestId,
+        submissionId: submission.id,
+      };
       await tx.insert("submissionEvidenceLinks", link);
       await this.audit(
         tx,
@@ -645,4 +663,28 @@ function sameScope(left: TenantScope, right: TenantScope): boolean {
       right.kind === "ORGANIZATION" &&
       left.organizationId === right.organizationId)
   );
+}
+
+function normalizeAssetIds(value: unknown, label: string): readonly string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > 3 ||
+    value.some((id) => typeof id !== "string" || id.trim().length === 0)
+  ) {
+    throw new DomainError("INVALID_INPUT", `${label}最多三张，且必须是有效图片 ID`);
+  }
+  const ids = value.map((id) => id.trim());
+  if (new Set(ids).size !== ids.length) {
+    throw new DomainError("INVALID_INPUT", `${label}不能重复`);
+  }
+  return ids;
+}
+
+function isAssignmentScope(
+  scope: TenantScope,
+  assignment: { familyId: string; organizationId?: string },
+): boolean {
+  return scope.kind === "FAMILY"
+    ? assignment.organizationId === undefined && scope.familyId === assignment.familyId
+    : scope.kind === "ORGANIZATION" && scope.organizationId === assignment.organizationId;
 }

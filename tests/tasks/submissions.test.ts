@@ -78,6 +78,7 @@ describe("submission lifecycle", () => {
     await seed.harness.repository.transaction((tx) =>
       tx.insert("mediaAssets", {
         id: "media-owned-photo",
+        assignmentId: seed.assignment.id,
         byteSize: 1024,
         createdAt: now,
         updatedAt: now,
@@ -104,6 +105,36 @@ describe("submission lifecycle", () => {
         childId: seed.firstChild.id,
       },
     ]);
+  });
+
+  it("rejects an otherwise in-scope image bound to another assignment", async () => {
+    const seed = await submissionScenario("PHOTO");
+    const now = seed.harness.clock.now();
+    await seed.harness.repository.transaction((tx) =>
+      tx.insert("mediaAssets", {
+        id: "media-other-assignment-photo",
+        assignmentId: "another-assignment",
+        byteSize: 1024,
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: "2026-10-05T00:00:00.000Z",
+        mimeType: "image/jpeg",
+        ownerScope: { kind: "FAMILY", familyId: seed.family.id },
+        purpose: "SUBMISSION_EVIDENCE",
+        status: "ACTIVE",
+        storageKey: "task-checkin/family/other-assignment-photo",
+        uploaderAccountId: seed.guardian.accountId,
+        visibleRoles: ["GUARDIAN"],
+      }),
+    );
+
+    await expect(
+      seed.submissions.submit(seed.childActor, {
+        assignmentId: seed.assignment.id,
+        mediaAssetIds: ["media-other-assignment-photo"],
+        requestId: "submission-other-assignment-photo",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("protects reward eligibility immediately after a valid submission", async () => {

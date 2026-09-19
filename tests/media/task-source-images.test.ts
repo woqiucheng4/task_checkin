@@ -110,4 +110,37 @@ describe("task source images", () => {
       }),
     ).resolves.toMatchObject({ sourceAssetIds: [asset.id] });
   });
+
+  it("rejects duplicate and malformed source IDs without publishing", async () => {
+    const seed = await createIdentityScenario(1);
+    const tasks = new TaskService(seed.harness);
+    const input = {
+      ...taskInput,
+      childIds: [seed.firstChild.id],
+      familyId: seed.family.id,
+      requestId: "family-source-malformed",
+    };
+
+    await expect(
+      tasks.publishFamilyTask(seed.guardian, {
+        ...input,
+        sourceAssetIds: ["same", "same"],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    await expect(
+      tasks.publishFamilyTask(seed.guardian, {
+        ...input,
+        requestId: "family-source-not-array",
+        sourceAssetIds: "not-an-array" as unknown as readonly string[],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    await expect(
+      tasks.publishFamilyTask(seed.guardian, {
+        ...input,
+        requestId: "family-source-null",
+        sourceAssetIds: null as unknown as readonly string[],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(await seed.harness.repository.query("tasks")).toEqual([]);
+  });
 });

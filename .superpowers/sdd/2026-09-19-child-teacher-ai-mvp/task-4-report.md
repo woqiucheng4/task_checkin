@@ -18,3 +18,10 @@
 ## Concern
 
 - Repository-wide `npm run format:check` still reports pre-existing formatting drift in `src/application/identity-service.ts` and `tests/identity/teacher-workspace.test.ts`; Task 4 files were formatted and were not the cause.
+
+## Review fix round 1
+
+- Submission-evidence assets now retain their immutable upload `assignmentId`. Both submission creation and the public attachment action require an active, private, uploader-owned evidence asset whose assignment and tenant scope match the target assignment.
+- The public attachment action queries links inside its transaction, returns an existing link idempotently for the same asset, and rejects a fourth distinct attachment before insert. Submission creation rejects duplicate IDs and persists the same normalized IDs it validates; task source IDs are likewise validated as an array of unique nonempty strings before use.
+- Added adversarial tests for malformed and duplicate source IDs, assignment reuse within a group, cross-group reviewer denial, and the public attachment action's three-image limit.
+- Verification: focused media/submission/acceptance suites passed (21 tests); full suite passed (77 files / 283 tests); typecheck and `git diff --check` passed.
