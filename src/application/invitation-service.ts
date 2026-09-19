@@ -140,10 +140,11 @@ export class InvitationService {
     });
   }
 
-  async preview(actor: ActorContext, code: string) {
+  async preview(actor: ActorContext, code: string, childId: string) {
     if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请家长查看和确认邀请");
     if (typeof code !== "string" || code.length < 1 || code.length > 200)
       throw new DomainError("INVALID_INPUT", "邀请码格式无效");
+    await this.policy.requireGuardian(actor, childId);
     const invitation = (
       await this.dependencies.repository.query("invitations", { codeHash: hashCode(code.trim()) })
     )[0];

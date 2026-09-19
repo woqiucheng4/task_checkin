@@ -426,7 +426,11 @@ async function dispatch(
     case "CREATE_GROUP_INVITATION":
       return services.invitations.createGroupInvitation(actor, castInput(input));
     case "PREVIEW_GROUP_INVITATION":
-      return services.invitations.preview(actor, requireString(payload.code));
+      return services.invitations.preview(
+        actor,
+        requireString(payload.code),
+        requireString(payload.childId),
+      );
     case "CLAIM_INVITATION":
       return services.invitations.claimInvitation(actor, castInput(input));
     case "APPROVE_JOIN_REQUEST":

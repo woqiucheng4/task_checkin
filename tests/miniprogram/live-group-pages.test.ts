@@ -22,7 +22,11 @@ const session = vi.hoisted(() => ({
       };
     if (action === "GET_GROUP_PROGRESS") return { progress: 7, threshold: 18, status: "GROWING" };
     if (action === "PREVIEW_GROUP_INVITATION")
-      return { groupName: "真实班级", organizationName: "真实学校" };
+      return {
+        groupName: "真实班级",
+        organizationName: "真实学校",
+        expiresAt: "2030-01-01T00:00:00.000Z",
+      };
     if (action === "CLAIM_INVITATION") return { id: "join-real", status: "PENDING_APPROVAL" };
     if (action === "WITHDRAW_CHILD") return {};
     throw new Error(`Unexpected ${action}`);
@@ -37,7 +41,7 @@ afterEach(() => vi.unstubAllGlobals());
 type Definition = {
   data: Record<string, unknown>;
   onShow(this: MiniPageInstance): Promise<void>;
-  onLoad(this: MiniPageInstance, query: { code: string }): Promise<void>;
+  onLoad(this: MiniPageInstance, query: { code?: string; childId?: string }): Promise<void>;
   confirmJoin(this: MiniPageInstance): Promise<void>;
   requestWithdraw(
     this: MiniPageInstance,
@@ -80,10 +84,11 @@ it("shows real shared progress without invented personal contribution", async ()
 });
 it("requires explicit consent after a real invitation preview", async () => {
   const page = await loadPage("../../miniprogram/pages/shared/invitation/index.js");
-  await page.onLoad({ code: "real-code" });
+  await page.onLoad({ code: "real-code", childId: "child-real" });
   expect(page.data).toMatchObject({
     groupName: "真实班级",
     organizationName: "真实学校",
+    expiresAt: "2030-01-01T00:00:00.000Z",
     consent: false,
   });
   session.command.mockClear();

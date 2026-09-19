@@ -63,7 +63,7 @@ describe("group invitation lifecycle", () => {
       maxClaims: 10,
       requestId: "preview-invitation-0001",
     });
-    const result = await seed.invitations.preview(seed.guardian, created.code);
+    const result = await seed.invitations.preview(seed.guardian, created.code, seed.child.id);
     expect(result).toMatchObject({
       groupName: "三年级学习小组",
       organizationName: "青禾老师",
@@ -83,6 +83,13 @@ describe("group invitation lifecycle", () => {
       maxClaims: 10,
       requestId: "consent-invitation-0001",
     });
+    await expect(
+      seed.invitations.preview(
+        { ...seed.guardian, mode: "CHILD", childId: seed.child.id },
+        created.code,
+        seed.child.id,
+      ),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(
       seed.invitations.claimInvitation(
         { ...seed.guardian, mode: "CHILD", childId: seed.child.id },

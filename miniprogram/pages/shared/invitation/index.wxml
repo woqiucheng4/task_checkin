@@ -1,11 +1,13 @@
 <view class="page">
   <view class="title">申请加入分组</view>
-  <view class="teacher">当前孩子：{{nickname}}</view>
-  <view class="scope"><view class="scope__title">老师提供的邀请码</view><input maxlength="200" value="{{code}}" placeholder="粘贴邀请码后先核验邀请" bindinput="editCode" /><button disabled="{{working}}" loading="{{working}}" bindtap="preview">核验邀请</button><view wx:if="{{error}}">{{error}}</view></view>
+  <view wx:if="{{childValid}}" class="teacher">当前孩子：{{nickname}}</view>
+  <view wx:if="{{!childValid}}" class="scope"><view class="scope__title">无法申请加入分组</view><view>{{error || '请从家长分组页选择孩子后再打开邀请。'}}</view></view>
+  <block wx:if="{{childValid && !pendingApproval}}"><view class="scope"><view class="scope__title">老师提供的邀请码</view><input maxlength="200" value="{{code}}" placeholder="粘贴邀请码后先核验邀请" bindinput="editCode" /><button disabled="{{working}}" loading="{{working}}" bindtap="preview">核验邀请</button><view wx:if="{{error}}">{{error}}</view></view>
   <block wx:if="{{ready}}">
-    <view class="eyebrow">来自 {{organizationName}}</view><view class="title">邀请加入{{groupName}}</view>
+    <view class="eyebrow">教师／工作区：{{organizationName}}</view><view class="title">邀请加入{{groupName}}</view><view class="teacher">邀请码有效至：{{expiresAt}}</view>
     <view class="scope"><view class="scope__title">同意后，分组可看到</view><view>孩子在本分组的昵称、年级、任务完成状态和提交内容</view><view class="scope__exclude">不会看到家庭任务、个人愿望和其他分组记录；不授权头像。</view></view>
     <checkbox-group bindchange="editConsent"><label class="consent"><checkbox value="agree" checked="{{consent}}" color="#174E2A" />我是孩子的监护人，已了解披露范围，并同意提交入组申请</label></checkbox-group>
     <button class="primary" disabled="{{working || !consent}}" loading="{{working}}" bindtap="confirmJoin">提交申请，等待老师审核</button>
-  </block>
+  </block></block>
+  <view wx:if="{{pendingApproval}}" class="scope"><view class="scope__title">PENDING_APPROVAL</view><view>申请已提交，正在等待老师审核。审核通过前，孩子尚未加入该分组。</view></view>
 </view>

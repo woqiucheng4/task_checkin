@@ -1,5 +1,6 @@
 <view class="page">
-  <view class="heading"><view><view class="title">{{nickname}}的分组与授权</view><view class="note">学校和机构只能看到各自分组内的信息。</view></view><button bindtap="openInvitation">输入邀请码</button></view>
+  <view class="heading"><view><view class="title">{{nickname}}的分组与授权</view><view class="note">学校和机构只能看到各自分组内的信息。</view></view></view>
+  <view class="picker"><view class="picker__title">为哪位孩子申请加入分组？</view><view class="picker__note">请明确选择后再输入邀请码；申请只会关联这一位孩子。</view><view class="picker__children"><button wx:for="{{invitationChildren}}" wx:key="id" class="picker__child {{invitationChildId === item.id ? 'picker__child--selected' : ''}}" data-child-id="{{item.id}}" bindtap="chooseInvitationChild">{{item.nickname}}</button></view><button class="picker__open" disabled="{{!invitationChildId}}" bindtap="openInvitation">输入邀请码</button></view>
   <view wx:if="{{!groups.length && !pending.length}}" class="note">还没有加入分组。获取老师的邀请码后，可以申请加入。</view>
   <view wx:for="{{groups}}" wx:key="id" class="group">
     <view class="group__top"><view><text class="type">{{item.type === 'SCHOOL' ? '学校' : '辅导班'}}</text><view class="group__title">{{item.organizationName}} · {{item.name}}</view></view><text class="active">已加入</text></view>

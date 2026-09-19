@@ -15,6 +15,10 @@ async function load(page: MiniPageInstance) {
   );
   page.setData({
     nickname: family.children.find((c) => c.id === childId)?.nickname || "",
+    invitationChildren: family.children.map((child) => ({
+      id: child.id,
+      nickname: child.nickname,
+    })),
     groups: view.memberships,
     pending: view.pending,
   });
@@ -24,6 +28,8 @@ Page({
     groups: [],
     pending: [],
     nickname: "",
+    invitationChildren: [],
+    invitationChildId: "",
     showWithdraw: false,
     withdrawId: "",
     withdrawName: "",
@@ -36,8 +42,17 @@ Page({
       showError(error);
     }
   },
+  chooseInvitationChild(event: { currentTarget: { dataset: { childId?: string } } }) {
+    if (event.currentTarget.dataset.childId)
+      this.setData({ invitationChildId: event.currentTarget.dataset.childId });
+  },
   openInvitation() {
-    navigate("/pages/shared/invitation/index");
+    const childId = String(this.data.invitationChildId || "");
+    if (!childId) {
+      wx.showToast({ icon: "none", title: "请先选择要申请入组的孩子" });
+      return;
+    }
+    navigate(`/pages/shared/invitation/index?childId=${encodeURIComponent(childId)}`);
   },
   requestWithdraw(event: { currentTarget: { dataset: { id?: string; name?: string } } }) {
     if (event.currentTarget.dataset.id)
