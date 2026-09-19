@@ -26,9 +26,22 @@ function editorDate(instant: string | undefined, fallback: string): { date: stri
   return { date: local.slice(0, 10), time: local.slice(11, 16) };
 }
 
+const categories = [
+  { value: "LIFE", label: "生活" },
+  { value: "LANGUAGE", label: "语文" },
+  { value: "MATHEMATICS", label: "数学" },
+  { value: "ENGLISH", label: "英语" },
+  { value: "SCIENCE", label: "科学" },
+  { value: "ART", label: "艺术" },
+  { value: "SPORT", label: "运动" },
+  { value: "OTHER", label: "其他" },
+];
+
 Page({
   data: {
     category: "LIFE",
+    categories,
+    categoryIndex: 0,
     confidence: "",
     description: "",
     draftId: "",
@@ -52,6 +65,11 @@ Page({
   },
   editDescription(event: { readonly detail: { readonly value?: string } }) {
     this.setData({ description: event.detail.value ?? "" });
+  },
+  editCategory(event: { readonly detail: { readonly value: string } }) {
+    const index = Number(event.detail.value);
+    const category = categories[index];
+    if (category) this.setData({ category: category.value, categoryIndex: index });
   },
   editDate(event: { detail: { value: string } }) {
     this.setData({ date: event.detail.value, dueAt: `${event.detail.value} ${this.data.time}` });
@@ -98,6 +116,10 @@ Page({
       const deadline = editorDate(draft.dueAt, String(this.data.date));
       this.setData({
         category: draft.category ?? this.data.category,
+        categoryIndex: Math.max(
+          0,
+          categories.findIndex((item) => item.value === draft.category),
+        ),
         confidence:
           typeof draft.confidence === "number"
             ? `识别置信度 ${Math.round(draft.confidence * 100)}%，请逐项确认`

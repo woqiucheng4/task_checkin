@@ -22,3 +22,10 @@
 ## Scope note
 
 No real mini-program image selection, remote upload, AI-provider call, deployment, or device validation was performed; tests exercise the existing SDK and Core API boundaries only.
+
+## Review fix round 1
+
+- `PUBLISH_TASK_DRAFT` now accepts editor-selected `sourceAssetIds`, validates them with the unchanged Task 4 uploader/scope/cap rules, requires the recognized source to remain present, and persists every valid selected source on the published task. The previous single-source fallback remains only for older callers that omit the field.
+- Parent radio controls now bind `checked` to `submissionMode`; parent task category has a visible picker with two-way state updates. Both editors show a retained-image count and a continue-add entry until the three-image limit.
+- Added service coverage for publishing a reviewed draft with two owned source assets, and page-runtime coverage for overriding category/submission before the edit-then-publish sequence.
+- Verification: focused draft/editor suites passed; full `npm test` passed (82 files, 312 tests); `npm run typecheck` and `git diff --check` passed.

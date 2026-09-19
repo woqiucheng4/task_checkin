@@ -24,6 +24,8 @@ vi.mock("../../miniprogram/services/teacher-runtime.js", () => ({
 
 type Definition = {
   data: Record<string, unknown>;
+  editCategory(this: MiniPageInstance, event: { detail: { value: string } }): void;
+  editSubmissionMode(this: MiniPageInstance, event: { detail: { value: string } }): void;
   recognizePhoto(this: MiniPageInstance): Promise<void>;
   publish(this: MiniPageInstance): Promise<void>;
 };
@@ -148,6 +150,8 @@ it("publishes a reviewed parent draft only after saving its current editor field
     title: "已确认的题目",
   });
 
+  page.editCategory({ detail: { value: "0" } });
+  page.editSubmissionMode({ detail: { value: "PHOTO" } });
   await page.publish();
 
   expect(bridge.coreExecute.mock.calls.map(([action]) => action)).toEqual([
@@ -158,6 +162,10 @@ it("publishes a reviewed parent draft only after saving its current editor field
     draftId: "draft-own",
     sourceAssetIds: ["task-source-1"],
     familyId: "family-own",
+  });
+  expect(bridge.coreExecute.mock.calls[0]?.[1]).toMatchObject({
+    category: "LIFE",
+    submissionMode: "PHOTO",
   });
 });
 

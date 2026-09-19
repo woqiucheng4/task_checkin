@@ -47,7 +47,10 @@ describe("OCR task drafts", () => {
     });
     expect(await seed.harness.repository.query("tasks", { draftId: draft.id })).toHaveLength(0);
     expect(seed.ocr.calls).toHaveLength(1);
-    expect(seed.ocr.calls[0]).toMatchObject({ mimeType: "image/jpeg", requestId: "draft-recognize-1" });
+    expect(seed.ocr.calls[0]).toMatchObject({
+      mimeType: "image/jpeg",
+      requestId: "draft-recognize-1",
+    });
   });
 
   it("refuses to publish until an adult confirms all required fields", async () => {
@@ -104,5 +107,52 @@ describe("OCR task drafts", () => {
     expect(await seed.harness.repository.read("taskDrafts", draft.id)).toMatchObject({
       status: "PUBLISHED",
     });
+  });
+
+  it("retains every publisher-owned task source selected while reviewing a draft", async () => {
+    const seed = await draftScenario();
+    const draft = await seed.media.recognizeTaskDraft(seed.teacher, {
+      assetId: seed.upload.asset.id,
+      requestId: "draft-recognize-multiple-sources",
+    });
+    const extra = await seed.media.createUploadIntent(seed.teacher, {
+      byteSize: 512_000,
+      mimeType: "image/jpeg",
+      ownerScope: { kind: "ORGANIZATION", organizationId: seed.organization.id },
+      purpose: "TASK_SOURCE",
+      requestId: "draft-extra-source-intent",
+      retentionDays: 90,
+    });
+    await seed.media.uploadContent(seed.teacher, {
+      assetId: extra.asset.id,
+      base64: Buffer.concat([Buffer.from([255, 216, 255]), Buffer.alloc(511_997)]).toString(
+        "base64",
+      ),
+      requestId: "draft-extra-source-upload",
+    });
+    await seed.media.editDraft(seed.teacher, {
+      category: "MATHEMATICS",
+      draftId: draft.id,
+      dueAt: "2026-09-05T13:00:00.000Z",
+      requestId: "draft-edit-multiple-sources",
+      startsAt: "2026-09-05T10:00:00.000Z",
+      submissionMode: "PHOTO",
+      title: "两张题图",
+    });
+
+    const task = await seed.media.publishDraft(seed.teacher, {
+      allowLateSubmission: true,
+      draftId: draft.id,
+      estimatedMinutes: 20,
+      groupId: seed.group.id,
+      importance: "REQUIRED",
+      occurrenceDate: "2026-09-05",
+      requestId: "draft-publish-multiple-sources",
+      requiresAcademicReview: true,
+      schedule: { kind: "ONCE", date: "2026-09-05" },
+      sourceAssetIds: [draft.sourceAssetId, extra.asset.id],
+    });
+
+    expect(task.sourceAssetIds).toEqual([draft.sourceAssetId, extra.asset.id]);
   });
 });

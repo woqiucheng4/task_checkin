@@ -1,4 +1,9 @@
-import type { ApplicationDependencies, MediaStorage, TaskDraftProvider, Transaction } from "./ports.js";
+import type {
+  ApplicationDependencies,
+  MediaStorage,
+  TaskDraftProvider,
+  Transaction,
+} from "./ports.js";
 import { AiGateway } from "./ai-gateway.js";
 import { TaskService } from "./task-service.js";
 import type {
@@ -268,6 +273,7 @@ export class MediaService {
       readonly occurrenceDate: string;
       readonly allowLateSubmission: boolean;
       readonly requiresAcademicReview: boolean;
+      readonly sourceAssetIds?: readonly string[];
     },
   ): Promise<Task> {
     requireRequestId(input.requestId);
@@ -285,6 +291,15 @@ export class MediaService {
         "发布前必须确认标题、学科、开始时间、截止时间和提交方式",
       );
     }
+    const sourceAssetIds = await MediaService.assertTaskSourceAssets(
+      this.dependencies,
+      actor,
+      draft.ownerScope,
+      input.sourceAssetIds ?? [draft.sourceAssetId],
+    );
+    if (!sourceAssetIds.includes(draft.sourceAssetId)) {
+      throw new DomainError("INVALID_INPUT", "草稿识别图片必须保留在任务图片中");
+    }
     const fields = {
       allowLateSubmission: input.allowLateSubmission,
       category: draft.category,
@@ -296,7 +311,7 @@ export class MediaService {
       requestId: input.requestId,
       requiresAcademicReview: input.requiresAcademicReview,
       schedule: input.schedule,
-      sourceAssetIds: [draft.sourceAssetId],
+      sourceAssetIds,
       startsAt: draft.startsAt,
       submissionMode: draft.submissionMode,
       title: draft.title,

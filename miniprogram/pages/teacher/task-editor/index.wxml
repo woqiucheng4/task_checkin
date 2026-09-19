@@ -11,6 +11,8 @@
  <button wx:if="{{mode === 'OCR'}}" class="ocr" bindtap="recognizePhoto"><t-icon name="camera" size="60rpx" color="#174E2A" /><view>拍摄作业单或通知</view><text>识别结果只生成草稿，发布前必须由你确认</text></button>
  <view wx:if="{{confidence}}" class="note">{{confidence}}</view>
  <view class="form">
+  <view wx:if="{{sourceAssetIds.length < 3}}" class="note" bindtap="recognizePhoto">继续添加题图（{{sourceAssetIds.length}}/3）</view>
+  <view wx:else class="note">已添加 3 张题图</view>
   <view class="field"><view class="label">任务名称</view><input maxlength="100" value="{{title}}" placeholder="例如：朗读课文" bindinput="editTitle" /></view>
   <view class="field"><view class="label">任务说明</view><textarea maxlength="1000" value="{{description}}" placeholder="填写具体要求" bindinput="editDescription" /></view>
   <view class="field"><view class="label">学科</view><picker range="{{categories}}" range-key="label" value="{{categoryIndex}}" bindchange="editCategory"><view class="select">{{categories[categoryIndex].label}}</view></picker></view>
