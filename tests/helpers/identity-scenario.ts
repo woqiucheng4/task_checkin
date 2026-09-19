@@ -4,9 +4,16 @@ import { TeacherActivationService } from "../../src/application/teacher-activati
 import type { ActorContext } from "../../src/domain/model.js";
 import { createHarness } from "./harness.js";
 
-export async function createIdentityScenario(childCount = 2) {
+export async function createIdentityScenario(childCount = 2, joinedChildCount = childCount) {
   if (!Number.isInteger(childCount) || childCount < 1) {
     throw new Error("identity scenario requires at least one child");
+  }
+  if (
+    !Number.isInteger(joinedChildCount) ||
+    joinedChildCount < 0 ||
+    joinedChildCount > childCount
+  ) {
+    throw new Error("joined child count must be between zero and child count");
   }
   const harness = createHarness();
   const identity = new IdentityService(harness);
@@ -58,11 +65,11 @@ export async function createIdentityScenario(childCount = 2) {
   const invitation = await invitations.createGroupInvitation(teacher, {
     expiresAt: "2026-09-06T10:00:00.000Z",
     groupId: group.id,
-    maxClaims: childCount,
+    maxClaims: joinedChildCount,
     requestId: "scenario-invitation",
   });
   const memberships = [];
-  for (const [index, child] of children.entries()) {
+  for (const [index, child] of children.slice(0, joinedChildCount).entries()) {
     const join = await invitations.claimInvitation(guardian, {
       childId: child.id,
       code: invitation.code,
