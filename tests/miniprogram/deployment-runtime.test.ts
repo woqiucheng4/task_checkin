@@ -52,6 +52,20 @@ function packageBytes(path: string): number {
 }
 
 describe("deployable Mini Program package", () => {
+  it("ships activation and bounded AI configuration names without secret values", () => {
+    const manifest = JSON.parse(readFileSync(resolve(root, "dist/deploy/manifest.json"), "utf8"));
+    expect(manifest.runtimeEnvironmentRequirements.requiredSecrets).toContain(
+      "TEACHER_ACTIVATION_PEPPER",
+    );
+    expect(manifest.runtimeEnvironmentRequirements.optional).toEqual(
+      expect.arrayContaining([
+        "AI_TASK_DRAFT_GLOBAL_DAILY_LIMIT",
+        "AI_TASK_DRAFT_ACCOUNT_DAILY_LIMIT",
+      ]),
+    );
+    expect(manifest.functionEnvironment).not.toHaveProperty("TEACHER_ACTIVATION_PEPPER");
+    expect(manifest.functionEnvironment).not.toHaveProperty("DEEPSEEK_API_KEY");
+  });
   it("loads every registered page from CommonJS without outside-package imports", () => {
     const app = JSON.parse(readFileSync(resolve(mini, "app.json"), "utf8")) as { pages: string[] };
     const sandbox = runtime();

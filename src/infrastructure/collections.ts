@@ -55,6 +55,16 @@ export interface CloudBaseIndexDefinition {
 
 export const CLOUDBASE_INDEXES: readonly CloudBaseIndexDefinition[] = [
   {
+    collection: "aiInvocations",
+    name: "ai_actor_request_status_unique",
+    fields: [
+      { field: "actorAccountId", direction: "asc" },
+      { field: "requestId", direction: "asc" },
+      { field: "status", direction: "asc" },
+    ],
+    unique: true,
+  },
+  {
     collection: "teacherActivationCodes",
     name: "teacher_activation_hash_status",
     fields: [

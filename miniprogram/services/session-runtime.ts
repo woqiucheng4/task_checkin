@@ -45,18 +45,24 @@ export async function accountShell(refresh = false): Promise<AccountShellView> {
 }
 
 export async function selectedFamily(): Promise<FamilyWorkspaceView> {
+  const childIdAtStart =
+    selectedChildId || (wx.getStorageSync(KEY) as { childId?: string } | undefined)?.childId;
   const current = await accountShell();
   const family =
-    current.families.find((f) => f.children.some((c) => c.id === selectedChildId)) ||
-    current.families[0];
+    current.families.find((f) =>
+      f.children.some((c) => c.id === (childIdAtStart || selectedChildId)),
+    ) || current.families[0];
   if (!family) throw new Error("请先创建家庭并添加孩子");
   return family;
 }
 
 export async function selectedChild(): Promise<string> {
+  const childIdAtStart =
+    selectedChildId || (wx.getStorageSync(KEY) as { childId?: string } | undefined)?.childId;
   await accountShell();
-  if (!selectedChildId) throw new Error("请先添加孩子");
-  return selectedChildId;
+  const childId = childIdAtStart || selectedChildId;
+  if (!childId) throw new Error("请先添加孩子");
+  return childId;
 }
 
 export async function selectChild(id: string): Promise<void> {

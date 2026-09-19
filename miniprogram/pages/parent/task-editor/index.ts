@@ -48,6 +48,8 @@ Page({
     dueAt: `${today()} 23:59`,
     date: today(),
     time: "23:59",
+    startsDate: today(),
+    startsTime: "00:00",
     publishing: false,
     mode: "OCR",
     submissionMode: "CONFIRM",
@@ -80,6 +82,12 @@ Page({
   editSubmissionMode(event: { detail: { value: string } }) {
     this.setData({ submissionMode: event.detail.value });
   },
+  editStartsDate(event: { detail: { value: string } }) {
+    this.setData({ startsDate: event.detail.value });
+  },
+  editStartsTime(event: { detail: { value: string } }) {
+    this.setData({ startsTime: event.detail.value });
+  },
   useTemplate(event: {
     readonly currentTarget: { readonly dataset: { readonly title?: string } };
   }) {
@@ -87,7 +95,7 @@ Page({
   },
   async recognizePhoto() {
     const sourceAssetIds = this.data.sourceAssetIds as readonly string[];
-    if (this.data.uploadingImage === true || sourceAssetIds.length >= 3) {
+    if (this.data.publishing || this.data.uploadingImage === true || sourceAssetIds.length >= 3) {
       if (sourceAssetIds.length >= 3) wx.showToast({ icon: "none", title: "最多上传 3 张图片" });
       return;
     }
@@ -110,21 +118,24 @@ Page({
         description?: string;
         category?: string;
         dueAt?: string;
+        startsAt?: string;
         submissionMode?: string;
         confidence?: number;
       };
       const deadline = editorDate(draft.dueAt, String(this.data.date));
+      const starts = draft.startsAt
+        ? editorDate(draft.startsAt, String(this.data.startsDate))
+        : undefined;
+      const categoryIndex = categories.findIndex((item) => item.value === draft.category);
       this.setData({
         category: draft.category ?? this.data.category,
-        categoryIndex: Math.max(
-          0,
-          categories.findIndex((item) => item.value === draft.category),
-        ),
+        categoryIndex: categoryIndex >= 0 ? categoryIndex : this.data.categoryIndex,
         confidence:
           typeof draft.confidence === "number"
             ? `识别置信度 ${Math.round(draft.confidence * 100)}%，请逐项确认`
             : "识别结果仅供参考，请逐项确认",
         date: deadline.date,
+        ...(starts ? { startsDate: starts.date, startsTime: starts.time } : {}),
         description: draft.description ?? this.data.description,
         draftId: draft.id,
         mode: "MANUAL",
@@ -140,50 +151,54 @@ Page({
     }
   },
   async publish() {
-    if (this.data.publishing) return;
+    if (this.data.publishing || this.data.uploadingImage) return;
     if (String(this.data.title ?? "").trim().length === 0) {
       wx.showToast({ icon: "none", title: "请填写任务名称" });
       return;
     }
     this.setData({ publishing: true });
+    const snapshot: Record<string, unknown> = {
+      ...this.data,
+      sourceAssetIds: [...(this.data.sourceAssetIds as readonly string[])],
+    };
     try {
-      const family = await selectedFamily();
-      const date = String(this.data.date);
-      const dueAt = new Date(`${date}T${this.data.time}:00+08:00`).toISOString();
+      const [family, childId] = await Promise.all([selectedFamily(), selectedChild()]);
+      const date = String(snapshot.date);
+      const dueAt = new Date(`${date}T${snapshot.time}:00+08:00`).toISOString();
       const fields = {
-        category: this.data.category,
-        description: this.data.description,
+        category: snapshot.category,
+        description: snapshot.description,
         dueAt,
-        startsAt: new Date(`${date}T00:00:00+08:00`).toISOString(),
-        submissionMode: this.data.submissionMode,
-        title: this.data.title,
+        startsAt: new Date(`${snapshot.startsDate}T${snapshot.startsTime}:00+08:00`).toISOString(),
+        submissionMode: snapshot.submissionMode,
+        title: snapshot.title,
       };
-      const result = this.data.draftId
-        ? await coreApiClient.execute("EDIT_TASK_DRAFT", { draftId: this.data.draftId, ...fields })
+      const result = snapshot.draftId
+        ? await coreApiClient.execute("EDIT_TASK_DRAFT", { draftId: snapshot.draftId, ...fields })
         : await coreApiClient.execute("PUBLISH_FAMILY_TASK", {
             allowLateSubmission: true,
             ...fields,
-            childIds: [await selectedChild()],
+            childIds: [childId],
             estimatedMinutes: 15,
             familyId: family.id,
             importance: "REQUIRED",
             occurrenceDate: date,
             requiresAcademicReview: false,
             schedule: { date, kind: "ONCE" },
-            sourceAssetIds: this.data.sourceAssetIds,
+            sourceAssetIds: snapshot.sourceAssetIds,
           });
-      if (this.data.draftId && result.ok) {
+      if (snapshot.draftId && result.ok) {
         const published = await coreApiClient.execute("PUBLISH_TASK_DRAFT", {
           allowLateSubmission: true,
-          childIds: [await selectedChild()],
-          draftId: this.data.draftId,
+          childIds: [childId],
+          draftId: snapshot.draftId,
           estimatedMinutes: 15,
           familyId: family.id,
           importance: "REQUIRED",
           occurrenceDate: date,
           requiresAcademicReview: false,
           schedule: { date, kind: "ONCE" },
-          sourceAssetIds: this.data.sourceAssetIds,
+          sourceAssetIds: snapshot.sourceAssetIds,
         });
         if (!published.ok) throw new Error(published.error.message);
       }

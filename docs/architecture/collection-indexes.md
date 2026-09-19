@@ -19,6 +19,9 @@
 | `guardian_links` | `accountId, childId, status` | 孩子身份切换鉴权 |
 | `tenant_entitlements` | `tenantScope, status` | 一个租户的当前套餐 |
 | `usage_counters` | `tenantScope, feature, period` | 周期配额计量 |
+| `task_checkin_ai_invocations` | `actorAccountId, requestId, status` | 每次 AI 请求的预留和追加终态唯一 |
+
+AI 不新增集合：复用 `task_checkin_usage_counters`，全局及成人计数文档 ID 由范围与上海日期的 SHA-256 确定；`tenantScope=PLATFORM`，`feature` 区分全局和成人账号。预算的两个计数更新与不可变 `RESERVED` 审计插入同事务完成，以文档读写冲突保证并发上限。审计 ID 由成人账号和 requestId 的 SHA-256 确定，终态使用同一 ID 加 `_result`；请求跨日也不能重复调用。生产和内存仓储均沿用 `aiInvocations` 的只追加约束，无需可变审计或非事务锁。
 
 ## 必建查询索引
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { AiGateway } from "../../src/application/ai-gateway.js";
+import { createCoreApi } from "../../src/application/core-api.js";
 import { MediaService } from "../../src/application/media-service.js";
 import { createIdentityScenario } from "../helpers/identity-scenario.js";
 import { FakeOcrProvider, FakeVerifiedMediaStorage } from "../helpers/media-fakes.js";
@@ -53,9 +54,15 @@ describe("AiGateway", () => {
       requestId: "ai-draft-audited-success",
     });
 
-    expect(draft).toMatchObject({ category: "MATHEMATICS", status: "DRAFT", submissionMode: "PHOTO" });
+    expect(draft).toMatchObject({
+      category: "MATHEMATICS",
+      status: "DRAFT",
+      submissionMode: "PHOTO",
+    });
     expect(await seed.harness.repository.query("tasks", { draftId: draft.id })).toHaveLength(0);
-    const [invocation] = await seed.harness.repository.query("aiInvocations");
+    const [invocation] = await seed.harness.repository.query("aiInvocations", {
+      status: "SUCCEEDED",
+    });
     expect(invocation).toMatchObject({
       assetId: seed.upload.asset.id,
       inputByteSize: 12,
@@ -72,11 +79,15 @@ describe("AiGateway", () => {
 
   it("rejects child callers before reading private image bytes", async () => {
     const seed = await sourceScenario();
-    const gateway = new AiGateway(seed.harness, seed.storage, new FakeOcrProvider({
-      confidence: 0.9,
-      provider: "fake",
-      providerVersion: "1",
-    }));
+    const gateway = new AiGateway(
+      seed.harness,
+      seed.storage,
+      new FakeOcrProvider({
+        confidence: 0.9,
+        provider: "fake",
+        providerVersion: "1",
+      }),
+    );
 
     await expect(
       gateway.generateTaskDraft(
@@ -98,11 +109,15 @@ describe("AiGateway", () => {
       requestId: "ai-gateway-second-teacher-bind",
       role: "TEACHER",
     });
-    const media = new MediaService(seed.harness, seed.storage, new FakeOcrProvider({
-      confidence: 0.9,
-      provider: "unused",
-      providerVersion: "1",
-    }));
+    const media = new MediaService(
+      seed.harness,
+      seed.storage,
+      new FakeOcrProvider({
+        confidence: 0.9,
+        provider: "unused",
+        providerVersion: "1",
+      }),
+    );
     const upload = await media.createUploadIntent(
       { accountId: secondTeacher.id, mode: "ACCOUNT" },
       {
@@ -122,7 +137,11 @@ describe("AiGateway", () => {
         requestId: "ai-gateway-other-source-upload",
       },
     );
-    const provider = new FakeOcrProvider({ confidence: 0.9, provider: "fake", providerVersion: "1" });
+    const provider = new FakeOcrProvider({
+      confidence: 0.9,
+      provider: "fake",
+      providerVersion: "1",
+    });
     const read = vi.spyOn(seed.storage, "read");
     const gateway = new AiGateway(seed.harness, seed.storage, provider);
 
@@ -158,11 +177,15 @@ describe("AiGateway", () => {
       }),
     );
     const actor = { accountId: staff.id, mode: "ACCOUNT" } as const;
-    const media = new MediaService(seed.harness, seed.storage, new FakeOcrProvider({
-      confidence: 0.9,
-      provider: "unused",
-      providerVersion: "1",
-    }));
+    const media = new MediaService(
+      seed.harness,
+      seed.storage,
+      new FakeOcrProvider({
+        confidence: 0.9,
+        provider: "unused",
+        providerVersion: "1",
+      }),
+    );
     const upload = await media.createUploadIntent(actor, {
       byteSize: 12,
       mimeType: "image/jpeg",
@@ -176,7 +199,11 @@ describe("AiGateway", () => {
       base64: Buffer.from([255, 216, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0]).toString("base64"),
       requestId: "ai-gateway-staff-source-upload",
     });
-    const provider = new FakeOcrProvider({ confidence: 0.9, provider: "fake", providerVersion: "1" });
+    const provider = new FakeOcrProvider({
+      confidence: 0.9,
+      provider: "fake",
+      providerVersion: "1",
+    });
     const read = vi.spyOn(seed.storage, "read");
     const gateway = new AiGateway(seed.harness, seed.storage, provider);
 
@@ -190,7 +217,7 @@ describe("AiGateway", () => {
     expect(provider.calls).toHaveLength(0);
   });
 
-  it("does not persist an invocation or draft when the provider fails", async () => {
+  it("persists a sanitized failed invocation without a draft when the provider fails", async () => {
     const seed = await sourceScenario();
     const gateway = new AiGateway(seed.harness, seed.storage, {
       async generateTaskDraft() {
@@ -203,10 +230,246 @@ describe("AiGateway", () => {
         assetId: seed.upload.asset.id,
         requestId: "ai-draft-provider-failure",
       }),
-    ).rejects.toThrow("provider unavailable");
-    expect(await seed.harness.repository.query("aiInvocations")).toHaveLength(0);
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    const invocations = await seed.harness.repository.query("aiInvocations");
+    expect(invocations).toHaveLength(2);
+    expect(invocations[1]).toMatchObject({ status: "FAILED", errorCategory: "PROVIDER_FAILURE" });
+    expect(JSON.stringify(invocations)).not.toContain("provider unavailable");
     expect(await seed.harness.repository.query("taskDrafts")).toHaveLength(0);
     expect(await seed.harness.repository.query("tasks")).toHaveLength(0);
+  });
+
+  it("reserves per-account quota atomically across concurrent gateway instances", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const results = await Promise.allSettled(
+      Array.from({ length: 12 }, (_, i) =>
+        new AiGateway(seed.harness, seed.storage, provider, {
+          globalDailyLimit: 10,
+          accountDailyLimit: 2,
+        }).generateTaskDraft(seed.teacher, {
+          assetId: seed.upload.asset.id,
+          requestId: `concurrent-budget-${i}`,
+        }),
+      ),
+    );
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(2);
+    expect(provider.calls).toHaveLength(2);
+    expect(
+      results
+        .filter((result) => result.status === "rejected")
+        .every((result) => result.status === "rejected" && result.reason.code === "QUOTA_EXCEEDED"),
+    ).toBe(true);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([2, 2]);
+  });
+
+  it("returns the same draft on retry and charges a request only once", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider, {
+      globalDailyLimit: 1,
+      accountDailyLimit: 1,
+    });
+    const input = { assetId: seed.upload.asset.id, requestId: "idempotent-budget-request" };
+    const draft = await gateway.generateTaskDraft(seed.teacher, input);
+    expect(await gateway.generateTaskDraft(seed.teacher, input)).toEqual(draft);
+    expect(provider.calls).toHaveLength(1);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([1, 1]);
+  });
+
+  it("enforces the global cap across different authorized adult publishers", async () => {
+    const seed = await sourceScenario();
+    const asset = await seed.harness.repository.read("mediaAssets", seed.upload.asset.id);
+    if (!asset) throw new Error("source missing");
+    await seed.harness.repository.transaction((tx) =>
+      tx.insert("mediaAssets", {
+        ...asset,
+        id: "family-source",
+        ownerScope: { kind: "FAMILY", familyId: seed.family.id },
+        uploaderAccountId: seed.guardian.accountId,
+      }),
+    );
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider, {
+      globalDailyLimit: 1,
+      accountDailyLimit: 5,
+    });
+    const results = await Promise.allSettled([
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: asset.id,
+        requestId: "global-teacher-request",
+      }),
+      gateway.generateTaskDraft(seed.guardian, {
+        assetId: "family-source",
+        requestId: "global-parent-request",
+      }),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toEqual([
+      expect.objectContaining({ reason: expect.objectContaining({ code: "QUOTA_EXCEEDED" }) }),
+    ]);
+    expect(provider.calls).toHaveLength(1);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([1, 1]);
+  });
+
+  it("passes a zero call budget through the public API dependency injection before private reads", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const read = vi.spyOn(seed.storage, "read");
+    const api = createCoreApi({
+      ...seed.harness,
+      mediaStorage: seed.storage,
+      taskDraftProvider: provider,
+      aiTaskDraftGlobalDailyLimit: 0,
+      aiTaskDraftAccountDailyLimit: 3,
+    });
+    const result = await api.handle(
+      {
+        action: "RECOGNIZE_TASK_DRAFT",
+        requestId: "zero-budget-command",
+        payload: { assetId: seed.upload.asset.id },
+      },
+      { openId: "wx-scenario-teacher" },
+    );
+    expect(result).toMatchObject({ ok: false, error: { code: "QUOTA_EXCEEDED" } });
+    expect(provider.calls).toHaveLength(0);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("binds an idempotency key to the original asset without extra spending", async () => {
+    const seed = await sourceScenario();
+    const asset = await seed.harness.repository.read("mediaAssets", seed.upload.asset.id);
+    if (!asset) throw new Error("source missing");
+    await seed.harness.repository.transaction((tx) =>
+      tx.insert("mediaAssets", { ...asset, id: "source-other" }),
+    );
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider);
+    await gateway.generateTaskDraft(seed.teacher, {
+      assetId: asset.id,
+      requestId: "same-key-other-asset",
+    });
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: "source-other",
+        requestId: "same-key-other-asset",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(provider.calls).toHaveLength(1);
+  });
+
+  it("audits input read failure and keeps its reservation charged without leaking storage errors", async () => {
+    const seed = await sourceScenario();
+    vi.spyOn(seed.storage, "read").mockRejectedValue(new Error("private-cloud-url-and-secret"));
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider);
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: seed.upload.asset.id,
+        requestId: "bad-input-audit-request",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    const logs = await seed.harness.repository.query("aiInvocations");
+    expect(logs[1]).toMatchObject({ status: "FAILED", errorCategory: "INPUT_UNAVAILABLE" });
+    expect(JSON.stringify(logs)).not.toContain("private-cloud-url-and-secret");
+    expect(provider.calls).toHaveLength(0);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([1, 1]);
+  });
+
+  it("blocks concurrent retries of an in-flight reservation without calling the provider twice", async () => {
+    const seed = await sourceScenario();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let calls = 0;
+    const gateway = new AiGateway(seed.harness, seed.storage, {
+      async generateTaskDraft() {
+        calls += 1;
+        await pending;
+        return { confidence: 1, provider: "fake", providerVersion: "1" };
+      },
+    });
+    const input = { assetId: seed.upload.asset.id, requestId: "pending-budget-retry" };
+    const first = gateway.generateTaskDraft(seed.teacher, input);
+    await vi.waitFor(() => expect(calls).toBe(1));
+    const retry = gateway.generateTaskDraft(seed.teacher, input);
+    // Release even if this regression fails, so the test cannot hang.
+    const outcome = await Promise.race([
+      retry.then(
+        () => "duplicate",
+        (error) => error.code,
+      ),
+      new Promise<string>((resolve) => setTimeout(() => resolve("duplicate-provider-call"), 20)),
+    ]);
+    release();
+    await Promise.allSettled([first, retry]);
+    expect(outcome).toBe("CONFLICT");
+    expect(calls).toBe(1);
+  });
+
+  it("failed calls consume a bounded quota and retries cannot refund or repeat them", async () => {
+    const seed = await sourceScenario();
+    let calls = 0;
+    const gateway = new AiGateway(
+      seed.harness,
+      seed.storage,
+      {
+        async generateTaskDraft() {
+          calls += 1;
+          throw new Error("secret-provider-response");
+        },
+      },
+      { globalDailyLimit: 2, accountDailyLimit: 1 },
+    );
+    const input = { assetId: seed.upload.asset.id, requestId: "failed-budget-request" };
+    await expect(gateway.generateTaskDraft(seed.teacher, input)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    await expect(gateway.generateTaskDraft(seed.teacher, input)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, { ...input, requestId: "failed-budget-new-request" }),
+    ).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" });
+    expect(calls).toBe(1);
+    expect(JSON.stringify(await seed.harness.repository.query("aiInvocations"))).not.toContain(
+      "secret-provider-response",
+    );
+  });
+
+  it("uses conservative defaults for missing or invalid limits and resets only on a new Shanghai day", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const gateway = new AiGateway(seed.harness, seed.storage, provider, {
+      globalDailyLimit: Number.NaN,
+      accountDailyLimit: -1,
+    });
+    for (let i = 0; i < 5; i++)
+      await gateway.generateTaskDraft(seed.teacher, {
+        assetId: seed.upload.asset.id,
+        requestId: `default-budget-request-${i}`,
+      });
+    await expect(
+      gateway.generateTaskDraft(seed.teacher, {
+        assetId: seed.upload.asset.id,
+        requestId: "default-budget-over",
+      }),
+    ).rejects.toMatchObject({ code: "QUOTA_EXCEEDED" });
+    seed.harness.clock.set("2026-09-21T16:00:00.000Z");
+    await gateway.generateTaskDraft(seed.teacher, {
+      assetId: seed.upload.asset.id,
+      requestId: "next-day-budget-request",
+    });
+    expect(provider.calls).toHaveLength(6);
   });
 
   it("honors the global circuit breaker without changing manual task flows", async () => {
@@ -226,5 +489,55 @@ describe("AiGateway", () => {
     ).rejects.toMatchObject({ code: "FEATURE_DISABLED" });
     expect(await seed.harness.repository.query("taskDrafts")).toHaveLength(0);
     expect(await seed.harness.repository.query("tasks")).toHaveLength(0);
+  });
+
+  it("keeps quota and records a fixed failure category if saving the provider result fails", async () => {
+    const seed = await sourceScenario();
+    const provider = new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" });
+    const transaction = seed.harness.repository.transaction.bind(seed.harness.repository);
+    vi.spyOn(seed.harness.repository, "transaction")
+      .mockImplementationOnce(transaction)
+      .mockRejectedValueOnce(new Error("sensitive-database-response"))
+      .mockImplementation(transaction);
+    const gateway = new AiGateway(seed.harness, seed.storage, provider);
+    const input = { assetId: seed.upload.asset.id, requestId: "save-result-failure-request" };
+    await expect(gateway.generateTaskDraft(seed.teacher, input)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    const logs = await seed.harness.repository.query("aiInvocations");
+    expect(logs.map((log) => log.status)).toEqual(["RESERVED", "FAILED"]);
+    expect(logs[1]?.errorCategory).toBe("PERSISTENCE_FAILURE");
+    expect(JSON.stringify(logs)).not.toContain("sensitive-database-response");
+    expect(await seed.harness.repository.query("taskDrafts")).toHaveLength(0);
+    await expect(gateway.generateTaskDraft(seed.teacher, input)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    expect(provider.calls).toHaveLength(1);
+    expect(
+      (await seed.harness.repository.query("usageCounters")).map((counter) => counter.used),
+    ).toEqual([1, 1]);
+  });
+
+  it("preserves the append-only reservation and completion audit in the fake repository", async () => {
+    const seed = await sourceScenario();
+    const gateway = new AiGateway(
+      seed.harness,
+      seed.storage,
+      new FakeOcrProvider({ confidence: 1, provider: "fake", providerVersion: "1" }),
+    );
+    await gateway.generateTaskDraft(seed.teacher, {
+      assetId: seed.upload.asset.id,
+      requestId: "immutable-reservation-request",
+    });
+    for (const audit of await seed.harness.repository.query("aiInvocations")) {
+      await expect(
+        seed.harness.repository.transaction((tx) =>
+          tx.update("aiInvocations", audit.id, { status: "FAILED" }),
+        ),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        seed.harness.repository.transaction((tx) => tx.remove("aiInvocations", audit.id)),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    }
   });
 });

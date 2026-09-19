@@ -108,7 +108,14 @@ const manifest = {
   resourceAppId,
   configured,
   runtimeEnvironmentRequirements: {
-    optional: ["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "AI_TASK_DRAFT_ENABLED"],
+    optional: [
+      "DEEPSEEK_API_KEY",
+      "DEEPSEEK_BASE_URL",
+      "AI_TASK_DRAFT_ENABLED",
+      "AI_TASK_DRAFT_GLOBAL_DAILY_LIMIT",
+      "AI_TASK_DRAFT_ACCOUNT_DAILY_LIMIT",
+    ],
+    requiredSecrets: ["TEACHER_ACTIVATION_PEPPER"],
     requiredForPrivateAiImageReads: ["TASK_CHECKIN_CLOUD_FILE_AUTHORITIES"],
   },
   functionEnvironment: { ALLOWED_CALLER_APPIDS: appId },

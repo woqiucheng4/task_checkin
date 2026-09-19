@@ -27,7 +27,11 @@ const api = createCoreApi({
   ids: new CryptoIdGenerator(),
   repository,
   aiTaskDraftEnabled: process.env.AI_TASK_DRAFT_ENABLED !== "false",
-  mediaStorage: new CloudMediaStorage(cloud as unknown as CloudStorage, { allowedFileIdAuthorities }),
+  aiTaskDraftGlobalDailyLimit: Number(process.env.AI_TASK_DRAFT_GLOBAL_DAILY_LIMIT ?? "100"),
+  aiTaskDraftAccountDailyLimit: Number(process.env.AI_TASK_DRAFT_ACCOUNT_DAILY_LIMIT ?? "5"),
+  mediaStorage: new CloudMediaStorage(cloud as unknown as CloudStorage, {
+    allowedFileIdAuthorities,
+  }),
   mvpPolicy: new MvpPolicy({ enabled: process.env.PRODUCT_EDITION === "CHILD_TEACHER_MVP" }),
   taskDraftProvider,
 });

@@ -71,6 +71,8 @@ Page({
     groupName: "",
     date: today(),
     time: "23:59",
+    startsDate: today(),
+    startsTime: "00:00",
     submissionMode: "CONFIRM",
     working: false,
     draftId: "",
@@ -144,9 +146,15 @@ Page({
   editSubmissionMode(event: { detail: { value: string } }) {
     this.setData({ submissionMode: event.detail.value });
   },
+  editStartsDate(event: { detail: { value: string } }) {
+    this.setData({ startsDate: event.detail.value });
+  },
+  editStartsTime(event: { detail: { value: string } }) {
+    this.setData({ startsTime: event.detail.value });
+  },
   async recognizePhoto() {
     const sourceAssetIds = this.data.sourceAssetIds as readonly string[];
-    if (this.data.uploadingImage === true || sourceAssetIds.length >= 3) {
+    if (this.data.working || this.data.uploadingImage === true || sourceAssetIds.length >= 3) {
       if (sourceAssetIds.length >= 3) wx.showToast({ icon: "none", title: "最多上传 3 张图片" });
       return;
     }
@@ -168,10 +176,14 @@ Page({
         description?: string;
         category?: string;
         dueAt?: string;
+        startsAt?: string;
         submissionMode?: string;
         confidence?: number;
       }>("RECOGNIZE_TASK_DRAFT", { assetId });
       const deadline = editorDate(draft.dueAt, String(this.data.date));
+      const starts = draft.startsAt
+        ? editorDate(draft.startsAt, String(this.data.startsDate))
+        : undefined;
       const categoryIndex = categories.findIndex((item) => item.value === draft.category);
       this.setData({
         category: draft.category ?? this.data.category,
@@ -181,6 +193,7 @@ Page({
             ? `识别置信度 ${Math.round(draft.confidence * 100)}%，请逐项确认`
             : "识别结果仅供参考，请逐项确认",
         date: deadline.date,
+        ...(starts ? { startsDate: starts.date, startsTime: starts.time } : {}),
         description: draft.description ?? this.data.description,
         draftId: draft.id,
         mode: "MANUAL",
@@ -195,48 +208,52 @@ Page({
     }
   },
   async publish() {
-    if (this.data.working) return;
+    if (this.data.working || this.data.uploadingImage) return;
     const title = String(this.data.title || "").trim();
     if (!title) {
       wx.showToast({ icon: "none", title: "请填写任务名称" });
       return;
     }
     this.setData({ working: true });
+    const snapshot: Record<string, unknown> = {
+      ...this.data,
+      sourceAssetIds: [...(this.data.sourceAssetIds as readonly string[])],
+    };
     try {
       const group = await selectedTeacherGroup();
-      const date = String(this.data.date);
+      const date = String(snapshot.date);
       const fields = {
-        category: this.data.category,
-        description: String(this.data.description || ""),
-        dueAt: new Date(`${date}T${this.data.time}:00+08:00`).toISOString(),
-        startsAt: new Date(`${date}T00:00:00+08:00`).toISOString(),
-        submissionMode: this.data.submissionMode,
+        category: snapshot.category,
+        description: String(snapshot.description || ""),
+        dueAt: new Date(`${date}T${snapshot.time}:00+08:00`).toISOString(),
+        startsAt: new Date(`${snapshot.startsDate}T${snapshot.startsTime}:00+08:00`).toISOString(),
+        submissionMode: snapshot.submissionMode,
         title,
       };
-      if (this.data.draftId) {
-        await command("EDIT_TASK_DRAFT", { draftId: this.data.draftId, ...fields });
+      if (snapshot.draftId) {
+        await command("EDIT_TASK_DRAFT", { draftId: snapshot.draftId, ...fields });
         await command("PUBLISH_TASK_DRAFT", {
-          allowLateSubmission: this.data.allowLateSubmission === true,
-          draftId: this.data.draftId,
-          estimatedMinutes: this.data.estimatedMinutes,
+          allowLateSubmission: snapshot.allowLateSubmission === true,
+          draftId: snapshot.draftId,
+          estimatedMinutes: snapshot.estimatedMinutes,
           groupId: group.id,
-          importance: this.data.importance,
+          importance: snapshot.importance,
           occurrenceDate: date,
           requiresAcademicReview: true,
           schedule: { date, kind: "ONCE" },
-          sourceAssetIds: this.data.sourceAssetIds,
+          sourceAssetIds: snapshot.sourceAssetIds,
         });
       } else
         await command("PUBLISH_GROUP_TASK", {
-          allowLateSubmission: this.data.allowLateSubmission === true,
+          allowLateSubmission: snapshot.allowLateSubmission === true,
           ...fields,
-          estimatedMinutes: this.data.estimatedMinutes,
+          estimatedMinutes: snapshot.estimatedMinutes,
           groupId: group.id,
-          importance: this.data.importance,
+          importance: snapshot.importance,
           occurrenceDate: date,
           requiresAcademicReview: true,
           schedule: { date, kind: "ONCE" },
-          sourceAssetIds: this.data.sourceAssetIds,
+          sourceAssetIds: snapshot.sourceAssetIds,
         });
       wx.showToast({ icon: "success", title: "任务已发布" });
       wx.navigateBack();

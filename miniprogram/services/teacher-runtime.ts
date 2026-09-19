@@ -11,19 +11,23 @@ export async function teacherWorkspaceOrganization() {
   return shell.organizations.find((organization) => organization.type === "TEACHER_WORKSPACE");
 }
 export async function teacherGroups(): Promise<readonly GroupRoleView[]> {
-  const [shell, workspace] = await Promise.all([accountShell(true), teacherWorkspaceOrganization()]);
+  const [shell, workspace] = await Promise.all([
+    accountShell(true),
+    teacherWorkspaceOrganization(),
+  ]);
   if (!workspace) return [];
   return shell.groups.filter((group) => group.organizationId === workspace.id);
 }
 export async function selectedTeacherGroup(): Promise<GroupRoleView> {
+  const selectionAtStart = selected;
+  const selectedId = selected || wx.getStorageSync(KEY);
   const groups = await teacherGroups();
-  const persisted = wx.getStorageSync(KEY);
-  const group = groups.find((item) => item.id === (selected || persisted)) || groups[0];
+  const group = selectedId ? groups.find((item) => item.id === selectedId) : groups[0];
   if (!group) {
     selected = "";
     throw new Error("请先激活教师工作空间并创建学习小组");
   }
-  selected = group.id;
+  if (selected === selectionAtStart) selected = group.id;
   return group;
 }
 export async function selectTeacherGroup(id: string): Promise<void> {

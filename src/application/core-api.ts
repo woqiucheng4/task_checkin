@@ -162,6 +162,8 @@ export interface CoreApiDependencies extends ApplicationDependencies {
   readonly mediaStorage?: MediaStorage;
   /** Defaults to enabled; the runtime maps AI_TASK_DRAFT_ENABLED into this switch. */
   readonly aiTaskDraftEnabled?: boolean;
+  readonly aiTaskDraftGlobalDailyLimit?: number;
+  readonly aiTaskDraftAccountDailyLimit?: number;
   readonly mvpPolicy?: MvpPolicy;
   readonly taskDraftProvider?: TaskDraftProvider;
 }
@@ -277,6 +279,8 @@ function createServices(dependencies: CoreApiDependencies): Services {
             dependencies.mediaStorage,
             new AiGateway(dependencies, dependencies.mediaStorage, dependencies.taskDraftProvider, {
               enabled: dependencies.aiTaskDraftEnabled ?? true,
+              globalDailyLimit: dependencies.aiTaskDraftGlobalDailyLimit ?? 100,
+              accountDailyLimit: dependencies.aiTaskDraftAccountDailyLimit ?? 5,
             }),
           ),
         }),

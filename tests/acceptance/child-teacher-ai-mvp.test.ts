@@ -135,6 +135,11 @@ describe("child-teacher AI MVP acceptance", () => {
     expect(await seed.harness.repository.query("taskDrafts")).toEqual([
       expect.objectContaining({ id: draft.id }),
     ]);
-    expect(await seed.harness.repository.query("aiInvocations")).toHaveLength(1);
+    expect(
+      await seed.harness.repository.query("aiInvocations", { status: "RESERVED" }),
+    ).toHaveLength(1);
+    expect(
+      await seed.harness.repository.query("aiInvocations", { status: "SUCCEEDED" }),
+    ).toHaveLength(1);
   });
 });

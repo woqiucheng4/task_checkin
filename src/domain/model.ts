@@ -444,15 +444,18 @@ export interface TaskDraft extends MutableRecord {
 
 /** Immutable, privacy-preserving record of an AI task-draft invocation. */
 export interface AiInvocation extends BaseRecord {
+  readonly status: "RESERVED" | "SUCCEEDED" | "FAILED";
+  readonly errorCategory?: "INPUT_UNAVAILABLE" | "PROVIDER_FAILURE" | "PERSISTENCE_FAILURE";
+  readonly draftId?: string;
   readonly actorAccountId: string;
   readonly assetId: string;
   readonly inputByteSize: number;
   readonly inputImageCount: number;
-  readonly inputSha256: string;
-  readonly provider: string;
-  readonly providerVersion: string;
+  readonly inputSha256?: string;
+  readonly provider?: string;
+  readonly providerVersion?: string;
   readonly requestId: string;
-  readonly resultSummary: Readonly<{
+  readonly resultSummary?: Readonly<{
     readonly confidence: number;
     readonly recognizedFieldCount: number;
   }>;

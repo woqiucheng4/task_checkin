@@ -18,8 +18,9 @@
   <view class="field"><view class="label">学科</view><picker range="{{categories}}" range-key="label" value="{{categoryIndex}}" bindchange="editCategory"><view class="select">{{categories[categoryIndex].label}}</view></picker></view>
   <view class="note">预计 {{estimatedMinutes}} 分钟 · {{importance === 'CHALLENGE' ? '挑战任务' : importance === 'FOCUS' ? '重点任务' : '必做任务'}} · {{allowLateSubmission ? '允许补交' : '不允许补交'}}</view>
   <view class="grid"><view class="field"><view class="label">任务日期</view><picker mode="date" value="{{date}}" bindchange="editDate"><view class="select">{{date}}</view></picker></view><view class="field"><view class="label">当天截止</view><picker mode="time" value="{{time}}" bindchange="editTime"><view class="select">{{time}}</view></picker></view></view>
+  <view class="field"><view class="label">开始时间</view><picker mode="date" value="{{startsDate}}" bindchange="editStartsDate"><view class="select">{{startsDate}}</view></picker><picker mode="time" value="{{startsTime}}" bindchange="editStartsTime"><view class="select">{{startsTime}}</view></picker></view>
   <view class="field"><view class="label">提交方式</view><radio-group bindchange="editSubmissionMode"><label><radio value="CONFIRM" checked="{{submissionMode === 'CONFIRM'}}" />确认完成</label><label><radio value="TEXT" checked="{{submissionMode === 'TEXT'}}" />文字</label><label><radio value="PHOTO" checked="{{submissionMode === 'PHOTO'}}" />照片</label><label><radio value="TEXT_AND_PHOTO" checked="{{submissionMode === 'TEXT_AND_PHOTO'}}" />图文</label></radio-group></view>
   <view class="review"><view><view>提交后由教师审核</view><text>教师审核通过后自动发放一次任务阳光</text></view></view>
-  <button class="primary" loading="{{working}}" disabled="{{working || !groupName}}" bindtap="publish">确认发布</button>
+  <button class="primary" loading="{{working}}" disabled="{{working || uploadingImage || !groupName}}" bindtap="publish">确认发布</button>
  </view>
 </view>

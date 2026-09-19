@@ -1,13 +1,28 @@
 import { createHash } from "node:crypto";
 
-import type { ApplicationDependencies, MediaStorage, RecognizedTaskFields, TaskDraftProvider } from "./ports.js";
-import type { ActorContext, MediaAsset, SubmissionMode, TaskCategory, TaskDraft } from "../domain/model.js";
+import type {
+  ApplicationDependencies,
+  MediaStorage,
+  RecognizedTaskFields,
+  TaskDraftProvider,
+} from "./ports.js";
+import type {
+  ActorContext,
+  AiInvocation,
+  MediaAsset,
+  SubmissionMode,
+  TaskCategory,
+  TaskDraft,
+} from "../domain/model.js";
 import { AccessPolicy } from "../domain/policy.js";
 import { DomainError } from "../shared/errors.js";
+import { shanghaiDateAt } from "../shared/time.js";
 
 export interface AiGatewayConfig {
   /** Defaults to enabled so manual task creation is unaffected by provider configuration. */
   readonly enabled?: boolean;
+  readonly globalDailyLimit?: number;
+  readonly accountDailyLimit?: number;
 }
 
 interface RequestBase {
@@ -22,6 +37,8 @@ interface RequestBase {
 export class AiGateway {
   private readonly policy: AccessPolicy;
   private readonly enabled: boolean;
+  private readonly globalDailyLimit: number;
+  private readonly accountDailyLimit: number;
 
   constructor(
     private readonly dependencies: ApplicationDependencies,
@@ -31,6 +48,8 @@ export class AiGateway {
   ) {
     this.policy = new AccessPolicy(dependencies.repository);
     this.enabled = config.enabled ?? true;
+    this.globalDailyLimit = safeLimit(config.globalDailyLimit, 100);
+    this.accountDailyLimit = safeLimit(config.accountDailyLimit, 5);
   }
 
   async generateTaskDraft(actor: ActorContext, input: RequestBase): Promise<TaskDraft> {
@@ -43,60 +62,128 @@ export class AiGateway {
       throw new DomainError("CONFLICT", "任务图片尚未可供服务端读取");
     }
 
-    const image = await this.storage.read(asset.fileId);
-    if (image.byteLength === 0 || image.byteLength !== asset.byteSize) {
-      throw new DomainError("CONFLICT", "任务图片读取结果无效");
-    }
-    const result = await this.provider.generateTaskDraft({
-      image,
-      mimeType: asset.mimeType,
-      requestId: input.requestId,
-    });
     const now = this.dependencies.clock.now();
-    const fields = normalizeRecognizedFields(result);
-    const draft: TaskDraft = {
-      id: this.dependencies.ids.next("task_draft"),
-      confidence: fields.confidence,
-      createdAt: now,
-      createdByAccountId: actor.accountId,
-      ...(fields.description === undefined ? {} : { description: fields.description }),
-      ...(fields.dueAt === undefined ? {} : { dueAt: fields.dueAt }),
-      ownerScope: asset.ownerScope,
-      provider: fields.provider,
-      providerVersion: fields.providerVersion,
-      sourceAssetId: asset.id,
-      ...(fields.startsAt === undefined ? {} : { startsAt: fields.startsAt }),
-      status: "DRAFT",
-      ...(fields.category === undefined ? {} : { category: fields.category }),
-      ...(fields.submissionMode === undefined ? {} : { submissionMode: fields.submissionMode }),
-      ...(fields.title === undefined ? {} : { title: fields.title }),
-      updatedAt: now,
-    };
-    const invocation = {
-      id: this.dependencies.ids.next("ai_invocation"),
+    const invocation: AiInvocation = {
+      id: `ai_${digest([actor.accountId, input.requestId])}`,
+      status: "RESERVED",
       actorAccountId: actor.accountId,
       assetId: asset.id,
       createdAt: now,
-      inputByteSize: image.byteLength,
+      inputByteSize: asset.byteSize,
       inputImageCount: 1,
-      inputSha256: createHash("sha256").update(image).digest("hex"),
-      provider: fields.provider,
-      providerVersion: fields.providerVersion,
       requestId: input.requestId,
-      resultSummary: {
-        confidence: fields.confidence,
-        recognizedFieldCount: recognizedFieldCount(fields),
-      },
       tenantScope: asset.ownerScope,
     };
-    return this.dependencies.repository.transaction(async (tx) => {
+    // Reservation and both counters commit before any provider side effect. The
+    // immutable reservation also blocks retries after process death or timeout.
+    const previousDraft = await this.dependencies.repository.transaction(async (tx) => {
+      const reserved = await tx.read("aiInvocations", invocation.id);
+      if (reserved) {
+        if (reserved.assetId !== asset.id)
+          throw new DomainError("CONFLICT", "requestId 已用于其他题图");
+        const terminal = await tx.read("aiInvocations", `${invocation.id}_result`);
+        if (terminal?.status === "SUCCEEDED" && terminal.draftId) {
+          const draft = await tx.read("taskDrafts", terminal.draftId);
+          if (draft) return draft;
+        }
+        throw new DomainError("CONFLICT", "该识别请求正在处理或已失败，请手动填写或稍后发起新请求");
+      }
+      const period = shanghaiDateAt(now);
+      for (const [scope, limit] of [
+        ["GLOBAL", this.globalDailyLimit],
+        [`ACCOUNT:${actor.accountId}`, this.accountDailyLimit],
+      ] as const) {
+        const id = `ai_budget_${digest([scope, period])}`;
+        const counter = await tx.read("usageCounters", id);
+        const used = counter?.used ?? 0;
+        if (used >= limit)
+          throw new DomainError("QUOTA_EXCEEDED", "今日图片识别额度已用完，请手动填写任务");
+        if (counter)
+          await tx.update("usageCounters", id, { used: used + 1, limit, updatedAt: now });
+        else
+          await tx.insert("usageCounters", {
+            id,
+            createdAt: now,
+            updatedAt: now,
+            tenantScope: { kind: "PLATFORM" },
+            feature: `AI_TASK_DRAFT:${scope}`,
+            period,
+            used: 1,
+            limit,
+          });
+      }
       await tx.insert("aiInvocations", invocation);
-      await tx.insert("taskDrafts", draft);
-      return draft;
+      return undefined;
     });
+    if (previousDraft) return previousDraft;
+
+    let errorCategory: NonNullable<AiInvocation["errorCategory"]> = "INPUT_UNAVAILABLE";
+    let inputSha256: string | undefined;
+    try {
+      const image = await this.storage.read(asset.fileId);
+      if (image.byteLength === 0 || image.byteLength !== asset.byteSize)
+        throw new Error("invalid image");
+      inputSha256 = createHash("sha256").update(image).digest("hex");
+      errorCategory = "PROVIDER_FAILURE";
+      const fields = normalizeRecognizedFields(
+        await this.provider.generateTaskDraft({
+          image,
+          mimeType: asset.mimeType,
+          requestId: input.requestId,
+        }),
+      );
+      const completedAt = this.dependencies.clock.now();
+      const draft: TaskDraft = {
+        ...fields,
+        id: this.dependencies.ids.next("task_draft"),
+        createdAt: completedAt,
+        updatedAt: completedAt,
+        createdByAccountId: actor.accountId,
+        ownerScope: asset.ownerScope,
+        sourceAssetId: asset.id,
+        status: "DRAFT",
+      };
+      errorCategory = "PERSISTENCE_FAILURE";
+      return await this.dependencies.repository.transaction(async (tx) => {
+        await tx.insert("aiInvocations", {
+          ...invocation,
+          id: `${invocation.id}_result`,
+          createdAt: completedAt,
+          status: "SUCCEEDED",
+          draftId: draft.id,
+          ...(inputSha256 === undefined ? {} : { inputSha256 }),
+          provider: fields.provider,
+          providerVersion: fields.providerVersion,
+          resultSummary: {
+            confidence: fields.confidence,
+            recognizedFieldCount: recognizedFieldCount(fields),
+          },
+        });
+        await tx.insert("taskDrafts", draft);
+        return draft;
+      });
+    } catch {
+      // Failed attempts are never refunded: upstream may have charged before a
+      // timeout. Failure replay consumes no extra quota and never calls upstream.
+      await this.dependencies.repository.transaction(async (tx) => {
+        if (await tx.read("aiInvocations", `${invocation.id}_result`)) return;
+        await tx.insert("aiInvocations", {
+          ...invocation,
+          id: `${invocation.id}_result`,
+          createdAt: this.dependencies.clock.now(),
+          status: "FAILED",
+          errorCategory,
+          ...(inputSha256 === undefined ? {} : { inputSha256 }),
+        });
+      });
+      throw new DomainError("CONFLICT", "图片暂时无法生成任务草稿，请手动填写");
+    }
   }
 
-  private async requirePublishableSourceAsset(actor: ActorContext, assetId: string): Promise<MediaAsset> {
+  private async requirePublishableSourceAsset(
+    actor: ActorContext,
+    assetId: string,
+  ): Promise<MediaAsset> {
     if (actor.mode !== "ACCOUNT") {
       throw new DomainError("FORBIDDEN", "只有具备任务发布权限的成人可以识别任务图片");
     }
@@ -166,7 +253,9 @@ function normalizeRecognizedFields(result: RecognizedTaskFields): NormalizedReco
   return {
     ...(description === undefined ? {} : { description }),
     ...(category === undefined ? {} : { category }),
-    confidence: Number.isFinite(result.confidence) ? Math.min(1, Math.max(0, result.confidence)) : 0,
+    confidence: Number.isFinite(result.confidence)
+      ? Math.min(1, Math.max(0, result.confidence))
+      : 0,
     ...(dueAt === undefined ? {} : { dueAt }),
     provider: safeProviderValue(result.provider, "unknown"),
     providerVersion: safeProviderValue(result.providerVersion, "unknown"),
@@ -185,9 +274,16 @@ function normalizeSubmissionMode(value: string | undefined): SubmissionMode | un
 
 function normalizeCategory(value: string | undefined): TaskCategory | undefined {
   const normalized = value?.trim().toUpperCase();
-  return ["LIFE", "LANGUAGE", "MATHEMATICS", "ENGLISH", "SCIENCE", "ART", "SPORT", "OTHER"].includes(
-    normalized ?? "",
-  )
+  return [
+    "LIFE",
+    "LANGUAGE",
+    "MATHEMATICS",
+    "ENGLISH",
+    "SCIENCE",
+    "ART",
+    "SPORT",
+    "OTHER",
+  ].includes(normalized ?? "")
     ? (normalized as TaskCategory)
     : undefined;
 }
@@ -203,13 +299,26 @@ function safeProviderValue(value: string, fallback: string): string {
 }
 
 function recognizedFieldCount(fields: NormalizedRecognizedTaskFields): number {
-  return [fields.title, fields.description, fields.category, fields.startsAt, fields.dueAt, fields.submissionMode].filter(
-    (value) => value !== undefined,
-  ).length;
+  return [
+    fields.title,
+    fields.description,
+    fields.category,
+    fields.startsAt,
+    fields.dueAt,
+    fields.submissionMode,
+  ].filter((value) => value !== undefined).length;
 }
 
 function requireRequestId(requestId: string): void {
-  if (requestId.trim().length < 8) {
+  if (requestId.trim().length < 8 || requestId.length > 128) {
     throw new DomainError("INVALID_COMMAND", "requestId 长度不足");
   }
+}
+
+function safeLimit(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isSafeInteger(value) && value >= 0 ? value : fallback;
+}
+
+function digest(values: readonly string[]): string {
+  return createHash("sha256").update(JSON.stringify(values)).digest("hex");
 }
