@@ -23,14 +23,18 @@ export async function authorizedReceipt(
     if (receipt?.authorization) {
       if (receipt.authorization.command !== command)
         throw new DomainError("CONFLICT", "requestId 已用于其他身份或请求内容");
+      const now = Date.parse(dependencies.clock.now());
+      if (!Number.isFinite(now)) throw new DomainError("FORBIDDEN", "无法验证授权有效期");
       for (const guard of receipt.authorization.dependencies) {
         const current = await tx.read(guard.collection, guard.id);
+        const hasExpiry = current !== undefined && "expiresAt" in current;
+        const expiresAt =
+          hasExpiry && typeof current.expiresAt === "string"
+            ? Date.parse(current.expiresAt)
+            : Number.NaN;
         if (
           JSON.stringify(current ?? null) !== guard.snapshot ||
-          (current &&
-            "expiresAt" in current &&
-            typeof current.expiresAt === "string" &&
-            current.expiresAt <= dependencies.clock.now())
+          (hasExpiry && (!Number.isFinite(expiresAt) || expiresAt <= now))
         )
           throw new DomainError("FORBIDDEN", "原请求的授权或资源状态已变化，请重新发起操作");
       }

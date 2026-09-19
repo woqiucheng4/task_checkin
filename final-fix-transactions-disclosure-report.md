@@ -45,3 +45,13 @@ Group-role policy now requires ACCOUNT mode, an active organization/group, an ac
 - Biome format/lint over changed TypeScript files and `git diff --check`: passed.
 
 These are local repository/fake-storage/fake-provider checks. No real CloudBase transaction, physical device, production provider or deployment verification is claimed. Guarded receipts deliberately reject changed resource snapshots instead of overwriting subsequent changes or replaying stale private results; ordinary UI actions should start a new request after refreshing the affected resource.
+
+## E review fix round 1 — expiry instants and historical publication receipts
+
+Receipt expiry verification now compares finite `Date.parse` values, including the current clock, and rejects malformed expiry values. Equivalent `+08:00` / `-08:00` timestamps share the same instant: retry is permitted immediately before expiry and denied at or after expiry. String ordering no longer determines authorization validity.
+
+Manual family/group publication now queries the complete `(accountId, action, requestId)` business key inside its transaction when the new deterministic receipt is absent. Any historical random-ID receipt produces `CONFLICT` before task/assignment/audit/receipt writes; it neither returns the historical result nor creates another task. This guard works in the in-memory repository without relying on a CloudBase unique index.
+
+TDD evidence: the new nine-case suite initially had six failures and three passes. Its offset boundary, malformed-time and both historical publication cases now all pass. Each historical fixture contains one existing task plus a random-ID receipt; replay leaves exactly that one task and the original assignment set, and never returns the seeded private value.
+
+Verification after this round: **94 files / 445 tests passed**, `npm run typecheck` passed, Biome format/lint over all three changed TypeScript files passed, and `git diff --check` passed. No remote actions or index migration were performed.

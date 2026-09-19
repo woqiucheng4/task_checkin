@@ -455,6 +455,15 @@ export class TaskService {
         await this.inTransaction(tx).assertPublicationAccess(actor, receipt.result as Task);
         return receipt.result as Task;
       }
+      const historical = (
+        await tx.query("commandReceipts", {
+          accountId: actor.accountId,
+          action,
+          requestId,
+        })
+      )[0];
+      if (historical !== undefined)
+        throw new DomainError("CONFLICT", "历史发布请求缺少授权凭证，请确认任务状态后重新操作");
       await tx.insert("tasks", task);
       for (const assignment of assignments) {
         const duplicate = await tx.query("taskAssignments", {
