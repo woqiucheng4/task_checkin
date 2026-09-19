@@ -6,7 +6,7 @@ import { SunlightService } from "../../src/application/sunlight-service.js";
 import { createSubmittedTaskScenario } from "../helpers/task-scenario.js";
 
 describe("group co-growing tree", () => {
-  it("adds one contribution on the first academic approval only", async () => {
+  it("does not advance a legacy co-growing tree when an MVP group task is approved", async () => {
     const seed = await createSubmittedTaskScenario("ORGANIZATION");
     const groupOrchard = new GroupOrchardService(seed.harness);
     const sunlight = new SunlightService(seed.harness);
@@ -29,9 +29,9 @@ describe("group co-growing tree", () => {
       await seed.harness.repository.query("groupContributions", {
         assignmentId: seed.assignment.id,
       }),
-    ).toMatchObject([{ amount: 1, groupTreeId: groupTree.id }]);
+    ).toEqual([]);
     expect(await seed.harness.repository.read("groupTrees", groupTree.id)).toMatchObject({
-      progress: 1,
+      progress: 0,
     });
     expect(await sunlight.balanceForChild(seed.firstChild.id)).toBe(2);
   });
@@ -39,7 +39,6 @@ describe("group co-growing tree", () => {
   it("matures and harvests one memorial when aggregate progress reaches the threshold", async () => {
     const seed = await createSubmittedTaskScenario("ORGANIZATION");
     const groupOrchard = new GroupOrchardService(seed.harness);
-    const reviews = new ReviewService(seed.harness, new SunlightService(seed.harness));
     const groupTree = await groupOrchard.startGroupTree(seed.teacher, {
       catalogId: "ordinary-pear",
       groupId: seed.group.id,
@@ -47,15 +46,11 @@ describe("group co-growing tree", () => {
     });
     await seed.harness.repository.transaction((tx) =>
       tx.update("groupTrees", groupTree.id, {
-        progress: groupTree.threshold - 1,
+        progress: groupTree.threshold,
+        status: "MATURE",
         updatedAt: seed.harness.clock.now(),
       }),
     );
-    await reviews.academicReview(seed.teacher, {
-      assignmentId: seed.assignment.id,
-      decision: "APPROVE",
-      requestId: "group-tree-review-mature",
-    });
 
     const harvested = await groupOrchard.harvestGroupTree(seed.teacher, {
       groupTreeId: groupTree.id,

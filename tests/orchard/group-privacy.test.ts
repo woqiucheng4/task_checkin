@@ -26,7 +26,7 @@ describe("group orchard child privacy", () => {
     const view = await groupOrchard.groupProgressForChild(seed.childActor, seed.group.id);
 
     expect(view).toEqual({
-      progress: 1,
+      progress: 0,
       stage: expect.any(String),
       status: "GROWING",
       threshold: 20,

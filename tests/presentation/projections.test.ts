@@ -117,6 +117,29 @@ describe("UI presentation projections", () => {
         requestId: "presentation-review-submit",
       },
     );
+    const familyTask = await tasks.publishFamilyTask(seed.guardian, {
+      ...taskInput,
+      childIds: [seed.firstChild.id],
+      familyId: seed.family.id,
+      requestId: "presentation-family-review-task",
+      requiresAcademicReview: false,
+      title: "家庭朗读",
+    });
+    const familyAssignment = (
+      await seed.harness.repository.query("taskAssignments", { taskId: familyTask.id })
+    )[0];
+    await submissions.submit(
+      {
+        accountId: seed.guardian.accountId,
+        childId: seed.firstChild.id,
+        mode: "CHILD",
+      },
+      {
+        assignmentId: familyAssignment?.id ?? "missing-family",
+        mediaAssetIds: [],
+        requestId: "presentation-family-review-submit",
+      },
+    );
     const presentation = new PresentationService(seed.harness);
 
     const familyQueue = await presentation.reviewQueue(seed.guardian, {
@@ -129,7 +152,11 @@ describe("UI presentation projections", () => {
     });
 
     expect(familyQueue.items).toEqual([
-      expect.objectContaining({ assignmentId: assignment?.id, childLabel: "孩子1" }),
+      expect.objectContaining({
+        assignmentId: familyAssignment?.id,
+        childLabel: "孩子1",
+        source: "FAMILY",
+      }),
     ]);
     expect(teacherQueue.items).toEqual([
       expect.objectContaining({

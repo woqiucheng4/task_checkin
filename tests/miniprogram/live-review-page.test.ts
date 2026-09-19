@@ -7,10 +7,17 @@ const session = vi.hoisted(() => ({
     .mockResolvedValue({ title: "草稿标题", taskState: "PENDING", source: "FAMILY" }),
 }));
 vi.mock("../../miniprogram/services/session-runtime.js", () => session);
-afterEach(() => vi.unstubAllGlobals());
-it.each(["parent", "teacher"])(
-  "shows the server-authorized child identity in the %s review",
-  async (role) => {
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.resetModules();
+});
+it.each([
+  ["parent", "FAMILY", true],
+  ["parent", "LEARNING_GROUP", false],
+  ["teacher", "LEARNING_GROUP", true],
+] as const)(
+  "shows the server-authorized child identity in the %s review for %s tasks",
+  async (role, source, canReview) => {
     type Definition = {
       data: Record<string, unknown>;
       onLoad(this: MiniPageInstance, query: { id: string }): Promise<void>;
@@ -24,9 +31,9 @@ it.each(["parent", "teacher"])(
         ? {
             title: "已提交任务",
             childLabel: "审核对象小新",
-            source: role === "parent" ? "FAMILY" : "SCHOOL",
+            source,
             taskState: "SUBMITTED",
-            academicState: role === "parent" ? "NOT_REQUIRED" : "PENDING",
+            academicState: source === "FAMILY" ? "NOT_REQUIRED" : "PENDING",
             rewardState: "PROTECTED",
             submission: { text: "真实完成说明", mediaAssetIds: ["media-own"] },
           }
@@ -48,7 +55,7 @@ it.each(["parent", "teacher"])(
       childLabel: "审核对象小新",
       submissionText: "真实完成说明",
       images: ["https://storage.example/signed-photo"],
-      canReview: true,
+      canReview,
     });
   },
 );

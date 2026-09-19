@@ -252,9 +252,15 @@ export class PresentationService {
           assignment.taskState === "SUBMITTED" &&
           ["PROTECTED", "PENDING_CONFIRMATION"].includes(assignment.rewardState),
       );
+      const familyAssignments = [];
+      for (const assignment of assignments) {
+        const task = await this.requireRecord("tasks", assignment.taskId, "任务不存在");
+        if (task.source === "FAMILY") {
+          familyAssignments.push({ assignment, task });
+        }
+      }
       const items = await Promise.all(
-        assignments.map(async (assignment) => {
-          const task = await this.requireRecord("tasks", assignment.taskId, "任务不存在");
+        familyAssignments.map(async ({ assignment, task }) => {
           const submittedAt = await this.latestSubmissionAt(assignment.id);
           return {
             academicState: assignment.academicState,

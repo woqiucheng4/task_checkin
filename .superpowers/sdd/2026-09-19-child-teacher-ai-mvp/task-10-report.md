@@ -31,3 +31,25 @@ PASS
 ## Scope note
 
 No Mini Program device operation, CloudBase deployment, or external service call was performed. The checks above validate local route registration, client navigation models, and server-side action/review boundaries.
+
+## Fix round 1: MVP integration closure
+
+- Removed the `ReviewService` call into `GroupOrchardService`, so an approved MVP learning-group task cannot create a legacy group contribution or advance a co-growing tree. Teacher review and the child-scoped sunlight grant remain unchanged.
+- Filtered family review queues by persisted `Task.source === "FAMILY"`, and made the parent review-detail action state require the same source. A group submission may still be viewed through an existing deep link, but cannot expose `FAMILY_REVIEW` controls; the service-side rejection remains the final boundary.
+- Added regression coverage for an active legacy group tree remaining unchanged after group approval, queue separation while a submitted family task remains visible, and the parent detail's disabled group-review controls.
+
+Verification after the fix:
+
+```text
+npm test -- --run tests/orchard/group-tree.test.ts tests/presentation/projections.test.ts tests/miniprogram/live-review-page.test.ts tests/rewards/reviews.test.ts tests/rewards/idempotency.test.ts
+PASS — 5 files, 21 tests
+
+npm test -- --run
+PASS — 83 files, 319 tests
+
+npm run typecheck
+PASS
+
+git diff --check
+PASS
+```

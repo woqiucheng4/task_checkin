@@ -57,6 +57,7 @@ Page({
           task.submission?.text || (task.submission ? "孩子已确认完成" : "孩子尚未提交"),
         images: images.filter(Boolean),
         canReview:
+          task.source === "FAMILY" &&
           task.taskState === "SUBMITTED" &&
           task.rewardState !== "GRANTED" &&
           task.rewardState !== "WAIVED",
