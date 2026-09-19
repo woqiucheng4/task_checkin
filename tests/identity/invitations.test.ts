@@ -211,7 +211,7 @@ describe("group invitation lifecycle", () => {
     ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
   });
 
-  it("rejects a consumed one-time invitation", async () => {
+  it("returns the guardian's original claim when retrying a consumed one-time invitation", async () => {
     const seed = await invitationScenario();
     const created = await seed.invitations.createGroupInvitation(seed.teacher, {
       expiresAt: "2026-09-06T10:00:00.000Z",
@@ -219,7 +219,7 @@ describe("group invitation lifecycle", () => {
       maxClaims: 1,
       requestId: "invite-create-once",
     });
-    await seed.invitations.claimInvitation(seed.guardian, {
+    const first = await seed.invitations.claimInvitation(seed.guardian, {
       childId: seed.child.id,
       code: created.code,
       disclosure: { avatar: false, displayName: true, grade: false },
@@ -233,7 +233,7 @@ describe("group invitation lifecycle", () => {
         disclosure: { avatar: false, displayName: true, grade: false },
         requestId: "invite-claim-twice",
       }),
-    ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+    ).resolves.toMatchObject({ id: first.id });
   });
 
   it("supports a one-time roster seat claim that still requires approval", async () => {

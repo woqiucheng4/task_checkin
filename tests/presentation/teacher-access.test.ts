@@ -84,7 +84,7 @@ describe("teacher workspace authorization", () => {
     const seed = await createSubmittedTaskScenario("ORGANIZATION", "TEXT");
     const service = new PresentationService(seed.harness);
     expect((await service.accountShell(seed.teacher)).groups).toMatchObject([
-      { id: seed.group.id, role: "ORGANIZATION_ADMIN" },
+      { id: seed.group.id, role: "TEACHER" },
     ]);
     expect(await service.groupWorkspace(seed.teacher, { groupId: seed.group.id })).toMatchObject({
       group: { id: seed.group.id },

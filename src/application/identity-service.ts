@@ -273,7 +273,10 @@ export class IdentityService {
     },
   ): Promise<Group> {
     await this.policy.requireOrganizationRole(actor, input.organizationId, ["ORGANIZATION_ADMIN"]);
-    const organization = await this.dependencies.repository.read("organizations", input.organizationId);
+    const organization = await this.dependencies.repository.read(
+      "organizations",
+      input.organizationId,
+    );
     if (organization?.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "机构不存在或已停用");
     }
@@ -299,6 +302,16 @@ export class IdentityService {
 
     return this.dependencies.repository.transaction(async (tx) => {
       await tx.insert("groups", group);
+      await tx.insert("groupRoleBindings", {
+        id: this.dependencies.ids.next("group_role"),
+        accountId: actor.accountId,
+        createdAt: now,
+        groupId: group.id,
+        organizationId: group.organizationId,
+        role: "TEACHER",
+        status: "ACTIVE",
+        updatedAt: now,
+      });
       await this.audit(tx, {
         action: "GROUP_CREATED",
         actorAccountId: actor.accountId,
@@ -348,6 +361,28 @@ export class IdentityService {
           status: "ACTIVE",
           updatedAt: now,
         });
+      }
+      const existingBinding = (
+        await tx.query("groupRoleBindings", {
+          accountId: input.accountId,
+          groupId: group.id,
+        })
+      )[0];
+      if (existingBinding !== undefined) {
+        const updated = await tx.update("groupRoleBindings", existingBinding.id, {
+          role: input.role,
+          status: "ACTIVE",
+          updatedAt: now,
+        });
+        await this.audit(tx, {
+          action: "GROUP_ROLE_BOUND",
+          actorAccountId: actor.accountId,
+          requestId: input.requestId,
+          resourceId: updated.id,
+          resourceType: "GROUP_ROLE_BINDING",
+          tenantScope: { kind: "ORGANIZATION", organizationId: group.organizationId },
+        });
+        return updated;
       }
       const binding: GroupRoleBinding = {
         id: this.dependencies.ids.next("group_role"),

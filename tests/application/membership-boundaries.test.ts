@@ -87,7 +87,7 @@ describe("membership and group orchard boundaries", () => {
         disclosure: { avatar: false, displayName: false, grade: false },
         requestId: "invite-second-claim-repeat",
       }),
-    ).rejects.toMatchObject({ code: "INVITATION_EXPIRED" });
+    ).resolves.toMatchObject({ id: join.id, status: "PENDING_APPROVAL" });
     expect(
       (
         await invitations.rejectJoinRequest(seed.teacher, {

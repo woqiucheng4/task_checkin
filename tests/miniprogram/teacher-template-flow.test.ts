@@ -85,7 +85,7 @@ it("reuses an authorized template and publishes selected fields through the real
     importance: "CHALLENGE",
     submissionMode: "TEXT_AND_PHOTO",
     allowLateSubmission: false,
-    requireReview: false,
+    requireReview: true,
     date: "2026-09-07",
   });
   page.editCategory({ detail: { value: "3" } });
@@ -99,7 +99,7 @@ it("reuses an authorized template and publishes selected fields through the real
       importance: "CHALLENGE",
       submissionMode: "TEXT_AND_PHOTO",
       allowLateSubmission: false,
-      requiresAcademicReview: false,
+      requiresAcademicReview: true,
       schedule: { kind: "ONCE", date: "2026-09-07" },
       dueAt: "2026-09-07T15:59:00.000Z",
     },

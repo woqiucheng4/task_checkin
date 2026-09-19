@@ -26,9 +26,14 @@ describe("submission detail access", () => {
       })
     )[0];
     if (!member) throw new Error("Member missing");
-    await seed.harness.repository.transaction((tx) =>
-      tx.update("organizationMembers", member.id, { organizationRole: "STAFF" }),
-    );
+    await seed.harness.repository.transaction(async (tx) => {
+      await tx.update("organizationMembers", member.id, { organizationRole: "STAFF" });
+      for (const binding of await tx.query("groupRoleBindings", {
+        accountId: seed.teacher.accountId,
+      })) {
+        await tx.update("groupRoleBindings", binding.id, { status: "WITHDRAWN" });
+      }
+    });
     await expect(seed.submissions.detail(seed.teacher, seed.assignment.id)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });

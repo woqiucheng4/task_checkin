@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { ApplicationDependencies, Transaction } from "./ports.js";
+import type { ApplicationDependencies, ReadRepository, Transaction } from "./ports.js";
 import type {
   ActorContext,
   ChildGroupMembership,
@@ -86,30 +86,48 @@ export class InvitationService {
     requireRequestId(input.requestId);
     if (actor.mode !== "ACCOUNT")
       throw new DomainError("FORBIDDEN", "只有成人监护人可以提交授权申请");
-    const guardian = await this.policy.requireGuardian(actor, input.childId);
-    const invitation = (
-      await this.dependencies.repository.query("invitations", { codeHash: hashCode(input.code) })
-    )[0];
-    if (invitation === undefined) {
-      throw new DomainError("NOT_FOUND", "邀请码不存在");
-    }
-    this.assertInvitationUsable(invitation);
-    await this.assertNoOpenMembership(input.childId, invitation.groupId);
-    const now = this.dependencies.clock.now();
-    const joinRequest: JoinRequest = {
-      id: this.dependencies.ids.next("join_request"),
-      childId: input.childId,
-      createdAt: now,
-      disclosure: structuredClone(input.disclosure),
-      groupId: invitation.groupId,
-      guardianAccountId: actor.accountId,
-      invitationId: invitation.id,
-      organizationId: invitation.organizationId,
-      status: "PENDING_APPROVAL",
-      updatedAt: now,
-    };
-
     return this.dependencies.repository.transaction(async (tx) => {
+      const guardian = await new AccessPolicy(tx).requireGuardian(actor, input.childId);
+      const invitation = (await tx.query("invitations", { codeHash: hashCode(input.code) }))[0];
+      if (invitation === undefined) {
+        throw new DomainError("NOT_FOUND", "邀请码不存在");
+      }
+      const previous = (
+        await tx.query("joinRequests", {
+          childId: input.childId,
+          invitationId: invitation.id,
+          guardianAccountId: actor.accountId,
+        })
+      ).find((request) => request.status !== "REJECTED");
+      // A consumed invitation can still return this guardian's own original claim.
+      // Never return another guardian's consent or join request.
+      if (previous !== undefined) return previous;
+      this.assertInvitationUsable(invitation);
+      const group = await tx.read("groups", invitation.groupId);
+      const organization = await tx.read("organizations", invitation.organizationId);
+      const child = await tx.read("children", input.childId);
+      if (
+        group?.status !== "ACTIVE" ||
+        organization?.status !== "ACTIVE" ||
+        group.organizationId !== invitation.organizationId ||
+        child?.status !== "ACTIVE"
+      )
+        throw new DomainError("FORBIDDEN", "孩子或分组已停用");
+      await this.assertNoOpenMembership(input.childId, invitation.groupId, tx);
+      const now = this.dependencies.clock.now();
+      const joinRequest: JoinRequest = {
+        id: this.dependencies.ids.next("join_request"),
+        childId: input.childId,
+        createdAt: now,
+        disclosure: structuredClone(input.disclosure),
+        groupId: invitation.groupId,
+        guardianAccountId: actor.accountId,
+        invitationId: invitation.id,
+        organizationId: invitation.organizationId,
+        status: "PENDING_APPROVAL",
+        updatedAt: now,
+      };
+
       await tx.insert("consentRecords", {
         id: this.dependencies.ids.next("consent"),
         action: "GRANTED",
@@ -170,15 +188,26 @@ export class InvitationService {
     input: RequestBase & { readonly joinRequestId: string },
   ): Promise<ChildGroupMembership> {
     requireRequestId(input.requestId);
-    const joinRequest = await this.requirePendingJoin(input.joinRequestId);
-    const group = await this.requireManagedGroup(actor, joinRequest.groupId);
-    const child = await this.dependencies.repository.read("children", joinRequest.childId);
-    if (child?.status !== "ACTIVE") {
-      throw new DomainError("NOT_FOUND", "孩子账号不存在或已停用");
-    }
-    const now = this.dependencies.clock.now();
-
     return this.dependencies.repository.transaction(async (tx) => {
+      const joinRequest = await this.requirePendingJoin(input.joinRequestId, tx);
+      const group = await this.requireManagedGroup(actor, joinRequest.groupId, tx);
+      await new AccessPolicy(tx).requireGuardian(
+        { accountId: joinRequest.guardianAccountId, mode: "ACCOUNT" },
+        joinRequest.childId,
+      );
+      await this.requireApprovalSource(tx, joinRequest);
+      const activeMemberships = await tx.query("childGroupMemberships", {
+        childId: joinRequest.childId,
+        groupId: group.id,
+        status: "ACTIVE",
+      });
+      if (activeMemberships.length > 0) throw new DomainError("ALREADY_EXISTS", "孩子已加入该分组");
+      const child = await tx.read("children", joinRequest.childId);
+      if (child?.status !== "ACTIVE") {
+        throw new DomainError("NOT_FOUND", "孩子账号不存在或已停用");
+      }
+      const now = this.dependencies.clock.now();
+
       let organizationMember = (
         await tx.query("organizationMembers", {
           childId: child.id,
@@ -250,10 +279,10 @@ export class InvitationService {
     input: RequestBase & { readonly joinRequestId: string },
   ): Promise<JoinRequest> {
     requireRequestId(input.requestId);
-    const joinRequest = await this.requirePendingJoin(input.joinRequestId);
-    const group = await this.requireManagedGroup(actor, joinRequest.groupId);
-    const now = this.dependencies.clock.now();
     return this.dependencies.repository.transaction(async (tx) => {
+      const joinRequest = await this.requirePendingJoin(input.joinRequestId, tx);
+      const group = await this.requireManagedGroup(actor, joinRequest.groupId, tx);
+      const now = this.dependencies.clock.now();
       const rejected = await tx.update("joinRequests", joinRequest.id, {
         reviewedByAccountId: actor.accountId,
         status: "REJECTED",
@@ -436,20 +465,29 @@ export class InvitationService {
     });
   }
 
-  private async requireManagedGroup(actor: ActorContext, groupId: string): Promise<Group> {
-    const group = await this.dependencies.repository.read("groups", groupId);
+  private async requireManagedGroup(
+    actor: ActorContext,
+    groupId: string,
+    repository: ReadRepository = this.dependencies.repository,
+  ): Promise<Group> {
+    if (actor.mode !== "ACCOUNT") throw new DomainError("FORBIDDEN", "请使用教师账号");
+    const group = await repository.read("groups", groupId);
     if (group?.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "分组不存在或已停用");
     }
+    const organization = await repository.read("organizations", group.organizationId);
+    if (organization?.status !== "ACTIVE") throw new DomainError("FORBIDDEN", "机构已停用");
+    const policy = new AccessPolicy(repository);
     try {
-      await this.policy.requireOrganizationRole(actor, group.organizationId, [
-        "ORGANIZATION_ADMIN",
-      ]);
+      await policy.requireOrganizationRole(actor, group.organizationId, ["ORGANIZATION_ADMIN"]);
     } catch (error) {
       if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
         throw error;
       }
-      await this.policy.requireGroupRole(actor, group.id);
+      await policy.requireOrganizationRole(actor, group.organizationId);
+      const binding = await policy.requireGroupRole(actor, group.id);
+      if (binding.organizationId !== group.organizationId)
+        throw new DomainError("FORBIDDEN", "分组绑定不属于该机构");
     }
     return group;
   }
@@ -464,13 +502,17 @@ export class InvitationService {
     }
   }
 
-  private async assertNoOpenMembership(childId: string, groupId: string): Promise<void> {
-    const memberships = await this.dependencies.repository.query("childGroupMemberships", {
+  private async assertNoOpenMembership(
+    childId: string,
+    groupId: string,
+    repository: ReadRepository = this.dependencies.repository,
+  ): Promise<void> {
+    const memberships = await repository.query("childGroupMemberships", {
       childId,
       groupId,
       status: "ACTIVE",
     });
-    const pending = await this.dependencies.repository.query("joinRequests", {
+    const pending = await repository.query("joinRequests", {
       childId,
       groupId,
       status: "PENDING_APPROVAL",
@@ -480,8 +522,34 @@ export class InvitationService {
     }
   }
 
-  private async requirePendingJoin(joinRequestId: string): Promise<JoinRequest> {
-    const request = await this.dependencies.repository.read("joinRequests", joinRequestId);
+  private async requireApprovalSource(tx: Transaction, request: JoinRequest): Promise<void> {
+    if (request.invitationId.startsWith("roster:")) {
+      const seat = await tx.read("rosterSeats", request.invitationId.slice("roster:".length));
+      if (
+        seat?.status !== "CLAIMED" ||
+        seat.childGroupMembershipId !== undefined ||
+        seat.groupId !== request.groupId ||
+        seat.organizationId !== request.organizationId
+      )
+        throw new DomainError("FORBIDDEN", "名册认领已失效");
+      return;
+    }
+    const invitation = await tx.read("invitations", request.invitationId);
+    if (
+      invitation === undefined ||
+      !["ACTIVE", "CONSUMED"].includes(invitation.status) ||
+      Date.parse(invitation.expiresAt) <= Date.parse(this.dependencies.clock.now()) ||
+      invitation.groupId !== request.groupId ||
+      invitation.organizationId !== request.organizationId
+    )
+      throw new DomainError("INVITATION_EXPIRED", "加入邀请已失效");
+  }
+
+  private async requirePendingJoin(
+    joinRequestId: string,
+    repository: ReadRepository = this.dependencies.repository,
+  ): Promise<JoinRequest> {
+    const request = await repository.read("joinRequests", joinRequestId);
     if (request?.status !== "PENDING_APPROVAL") {
       throw new DomainError("NOT_FOUND", "待审核加入申请不存在");
     }

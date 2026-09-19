@@ -121,7 +121,7 @@ Page({
       importance: template.importance,
       submissionMode: template.submissionMode,
       allowLateSubmission: template.allowLateSubmission,
-      requireReview: template.requiresAcademicReview,
+      requireReview: true,
     });
   },
   editCategory(event: { detail: { value: string } }) {
@@ -143,9 +143,6 @@ Page({
   },
   editSubmissionMode(event: { detail: { value: string } }) {
     this.setData({ submissionMode: event.detail.value });
-  },
-  editReview(event: { detail: { value: boolean } }) {
-    this.setData({ requireReview: event.detail.value });
   },
   async recognizePhoto() {
     const sourceAssetIds = this.data.sourceAssetIds as readonly string[];
@@ -225,7 +222,7 @@ Page({
           groupId: group.id,
           importance: this.data.importance,
           occurrenceDate: date,
-          requiresAcademicReview: this.data.requireReview === true,
+          requiresAcademicReview: true,
           schedule: { date, kind: "ONCE" },
           sourceAssetIds: this.data.sourceAssetIds,
         });
@@ -237,7 +234,7 @@ Page({
           groupId: group.id,
           importance: this.data.importance,
           occurrenceDate: date,
-          requiresAcademicReview: this.data.requireReview === true,
+          requiresAcademicReview: true,
           schedule: { date, kind: "ONCE" },
           sourceAssetIds: this.data.sourceAssetIds,
         });

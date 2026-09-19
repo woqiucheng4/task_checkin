@@ -207,8 +207,12 @@ export function createCoreApi(dependencies: CoreApiDependencies): CoreApi {
 
         const actor = await resolveActor(dependencies, account.id, command.actor, authContext);
         mvpPolicy.assertAllowed(command.action, actor);
-        // Activation services authorize replays and commit their own secret-free receipts atomically.
-        if ((TEACHER_ACTIVATION_ACTIONS as readonly string[]).includes(command.action)) {
+        // These services reauthorize retries against current membership/consent before
+        // returning their own idempotent result. Cached write receipts cannot do that.
+        if (
+          (TEACHER_ACTIVATION_ACTIONS as readonly string[]).includes(command.action) ||
+          ["ACADEMIC_REVIEW", "COMPLETE_REVISION", "CLAIM_INVITATION"].includes(command.action)
+        ) {
           return commandSuccess(
             await dispatch(services, command.action, actor, command.payload, command.requestId),
           );

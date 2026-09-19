@@ -1,4 +1,4 @@
-import type { ApplicationDependencies, Transaction } from "./ports.js";
+import type { ApplicationDependencies, ReadRepository, Transaction } from "./ports.js";
 import type {
   ActorContext,
   Family,
@@ -158,34 +158,29 @@ export class ReviewService {
     revisionCompleted: boolean,
   ): Promise<ReviewResult> {
     requireRequestId(input.requestId);
-    const repeated = await this.findRepeatedReview(actor, input, "ACADEMIC");
-    if (repeated !== undefined) {
-      return repeated;
-    }
-    const { assignment, task, family } = await this.loadContext(input.assignmentId);
-    if (
-      task.source !== "LEARNING_GROUP" ||
-      task.groupId === undefined ||
-      assignment.organizationId === undefined
-    ) {
-      throw new DomainError("FORBIDDEN", "只有学习小组任务可以进行老师学习审核");
-    }
-    await this.requireInstitutionReviewer(actor, task.groupId, assignment.organizationId);
-    const now = this.dependencies.clock.now();
-    const review = makeReview(
-      this.dependencies.ids.next("review"),
-      assignment.id,
-      actor.accountId,
-      input,
-      "ACADEMIC",
-      now,
-    );
-
     return this.dependencies.repository.transaction(async (tx) => {
-      const current = await tx.read("taskAssignments", assignment.id);
-      if (current === undefined) {
-        throw new DomainError("NOT_FOUND", "任务实例不存在");
+      const { assignment, task, family } = await this.loadContext(input.assignmentId, tx);
+      if (
+        task.source !== "LEARNING_GROUP" ||
+        task.groupId === undefined ||
+        assignment.organizationId === undefined
+      ) {
+        throw new DomainError("FORBIDDEN", "只有学习小组任务可以进行老师学习审核");
       }
+      await this.requireInstitutionReviewer(tx, actor, assignment, task);
+      const repeated = await this.findRepeatedReview(actor, input, "ACADEMIC", tx);
+      if (repeated !== undefined) return repeated;
+      const now = this.dependencies.clock.now();
+      const review = makeReview(
+        this.dependencies.ids.next("review"),
+        assignment.id,
+        actor.accountId,
+        input,
+        "ACADEMIC",
+        now,
+      );
+
+      const current = assignment;
       if (input.decision === "APPROVE") {
         const approved = (
           await tx.query("reviewRecords", {
@@ -267,9 +262,10 @@ export class ReviewService {
     actor: ActorContext,
     input: { readonly assignmentId: string; readonly requestId: string },
     reviewType: ReviewRecord["reviewType"],
+    repository: ReadRepository = this.dependencies.repository,
   ): Promise<ReviewResult | undefined> {
     const review = (
-      await this.dependencies.repository.query("reviewRecords", {
+      await repository.query("reviewRecords", {
         assignmentId: input.assignmentId,
         requestId: input.requestId,
         reviewType,
@@ -279,14 +275,11 @@ export class ReviewService {
     if (review === undefined) {
       return undefined;
     }
-    const assignment = await this.dependencies.repository.read(
-      "taskAssignments",
-      input.assignmentId,
-    );
+    const assignment = await repository.read("taskAssignments", input.assignmentId);
     if (assignment === undefined) {
       throw new DomainError("CONFLICT", "审核记录缺少任务实例");
     }
-    const ledgers = await this.dependencies.repository.query(
+    const ledgers = await repository.query(
       "sunlightLedgers",
       (candidate) =>
         candidate.requestId === input.requestId &&
@@ -300,13 +293,14 @@ export class ReviewService {
 
   private async loadContext(
     assignmentId: string,
+    repository: ReadRepository = this.dependencies.repository,
   ): Promise<{ assignment: TaskAssignment; task: Task; family: Family }> {
-    const assignment = await this.dependencies.repository.read("taskAssignments", assignmentId);
+    const assignment = await repository.read("taskAssignments", assignmentId);
     if (assignment === undefined) {
       throw new DomainError("NOT_FOUND", "任务实例不存在");
     }
-    const task = await this.dependencies.repository.read("tasks", assignment.taskId);
-    const family = await this.dependencies.repository.read("families", assignment.familyId);
+    const task = await repository.read("tasks", assignment.taskId);
+    const family = await repository.read("families", assignment.familyId);
     if (task?.status !== "PUBLISHED" || family?.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "任务或家庭不存在");
     }
@@ -314,18 +308,44 @@ export class ReviewService {
   }
 
   private async requireInstitutionReviewer(
+    tx: Transaction,
     actor: ActorContext,
-    groupId: string,
-    organizationId: string,
+    assignment: TaskAssignment,
+    task: Task,
   ): Promise<void> {
-    try {
-      await this.policy.requireOrganizationRole(actor, organizationId, ["ORGANIZATION_ADMIN"]);
-    } catch (error) {
-      if (!(error instanceof DomainError) || error.code !== "FORBIDDEN") {
-        throw error;
-      }
-      await this.policy.requireGroupRole(actor, groupId);
+    if (
+      actor.mode !== "ACCOUNT" ||
+      task.groupId === undefined ||
+      assignment.organizationMemberId === undefined ||
+      task.groupId !== assignment.groupId ||
+      task.sourceScope.kind !== "ORGANIZATION" ||
+      task.sourceScope.organizationId !== assignment.organizationId
+    ) {
+      throw new DomainError("FORBIDDEN", "任务不属于当前可审核分组");
     }
+    const group = await tx.read("groups", task.groupId);
+    const organization =
+      group === undefined ? undefined : await tx.read("organizations", group.organizationId);
+    const memberships = await tx.query("childGroupMemberships", {
+      childId: assignment.childId,
+      groupId: task.groupId,
+      organizationId: assignment.organizationId,
+      organizationMemberId: assignment.organizationMemberId,
+      status: "ACTIVE",
+    });
+    if (
+      group?.status !== "ACTIVE" ||
+      organization?.status !== "ACTIVE" ||
+      group.organizationId !== assignment.organizationId ||
+      memberships.length === 0
+    ) {
+      throw new DomainError("FORBIDDEN", "孩子已撤回授权或分组已停用");
+    }
+    const policy = new AccessPolicy(tx);
+    await policy.requireOrganizationRole(actor, group.organizationId);
+    const binding = await policy.requireGroupRole(actor, group.id);
+    if (binding.organizationId !== group.organizationId)
+      throw new DomainError("FORBIDDEN", "教师绑定不属于任务机构");
   }
 
   private async audit(
