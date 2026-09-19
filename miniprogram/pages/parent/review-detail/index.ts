@@ -1,10 +1,17 @@
-import { command, showError } from "../../../services/session-runtime.js";
-import type { SubmissionService } from "../../../../src/application/submission-service.js";
+import { showError } from "../../../services/session-runtime.js";
+import {
+  childCommand,
+  invalidateChangedChild,
+  loadAssignment,
+  openSelection,
+  requireCurrentChild,
+} from "../child-context.js";
+
 async function review(page: MiniPageInstance, decision: string) {
-  if (page.data.working || !page.data.canReview) return;
+  if (page.data.working || !page.data.ready || !page.data.canReview) return;
   page.setData({ working: true });
   try {
-    await command("FAMILY_REVIEW", {
+    await childCommand(String(page.data.selectedChildId), "FAMILY_REVIEW", {
       assignmentId: page.data.assignmentId,
       decision,
       note: page.data.note,
@@ -16,12 +23,22 @@ async function review(page: MiniPageInstance, decision: string) {
     wx.navigateBack();
   } catch (error) {
     showError(error);
+    await invalidateChangedChild(page);
   } finally {
     page.setData({ working: false });
   }
 }
 Page({
   data: {
+    children: [],
+    selectedChildId: "",
+    selectedName: "",
+    selectionRequired: true,
+    selectionMessage: "请选择要操作的孩子",
+    selectionAction: "选择孩子",
+    ready: false,
+    loading: true,
+    error: "",
     assignmentId: "",
     note: "",
     source: "FAMILY",
@@ -34,21 +51,22 @@ Page({
     images: [],
     academicLabel: "",
   },
-  async onLoad(query: { id?: string }) {
-    if (!query.id) return;
-    this.setData({ assignmentId: query.id });
+  async onLoad(query: { id?: string; childId?: string }) {
     try {
-      const task = await command<Awaited<ReturnType<SubmissionService["detail"]>>>(
-        "GET_ASSIGNMENT_DETAIL",
-        { assignmentId: query.id },
-      );
+      const task = await loadAssignment(this, query);
+      if (!task) return;
+      const childId = String(this.data.selectedChildId);
       const images = await Promise.all(
         (task.submission?.mediaAssetIds ?? []).map(async (assetId) => {
-          const asset = await command<{ downloadUrl?: string }>("READ_MEDIA_ASSET", { assetId });
+          const asset = await childCommand<{ downloadUrl?: string }>(childId, "READ_MEDIA_ASSET", {
+            assetId,
+          });
           return asset.downloadUrl || "";
         }),
       );
+      await requireCurrentChild(childId);
       this.setData({
+        ready: true,
         title: task.title,
         childLabel: task.childLabel,
         source: task.source,
@@ -73,19 +91,32 @@ Page({
           )[task.academicState] || task.academicState,
       });
     } catch (error) {
+      this.setData({
+        ready: false,
+        canReview: false,
+        error: error instanceof Error ? error.message : "加载失败",
+      });
       showError(error);
+    } finally {
+      this.setData({ loading: false });
     }
+  },
+  async onShow() {
+    if (this.data.ready) await invalidateChangedChild(this);
+  },
+  openSelection() {
+    openSelection(this);
   },
   editNote(event: { detail: { value?: string } }) {
     this.setData({ note: event.detail.value || "" });
   },
-  approve() {
-    void review(this, "APPROVE");
+  async approve() {
+    await review(this, "APPROVE");
   },
-  revise() {
-    void review(this, "REVISION_REQUIRED");
+  async revise() {
+    await review(this, "REVISION_REQUIRED");
   },
-  waive() {
-    void review(this, "WAIVE");
+  async waive() {
+    await review(this, "WAIVE");
   },
 });

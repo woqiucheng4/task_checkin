@@ -1,15 +1,25 @@
 import { buildNavigation, buildTaskRow } from "../../../presentation/page-models.js";
-import { navigate, replace } from "../../../services/page-runtime.js";
+import { navigate } from "../../../services/page-runtime.js";
 import { dashboard, selectChild, showError, today } from "../../../services/session-runtime.js";
+import { childSelection, guardedNavigate, openSelection, taskPath } from "../child-context.js";
 
 async function load(page: MiniPageInstance) {
+  page.setData({
+    loading: true,
+    selectionRequired: true,
+    selectedChildId: "",
+    tasks: [],
+    pendingReviews: 0,
+    current: 0,
+  });
   try {
     const view = await dashboard();
     page.setData({
-      children: view.children,
-      selectedChildId: view.selectedChild.id,
-      selectedName: view.selectedChild.nickname,
-      tasks: view.today.items.map(buildTaskRow),
+      ...childSelection(view),
+      tasks: view.today.items.map((item) => ({
+        ...buildTaskRow(item),
+        action: { kind: "PRIMARY", label: "为孩子查看任务" },
+      })),
       pendingReviews: view.today.pendingReviewCount,
       current: view.currentTree?.progress || 0,
       target: view.currentTree?.threshold || 30,
@@ -20,6 +30,8 @@ async function load(page: MiniPageInstance) {
   } catch (error) {
     showError(error);
     page.setData({ notice: error instanceof Error ? error.message : "加载失败" });
+  } finally {
+    page.setData({ loading: false });
   }
 }
 Page({
@@ -35,33 +47,51 @@ Page({
     treeName: "",
     date: today(),
     notice: "",
+    loading: true,
+    selectionRequired: true,
+    selectionMessage: "请选择要操作的孩子",
+    selectionAction: "选择孩子",
   },
-  onShow() {
-    void load(this);
+  onLoad(query: { legacy?: string }) {
+    if (query.legacy) wx.showToast({ icon: "none", title: "请由家长选择孩子后继续操作" });
+  },
+  async onShow() {
+    await load(this);
   },
   createTask() {
-    navigate("/pages/parent/task-editor/index");
+    guardedNavigate(this, "/pages/parent/task-editor/index");
+  },
+  openSelection() {
+    openSelection(this);
+  },
+  openOrchard() {
+    guardedNavigate(this, "/pages/parent/orchard/index");
+  },
+  openGroups() {
+    guardedNavigate(this, "/pages/parent/groups/index");
   },
   navigateTab(event: { detail: { path?: string } }) {
-    if (event.detail.path) replace(event.detail.path);
+    if (event.detail.path) guardedNavigate(this, event.detail.path, true);
   },
   openReview() {
-    navigate("/pages/parent/reviews/index");
+    guardedNavigate(this, "/pages/parent/reviews/index");
   },
   openRoles() {
     navigate("/pages/shared/role-switcher/index");
   },
   openTask(event: { detail: { assignmentId?: string } }) {
-    if (event.detail.assignmentId)
-      navigate(`/pages/parent/review-detail/index?id=${event.detail.assignmentId}`);
+    if (event.detail.assignmentId) guardedNavigate(this, taskPath(this, event.detail.assignmentId));
   },
   async selectChild(event: { currentTarget: { dataset: { id?: string } } }) {
     if (!event.currentTarget.dataset.id) return;
+    if (this.data.loading) return;
+    this.setData({ loading: true });
     try {
       await selectChild(event.currentTarget.dataset.id);
       await load(this);
     } catch (error) {
       showError(error);
+      this.setData({ loading: false });
     }
   },
 });

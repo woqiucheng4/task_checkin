@@ -28,6 +28,6 @@ describe("MVP navigation", () => {
 
     expect(app.pages).not.toContain("pages/parent/wishes/index");
     expect(app.pages).not.toContain("pages/teacher/group-tree/index");
-    expect(app.pages).not.toContain("pages/parent/orchard/index");
+    expect(app.pages).toContain("pages/parent/orchard/index");
   });
 });

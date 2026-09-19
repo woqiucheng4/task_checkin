@@ -1,4 +1,7 @@
-declare const App: (options: { readonly onLaunch?: () => void }) => void;
+declare const App: (options: {
+  readonly onLaunch?: () => void;
+  readonly onPageNotFound?: (query: { readonly path: string }) => void;
+}) => void;
 interface MiniPageInstance {
   readonly data: Readonly<Record<string, unknown>>;
   setData(data: object): void;

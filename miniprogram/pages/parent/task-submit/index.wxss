@@ -1,0 +1,3 @@
+@import "../../child/submit/index.wxss";
+.preview { margin-bottom: 20rpx; }
+.preview image { width: 100%; border-radius: 16rpx; }

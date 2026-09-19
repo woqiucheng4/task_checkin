@@ -1,10 +1,1 @@
-<app-shell title="我的" subtitle="{{nickname}} {{grade ? '· ' + grade + '年级' : ''}}" show-role-switch="{{false}}">
-  <view class="profile-card"><image src="/assets/orchard/apple-sprout.webp" mode="aspectFit" /><view><view class="profile-card__name">{{nickname}}</view><view class="profile-card__note">收获 {{fruitCount}} 个果实</view></view></view>
-  <view class="page-section">
-    <view class="page-title">显示和账户</view>
-    <view class="setting-row"><view class="setting-row__copy"><view class="setting-row__title">高年级简洁模式</view><view class="setting-row__note">减少装饰、提高信息密度，不改变任务规则</view></view><switch checked="{{density === 'UPPER_PRIMARY'}}" color="#174E2A" bindchange="switchDensity" /></view>
-    <button class="setting-row" bindtap="openRoles"><view class="setting-row__copy"><view class="setting-row__title">切换身份</view><view class="setting-row__note">当前：孩子</view></view><t-icon name="user-switch" size="36rpx" color="#174E2A" /></button>
-    <view class="setting-row"><view class="setting-row__copy"><view class="setting-row__title">隐私说明</view><view class="setting-row__note">了解家长、老师分别能看到哪些内容</view></view><t-icon name="shield" size="36rpx" color="#174E2A" /></view>
-  </view>
-</app-shell>
-<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />
+<view class="page"><view>孩子由家长管理，请返回家长首页选择孩子。</view></view>

@@ -1,4 +1,5 @@
 @import "../../../styles/pages.wxss";
+@import "../home/index.wxss";
 .filters { margin: 4rpx 0 24rpx; white-space: nowrap; }
 .filter { display: inline-flex; margin: 0 12rpx 0 0; padding: 9rpx 20rpx; border: 2rpx solid #d9d6ca; border-radius: 26rpx; background: #fffdf7; color: #676b63; font-size: 23rpx; line-height: 1.4; }
 .filter--selected { border-color: #174e2a; background: #edf0dc; color: #174e2a; font-weight: 700; }

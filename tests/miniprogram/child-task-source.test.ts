@@ -1,74 +1,23 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 
-const session = vi.hoisted(() => ({
-  command: vi.fn(),
-  selectedChild: vi.fn().mockResolvedValue("child-a"),
-  showError: vi.fn(),
-}));
-vi.mock("../../miniprogram/services/session-runtime.js", () => session);
 afterEach(() => {
+  vi.resetModules();
   vi.unstubAllGlobals();
-  vi.clearAllMocks();
 });
-
-it("loads assignment and source images as the selected child and renders only authorized signed reads", async () => {
-  let definition:
-    | {
-        data: Record<string, unknown>;
-        onLoad(this: MiniPageInstance, query: { id?: string }): Promise<void>;
-      }
-    | undefined;
-  vi.stubGlobal("Page", (page: typeof definition) => {
-    definition = page;
-  });
-  session.command.mockImplementation(async (action, payload) => {
-    if (action === "GET_ASSIGNMENT_DETAIL")
-      return {
-        title: "数学题图",
-        category: "MATHEMATICS",
-        source: "LEARNING_GROUP",
-        taskState: "PENDING",
-        submissionMode: "PHOTO",
-        sourceAssetIds: ["private-source-a", "private-source-b"],
-      };
-    return { downloadUrl: `https://private.invalid/signed-${payload.assetId}` };
-  });
-  await import("../../miniprogram/pages/child/task/index.js");
-  if (!definition) throw new Error("Page missing");
-  const page = {
-    ...definition,
-    data: { ...definition.data },
-    setData(data: object) {
-      Object.assign(this.data, data);
-    },
-  };
-  await page.onLoad({ id: "assignment-a" });
-  const actor = { mode: "CHILD", childId: "child-a" };
-  expect(session.command).toHaveBeenCalledWith(
-    "GET_ASSIGNMENT_DETAIL",
-    { assignmentId: "assignment-a" },
-    actor,
-  );
-  expect(session.command).toHaveBeenCalledWith(
-    "READ_MEDIA_ASSET",
-    { assetId: "private-source-a" },
-    actor,
-  );
-  expect(session.command).toHaveBeenCalledWith(
-    "READ_MEDIA_ASSET",
-    { assetId: "private-source-b" },
-    actor,
-  );
-  expect(page.data.images).toEqual([
-    "https://private.invalid/signed-private-source-a",
-    "https://private.invalid/signed-private-source-b",
-  ]);
-  const wxml = await readFile(
-    new URL("../../miniprogram/pages/child/task/index.wxml", import.meta.url),
-    "utf8",
-  );
-  expect(wxml).toMatch(
-    /<image[^>]*wx:for="\{\{images\}\}"[^>]*src="\{\{item\}\}"[^>]*mode="widthFix"/,
-  );
-});
+it.each(["today", "task", "submit", "orchard", "profile", "group"])(
+  "safely redirects legacy child %s without loading a session or issuing a request",
+  async (route) => {
+    let definition: { onShow(): void } | undefined;
+    vi.stubGlobal("Page", (page: typeof definition) => {
+      definition = page;
+    });
+    vi.stubGlobal("wx", { redirectTo: vi.fn() });
+    await import(`../../miniprogram/pages/child/${route}/index.ts`);
+    if (!definition) throw new Error("Page missing");
+    definition.onShow();
+    expect(wx.redirectTo).toHaveBeenCalledWith({ url: "/pages/parent/home/index?legacy=child" });
+    const source = readFileSync(`miniprogram/pages/child/${route}/index.ts`, "utf8");
+    expect(source).not.toMatch(/session-runtime|childClient|mode:.*CHILD|execute\(/);
+  },
+);

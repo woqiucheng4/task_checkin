@@ -1,13 +1,18 @@
 <app-shell title="家庭今日" subtitle="{{date}}" context-label="{{selectedName}}" bindroleswitch="openRoles">
   <view wx:if="{{notice}}">{{notice}}</view>
   <scroll-view class="children" scroll-x><button wx:for="{{children}}" wx:key="id" class="child {{item.id === selectedChildId ? 'child--selected' : ''}}" data-id="{{item.id}}" data-name="{{item.nickname}}" bindtap="selectChild">{{item.nickname}}</button></scroll-view>
+  <view wx:if="{{loading}}" class="page-subtitle">正在加载孩子的任务</view>
+  <view wx:elif="{{selectionRequired}}" class="selection-state"><view>{{selectionMessage}}</view><button wx:if="{{!children.length}}" bindtap="openSelection">{{selectionAction}}</button></view>
+  <block wx:else>
   <view class="summary">
     <view><view class="summary__value">{{tasks.length}}</view><view class="summary__label">今日任务</view></view>
     <view><view class="summary__value summary__value--red">{{pendingReviews}}</view><view class="summary__label">待你确认</view></view>
     <view><view class="summary__value">{{current}}</view><view class="summary__label">果树阳光</view></view>
     <button bindtap="openReview">去审核</button>
   </view>
-  <view class="tree-brief"><image src="/assets/orchard/apple-seedling.webp" mode="aspectFit" /><view><view class="tree-brief__title">{{treeName}}</view><view class="tree-brief__note">{{current}} / {{target}} 阳光</view></view></view>
+  <button class="tree-brief" bindtap="openOrchard"><image src="/assets/orchard/apple-seedling.webp" mode="aspectFit" /><view><view class="tree-brief__title">{{treeName}}</view><view class="tree-brief__note">{{current}} / {{target}} 阳光 · 查看{{selectedName}}的果园</view></view></button>
+  <button class="text-link" bindtap="openGroups">为{{selectedName}}管理分组</button>
   <view class="page-section"><view class="page-section__heading"><view><view class="page-title">今天的任务</view><view class="page-subtitle">家庭和学习小组任务统一查看</view></view><button class="text-link" bindtap="createTask">布置任务</button></view><task-row wx:for="{{tasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTask" /></view>
+  </block>
 </app-shell>
 <bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />

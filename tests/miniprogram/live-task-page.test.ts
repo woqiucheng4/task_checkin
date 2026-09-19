@@ -1,11 +1,27 @@
 import { afterEach, expect, it, vi } from "vitest";
+
 const session = vi.hoisted(() => ({
   command: vi.fn(),
+  dashboard: async () => ({
+    children: [{ id: "child-real", nickname: "小新" }],
+    selectedChild: { id: "child-real", nickname: "小新" },
+    selectionRequired: false,
+  }),
   selectedChild: vi.fn().mockResolvedValue("child-real"),
   showError: vi.fn(),
   today: () => "2026-09-07",
 }));
 vi.mock("../../miniprogram/services/session-runtime.js", () => session);
+vi.mock("../../miniprogram/services/page-runtime.js", () => ({
+  navigate: vi.fn(),
+  replace: vi.fn(),
+  coreApiClient: {
+    execute: async (action: string, payload: object) => ({
+      ok: true,
+      data: await session.command(action, payload),
+    }),
+  },
+}));
 afterEach(() => vi.unstubAllGlobals());
 
 it("renders server task data and filters the displayed rows instead of fixture tasks", async () => {

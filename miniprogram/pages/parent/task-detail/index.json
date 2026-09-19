@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "为孩子查看任务",
+  "usingComponents": {
+    "status-view": "/components/status-view/index",
+    "t-icon": "/components/ui-icon/index"
+  }
+}

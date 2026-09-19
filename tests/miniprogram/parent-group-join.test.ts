@@ -1,7 +1,22 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({
-  selectedChild: async () => "child-a",
+  selectedChild: vi.fn(async () => "child-a"),
+  selectChild: vi.fn(async (id: string) => {
+    session.selectedChild.mockResolvedValue(id);
+  }),
+  dashboard: async () => {
+    const children = [
+      { id: "child-a", nickname: "甲" },
+      { id: "child-b", nickname: "乙" },
+    ];
+    const childId = await session.selectedChild();
+    return {
+      children,
+      selectedChild: children.find((child) => child.id === childId),
+      selectionRequired: false,
+    };
+  },
   selectedFamily: vi.fn(async () => ({
     children: [
       { id: "child-a", nickname: "甲" },
@@ -23,13 +38,22 @@ const session = vi.hoisted(() => ({
 }));
 
 vi.mock("../../miniprogram/services/session-runtime.js", () => session);
-const runtime = vi.hoisted(() => ({ navigate: vi.fn() }));
+const runtime = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  coreApiClient: {
+    execute: async (action: string, _payload: object) => ({
+      ok: true,
+      data: await session.command(action),
+    }),
+  },
+}));
 vi.mock("../../miniprogram/services/page-runtime.js", () => runtime);
 
 beforeEach(() => {
   vi.resetModules();
   session.command.mockClear();
   session.selectedFamily.mockClear();
+  session.selectedChild.mockResolvedValue("child-a");
   runtime.navigate.mockClear();
 });
 
@@ -64,8 +88,8 @@ type GroupsDefinition = {
   chooseInvitationChild(
     this: MiniPageInstance,
     event: { currentTarget: { dataset: { childId?: string } } },
-  ): void;
-  openInvitation(this: MiniPageInstance): void;
+  ): Promise<void>;
+  openInvitation(this: MiniPageInstance): Promise<void>;
 };
 
 async function loadGroupsPage() {
@@ -94,10 +118,10 @@ it("requires selecting a family child before opening an invitation", async () =>
       { id: "child-b", nickname: "乙" },
     ],
   });
-  page.openInvitation();
+  await page.openInvitation();
   expect(runtime.navigate).not.toHaveBeenCalled();
-  page.chooseInvitationChild({ currentTarget: { dataset: { childId: "child-b" } } });
-  page.openInvitation();
+  await page.chooseInvitationChild({ currentTarget: { dataset: { childId: "child-b" } } });
+  await page.openInvitation();
   expect(runtime.navigate).toHaveBeenCalledWith("/pages/shared/invitation/index?childId=child-b");
 });
 
@@ -122,17 +146,14 @@ it("claims an invitation for the child selected in the route, not the global chi
   );
 });
 
-it.each([undefined, "child-not-in-family"]) (
+it.each([undefined, "child-not-in-family"])(
   "does not preview or claim without a valid parent child route (%s)",
   async (childId) => {
     const page = await loadInvitationPage();
     await page.onLoad(childId ? { childId, code: "join-code" } : { code: "join-code" });
 
     expect(page.data).toMatchObject({ ready: false, childValid: false });
-    expect(session.command).not.toHaveBeenCalledWith(
-      "PREVIEW_GROUP_INVITATION",
-      expect.anything(),
-    );
+    expect(session.command).not.toHaveBeenCalledWith("PREVIEW_GROUP_INVITATION", expect.anything());
     page.setData({ consent: true, ready: true });
     await page.confirmJoin();
     expect(session.command).not.toHaveBeenCalledWith("CLAIM_INVITATION", expect.anything());

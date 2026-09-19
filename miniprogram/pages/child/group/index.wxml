@@ -1,14 +1,1 @@
-<view class="page">
-  <view class="title">大家一起培育的果树</view>
-  <view class="note">只展示共同进度，不做个人排名</view>
-  <view wx:if="{{loading}}" class="note">正在加载分组…</view>
-  <view wx:elif="{{!groups.length}}" class="note">还没有加入分组，请家长使用老师的邀请码申请加入。</view>
-  <block wx:else>
-    <scroll-view class="tabs" scroll-x><button wx:for="{{groups}}" wx:key="id" class="tab {{index === selected ? 'tab--selected' : ''}}" data-index="{{index}}" bindtap="selectGroup">{{item.name}}</button></scroll-view>
-    <image class="group-tree" src="/assets/orchard/scene-group-tree.webp" mode="aspectFit" aria-label="共同培育的果树" />
-    <view class="progress-card">
-      <view class="progress-card__top"><view><view class="progress-card__title">{{groups[selected].name}}共育树</view><view class="progress-card__note">{{groups[selected].error || '每一份努力都很重要'}}</view></view><t-icon name="sunny" size="46rpx" color="#EE9A25" /></view>
-      <block wx:if="{{!groups[selected].error}}"><view>共同成长 {{groups[selected].current}} / {{groups[selected].target}}</view><progress percent="{{groups[selected].percent}}" stroke-width="8" activeColor="#D93A22" backgroundColor="#E7E3D8" border-radius="8" /></block>
-    </view>
-  </block>
-</view>
+<view class="page"><view>孩子由家长管理，请返回家长首页选择孩子。</view></view>

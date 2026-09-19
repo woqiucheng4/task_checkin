@@ -2,25 +2,25 @@ import { afterEach, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({
   selectedChild: async () => "child-current",
-  command: vi.fn().mockRejectedValue(new Error("网络不可用")),
-  dashboard: vi.fn(),
+  dashboard: vi.fn().mockRejectedValue(new Error("网络不可用")),
   showError: vi.fn(),
-  childClient: { execute: vi.fn() },
 }));
-vi.mock("../../miniprogram/services/session-runtime.js", () => session);
-vi.mock("../../miniprogram/services/page-runtime.js", () => ({
+const runtime = vi.hoisted(() => ({
   navigate: vi.fn(),
   replace: vi.fn(),
+  coreApiClient: { execute: vi.fn() },
 }));
+vi.mock("../../miniprogram/services/session-runtime.js", () => session);
+vi.mock("../../miniprogram/services/page-runtime.js", () => runtime);
 afterEach(() => vi.unstubAllGlobals());
 
-it("never displays invented harvests or enables planting when loading fails", async () => {
+it("never displays invented harvests or enables parent planting when loading fails", async () => {
   type Definition = {
     data: Record<string, unknown>;
     onShow(this: MiniPageInstance): Promise<void>;
     startNext(
       this: MiniPageInstance,
-      event: { currentTarget: { dataset: { fruit: string; name: string } } },
+      event: { currentTarget: { dataset: { catalogId: string } } },
     ): Promise<void>;
   };
   let definition: Definition | undefined;
@@ -28,7 +28,7 @@ it("never displays invented harvests or enables planting when loading fails", as
     definition = value;
   });
   vi.stubGlobal("wx", { showToast: vi.fn() });
-  await import("../../miniprogram/pages/child/orchard/index.js");
+  await import("../../miniprogram/pages/parent/orchard/index.js");
   if (!definition) throw new Error("Page not registered");
   const page = {
     ...definition,
@@ -38,13 +38,10 @@ it("never displays invented harvests or enables planting when loading fails", as
     },
   };
   expect(page.data.current).toBe(0);
-  expect(page.data.progress).toBe(0);
-  expect((page.data.collection as { count: number }[]).every((item) => item.count === 0)).toBe(
-    true,
-  );
-  expect((page.data.stages as { done: boolean }[]).some((item) => item.done)).toBe(false);
+  expect(page.data.progressPercent).toBe(0);
+  expect(page.data.growthCards).toEqual([]);
   await page.onShow();
-  expect(page.data).toMatchObject({ loading: false, ready: false, selecting: false });
-  await page.startNext({ currentTarget: { dataset: { fruit: "apple", name: "苹果树" } } });
-  expect(session.childClient.execute).not.toHaveBeenCalled();
+  expect(page.data).toMatchObject({ loading: false, ready: false });
+  await page.startNext({ currentTarget: { dataset: { catalogId: "starter-apple" } } });
+  expect(runtime.coreApiClient.execute).not.toHaveBeenCalled();
 });

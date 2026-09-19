@@ -1,4 +1,8 @@
 <view class="page">
+  <view class="child">当前孩子：{{selectedName || '尚未选择'}}</view>
+  <view wx:if="{{loading}}">正在加载完成情况</view>
+  <view wx:elif="{{selectionRequired || error}}"><view>{{error || selectionMessage}}</view><button bindtap="openSelection">{{selectionRequired ? selectionAction : '返回首页选择孩子'}}</button></view>
+  <block wx:elif="{{ready}}">
   <view class="heading"><text class="source">{{source === 'FAMILY' ? '家庭' : '共育分组'}}</text><view class="title">{{title}}</view><view class="child">{{childLabel}} · {{state}}</view></view>
   <view class="section"><view class="section__label">孩子的提交</view><view>{{submissionText}}</view><image wx:for="{{images}}" wx:key="*this" src="{{item}}" mode="widthFix" style="width:100%;margin-top:20rpx;" /></view>
   <view wx:if="{{source !== 'FAMILY'}}" class="section academic"><view class="section__label">教师学习评价</view><view class="status"><t-icon name="check-circle" size="40rpx" color="#174E2A" /><view><view>{{academicLabel}}</view><text>家长只能查看，不能更改教师评价</text></view></view></view>
@@ -6,4 +10,5 @@
   <button wx:if="{{canReview}}" class="primary" loading="{{working}}" disabled="{{working}}" bindtap="approve">确认完成并发放阳光</button>
   <button wx:if="{{canReview && source === 'FAMILY'}}" class="secondary" disabled="{{working}}" bindtap="revise">请孩子订正</button>
   <button wx:if="{{canReview}}" class="waive" disabled="{{working}}" bindtap="waive">仅保留完成记录，本次不发阳光</button>
+  </block>
 </view>

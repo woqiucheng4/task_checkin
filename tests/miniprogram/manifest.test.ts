@@ -6,13 +6,11 @@ const REQUIRED_MOBILE_ROUTES = [
   "pages/shared/role-switcher/index",
   "pages/shared/invitation/index",
   "pages/teacher/activation/index",
-  "pages/child/today/index",
-  "pages/child/task/index",
-  "pages/child/submit/index",
-  "pages/child/orchard/index",
-  "pages/child/profile/index",
   "pages/parent/home/index",
   "pages/parent/tasks/index",
+  "pages/parent/task-detail/index",
+  "pages/parent/task-submit/index",
+  "pages/parent/orchard/index",
   "pages/parent/task-editor/index",
   "pages/parent/reviews/index",
   "pages/parent/review-detail/index",
@@ -35,6 +33,7 @@ describe("小程序页面清单", () => {
     };
     expect(app.pages).toEqual(expect.arrayContaining([...REQUIRED_MOBILE_ROUTES]));
     expect(new Set(app.pages).size).toBe(app.pages.length);
+    expect(app.pages.some((route) => route.startsWith("pages/child/"))).toBe(false);
     for (const route of app.pages) {
       for (const extension of ["json", "ts", "wxml", "wxss"]) {
         expect(existsSync(`miniprogram/${route}.${extension}`), `${route}.${extension}`).toBe(true);

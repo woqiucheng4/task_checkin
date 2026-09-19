@@ -1,12 +1,29 @@
 import { afterEach, expect, it, vi } from "vitest";
+
 const session = vi.hoisted(() => ({
   command: vi.fn(),
+  selectedChild: async () => "child-real",
+  dashboard: async () => ({
+    children: [{ id: "child-real", nickname: "小新" }],
+    selectedChild: { id: "child-real", nickname: "小新" },
+    selectionRequired: false,
+  }),
   showError: vi.fn(),
   taskDetail: vi
     .fn()
     .mockResolvedValue({ title: "草稿标题", taskState: "PENDING", source: "FAMILY" }),
 }));
 vi.mock("../../miniprogram/services/session-runtime.js", () => session);
+vi.mock("../../miniprogram/services/page-runtime.js", () => ({
+  navigate: vi.fn(),
+  replace: vi.fn(),
+  coreApiClient: {
+    execute: async (action: string, payload: object) => ({
+      ok: true,
+      data: await session.command(action, payload),
+    }),
+  },
+}));
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.resetModules();

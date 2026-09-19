@@ -1,0 +1,16 @@
+<view class="page">
+  <view class="source">{{selectedName || '请选择孩子'}}</view>
+  <view class="title">为孩子查看任务</view>
+  <view wx:if="{{loading}}" class="note">正在加载任务</view>
+  <view wx:elif="{{selectionRequired || error}}" class="section"><view>{{error || selectionMessage}}</view><button bindtap="openSelection">{{selectionRequired ? selectionAction : '返回首页选择任务'}}</button></view>
+  <block wx:elif="{{ready}}">
+    <view class="source">{{source}}</view>
+    <view class="title">{{task.title}}</view>
+    <view class="meta"><text>{{task.due}}</text><text>{{task.mode}}</text></view>
+    <view class="section"><view class="section__title">任务要求</view><view class="section__copy">{{task.description}}</view><image wx:for="{{images}}" wx:key="*this" class="task-image" src="{{item}}" mode="widthFix" /></view>
+    <view class="reward"><t-icon name="sunny" size="42rpx" color="#EE9A25" /><text>{{task.reward}}</text></view>
+    <view wx:if="{{state === 'revision'}}" class="revision">请和孩子一起订正后再次提交。</view>
+    <button wx:if="{{state === 'pending' || state === 'revision'}}" class="primary" bindtap="openSubmit">为孩子提交完成情况</button>
+    <status-view wx:else kind="success" title="完成情况已记录" description="已提交的任务可在家长审核中确认阳光；共育任务由老师进行学习评价。" asset="/assets/orchard/scene-watering.webp" />
+  </block>
+</view>

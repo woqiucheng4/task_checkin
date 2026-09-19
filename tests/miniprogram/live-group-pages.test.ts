@@ -1,10 +1,16 @@
 import { afterEach, expect, it, vi } from "vitest";
+
 const session = vi.hoisted(() => ({
   selectedChild: async () => "child-real",
   selectedFamily: async () => ({ children: [{ id: "child-real", nickname: "小新" }] }),
-  dashboard: async () => ({ groups: [{ id: "group-real", name: "真实班级" }] }),
+  dashboard: async () => ({
+    groups: [{ id: "group-real", name: "真实班级" }],
+    children: [{ id: "child-real", nickname: "小新" }],
+    selectedChild: { id: "child-real", nickname: "小新" },
+    selectionRequired: false,
+  }),
   showError: vi.fn(),
-  command: vi.fn(async (action: string) => {
+  command: vi.fn(async (action: string, _payload?: object) => {
     if (action === "GET_CHILD_GROUPS")
       return {
         memberships: [
@@ -35,7 +41,12 @@ const session = vi.hoisted(() => ({
 vi.mock("../../miniprogram/services/session-runtime.js", () => session);
 vi.mock("../../miniprogram/services/page-runtime.js", () => ({
   navigate: vi.fn(),
-  coreApiClient: { execute: async () => ({ ok: true, data: {} }) },
+  coreApiClient: {
+    execute: async (action: string, payload: object) => ({
+      ok: true,
+      data: await session.command(action, payload),
+    }),
+  },
 }));
 afterEach(() => vi.unstubAllGlobals());
 type Definition = {
@@ -72,15 +83,16 @@ it("withdraws the selected real membership instead of a fixed ID", async () => {
   page.requestWithdraw({ currentTarget: { dataset: { id: "membership-real", name: "真实班级" } } });
   await page.confirmWithdraw();
   expect(session.command).toHaveBeenCalledWith("WITHDRAW_CHILD", {
+    childId: "child-real",
     childGroupMembershipId: "membership-real",
   });
 });
-it("shows real shared progress without invented personal contribution", async () => {
+it("redirects legacy child groups without requesting shared progress", async () => {
+  session.command.mockClear();
   const page = await loadPage("../../miniprogram/pages/child/group/index.js");
   await page.onShow();
-  expect(page.data).toMatchObject({
-    groups: [{ id: "group-real", name: "真实班级", current: 7, target: 18 }],
-  });
+  expect(wx.redirectTo).toHaveBeenCalledWith({ url: "/pages/parent/home/index?legacy=child" });
+  expect(session.command).not.toHaveBeenCalled();
 });
 it("requires explicit consent after a real invitation preview", async () => {
   const page = await loadPage("../../miniprogram/pages/shared/invitation/index.js");

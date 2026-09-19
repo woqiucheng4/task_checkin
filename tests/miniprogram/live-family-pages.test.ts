@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+
 const session = vi.hoisted(() => ({
   selectedChild: async () => "child-real",
   selectedFamily: async () => ({
@@ -7,6 +8,8 @@ const session = vi.hoisted(() => ({
     children: [{ id: "child-real", nickname: "小新", grade: 2 }],
   }),
   dashboard: async () => ({
+    children: [{ id: "child-real", nickname: "小新", grade: 2 }],
+    selectionRequired: false,
     selectedChild: { id: "child-real", nickname: "小新", grade: 2 },
     family: { id: "family-real", name: "真实家庭" },
     groups: [],
@@ -15,6 +18,7 @@ const session = vi.hoisted(() => ({
   command: vi.fn(async (action: string) => {
     if (action === "GET_CHILD_ORCHARD")
       return {
+        currentTree: { id: "tree-real", progress: 4, status: "GROWING" },
         lifetimeSunlight: 4,
         fruits: [{ catalogId: "starter-apple", quantity: 2 }],
         growthCards: [
@@ -38,7 +42,9 @@ vi.mock("../../miniprogram/services/session-runtime.js", () => session);
 vi.mock("../../miniprogram/services/page-runtime.js", () => ({
   navigate: vi.fn(),
   replace: vi.fn(),
-  coreApiClient: { execute: async () => ({ ok: true, data: {} }) },
+  coreApiClient: {
+    execute: async (action: string) => ({ ok: true, data: await session.command(action) }),
+  },
 }));
 afterEach(() => vi.unstubAllGlobals());
 type Definition = {
@@ -52,6 +58,7 @@ async function loadPage(path: string) {
   });
   vi.stubGlobal("wx", {
     showToast: vi.fn(),
+    redirectTo: vi.fn(),
     getStorageSync: () => undefined,
     setStorageSync: vi.fn(),
   });
@@ -88,8 +95,8 @@ it("loads family settings without exposing an export action", async () => {
   });
   expect(session.command).not.toHaveBeenCalledWith("REQUEST_EXPORT", expect.anything());
 });
-it("shows the selected child's real nickname, grade and harvest count", async () => {
+it("redirects the old child profile to the parent selector", async () => {
   const page = await loadPage("../../miniprogram/pages/child/profile/index.js");
   await page.onShow();
-  expect(page.data).toMatchObject({ nickname: "小新", grade: 2, fruitCount: 2 });
+  expect(wx.redirectTo).toHaveBeenCalledWith({ url: "/pages/parent/home/index?legacy=child" });
 });

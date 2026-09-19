@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="title">为孩子提交完成情况</view>
+  <view class="note">当前孩子：{{selectedName || '尚未选择'}}{{revision ? ' · 订正后再次提交' : ''}}</view>
+  <view wx:if="{{loading}}" class="note">正在加载任务要求</view>
+  <view wx:elif="{{selectionRequired || error}}" class="field"><view>{{error || selectionMessage}}</view><button bindtap="openSelection">{{selectionRequired ? selectionAction : '返回首页选择任务'}}</button></view>
+  <block wx:elif="{{ready}}">
+    <view class="note">请按任务要求记录孩子的完成情况。图片仅用于本任务，最多上传 3 张。</view>
+    <view wx:if="{{mode === 'CONFIRM'}}" class="field">确认孩子已按要求完成任务后提交。</view>
+    <view wx:if="{{mode === 'TEXT' || mode === 'TEXT_AND_PHOTO'}}" class="field"><view class="field__label">孩子的完成情况</view><textarea class="textarea" maxlength="300" placeholder="记录完成过程、收获或需要帮助的地方" value="{{text}}" disabled="{{submitting}}" bindinput="editText" /></view>
+    <view wx:if="{{mode === 'PHOTO' || mode === 'TEXT_AND_PHOTO'}}" class="field">
+      <view class="field__label">上传完成结果（{{mediaAssetIds.length}} / 3）</view>
+      <view wx:for="{{previewImages}}" wx:key="*this" class="preview"><image src="{{item}}" mode="widthFix" /><button data-index="{{index}}" disabled="{{uploading || submitting}}" bindtap="removePhoto">移除图片</button></view>
+      <button wx:if="{{mediaAssetIds.length < 3}}" class="photo" loading="{{uploading}}" disabled="{{uploading || submitting}}" bindtap="choosePhoto"><t-icon name="camera" size="52rpx" color="#174E2A" /><text>拍照或从相册选择</text></button>
+    </view>
+    <view class="protected"><t-icon name="shield" size="38rpx" color="#174E2A" /><text>私密图片只向本任务已授权的家长和老师开放</text></view>
+    <button class="primary" loading="{{submitting}}" disabled="{{submitting || uploading}}" bindtap="submit">{{uploading ? '图片上传中' : submitting ? '正在提交' : '为孩子提交完成情况'}}</button>
+  </block>
+</view>

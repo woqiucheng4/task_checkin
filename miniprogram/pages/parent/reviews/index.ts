@@ -1,22 +1,30 @@
 import type { ReviewQueueView } from "../../../../src/application/presentation-models.js";
-import { navigate } from "../../../services/page-runtime.js";
+import { dashboard, selectChild, showError } from "../../../services/session-runtime.js";
 import {
-  accountShell,
-  command,
-  selectedChild,
-  selectChild,
-  showError,
-} from "../../../services/session-runtime.js";
+  childCommand,
+  childSelection,
+  guardedNavigate,
+  openSelection,
+  requireCurrentChild,
+} from "../child-context.js";
+
 async function load(page: MiniPageInstance) {
+  page.setData({
+    loading: true,
+    error: "",
+    items: [],
+    selectedChildId: "",
+    selectionRequired: true,
+  });
   try {
-    const shell = await accountShell();
-    const childId = await selectedChild();
-    const queue = await command<ReviewQueueView>("GET_REVIEW_QUEUE", { kind: "FAMILY", childId });
+    const home = await dashboard();
+    page.setData(childSelection(home));
+    if (home.selectionRequired) return;
+    const queue = await childCommand<ReviewQueueView>(home.selectedChild.id, "GET_REVIEW_QUEUE", {
+      kind: "FAMILY",
+    });
+    await requireCurrentChild(home.selectedChild.id);
     page.setData({
-      children: shell.families
-        .flatMap((f) => f.children)
-        .map((c) => ({ id: c.id, name: c.nickname })),
-      selected: childId,
       items: queue.items.map((item) => ({
         id: item.assignmentId,
         title: item.title,
@@ -27,24 +35,45 @@ async function load(page: MiniPageInstance) {
     });
   } catch (error) {
     showError(error);
+    page.setData({ error: error instanceof Error ? error.message : "加载失败" });
+  } finally {
+    page.setData({ loading: false });
   }
 }
 Page({
-  data: { children: [], items: [], selected: "" },
-  onShow() {
-    void load(this);
+  data: {
+    children: [],
+    items: [],
+    selectedChildId: "",
+    selectedName: "",
+    selectionRequired: true,
+    selectionMessage: "请选择要操作的孩子",
+    selectionAction: "选择孩子",
+    loading: true,
+    error: "",
+  },
+  async onShow() {
+    await load(this);
+  },
+  openSelection() {
+    openSelection(this);
   },
   open(event: { currentTarget: { dataset: { id?: string } } }) {
     if (event.currentTarget.dataset.id)
-      navigate(`/pages/parent/review-detail/index?id=${event.currentTarget.dataset.id}`);
+      guardedNavigate(
+        this,
+        `/pages/parent/review-detail/index?id=${encodeURIComponent(event.currentTarget.dataset.id)}&childId=${encodeURIComponent(String(this.data.selectedChildId))}`,
+      );
   },
   async selectChild(event: { currentTarget: { dataset: { id?: string } } }) {
-    if (!event.currentTarget.dataset.id) return;
+    if (this.data.loading || !event.currentTarget.dataset.id) return;
+    this.setData({ loading: true });
     try {
       await selectChild(event.currentTarget.dataset.id);
       await load(this);
     } catch (error) {
       showError(error);
+      this.setData({ loading: false });
     }
   },
 });
