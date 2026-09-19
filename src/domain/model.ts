@@ -223,6 +223,7 @@ export interface Task extends MutableRecord {
   readonly sourceScope: TenantScope;
   readonly groupId?: string;
   readonly publisherAccountId: string;
+  readonly sourceAssetIds: readonly string[];
   readonly title: string;
   readonly description?: string;
   readonly category: TaskCategory;

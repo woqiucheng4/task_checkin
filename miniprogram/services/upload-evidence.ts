@@ -27,7 +27,7 @@ export async function uploadEvidence(
     purpose: "SUBMISSION_EVIDENCE",
     mimeType,
     byteSize,
-    retentionDays: 30,
+    retentionDays: 90,
   });
   if (!intent.ok) throw new Error(intent.error.message);
   const { asset } = intent.data as { asset: { id: string } };

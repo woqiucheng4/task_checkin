@@ -226,6 +226,9 @@ export class SubmissionService {
     expectedState: "PENDING" | "REVISION_REQUIRED",
   ): Promise<SubmissionResult> {
     requireRequestId(input.requestId);
+    if (input.mediaAssetIds.length > 3) {
+      throw new DomainError("INVALID_INPUT", "一次提交最多附加三张图片");
+    }
     const { assignment, task } = await this.loadAssignment(input.assignmentId);
     await this.requireChildActor(actor, assignment.childId);
     const repeated = (

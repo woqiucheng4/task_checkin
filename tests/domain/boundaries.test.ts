@@ -249,6 +249,7 @@ function rewardTask(importance: Task["importance"]): Task {
     requiresAcademicReview: false,
     schedule: { date: "2026-09-05", kind: "ONCE" },
     source: "FAMILY",
+    sourceAssetIds: [],
     sourceScope: { familyId: "f", kind: "FAMILY" },
     startsAt: "now",
     status: "PUBLISHED",

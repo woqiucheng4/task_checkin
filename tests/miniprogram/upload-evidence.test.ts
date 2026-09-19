@@ -32,7 +32,7 @@ it("submits a server-owned media id rather than the underlying cloud file id", a
         purpose: "SUBMISSION_EVIDENCE",
         mimeType: "image/jpeg",
         byteSize: 8,
-        retentionDays: 30,
+        retentionDays: 90,
       },
     },
     { action: "UPLOAD_MEDIA_CONTENT", payload: { assetId: "media-new", base64: "/9j/4AAB/9k=" } },

@@ -15,6 +15,7 @@ import type {
 import { AccessPolicy } from "../domain/policy.js";
 import { assignmentBusinessKey, assertValidSchedule, isScheduledOn } from "../domain/tasks.js";
 import { DomainError } from "../shared/errors.js";
+import { MediaService } from "./media-service.js";
 
 interface RequestBase {
   readonly requestId: string;
@@ -34,6 +35,7 @@ interface TaskFields {
   readonly allowLateSubmission: boolean;
   readonly requiresAcademicReview: boolean;
   readonly occurrenceDate: CalendarDate;
+  readonly sourceAssetIds?: readonly string[];
 }
 
 export class TaskService {
@@ -129,6 +131,12 @@ export class TaskService {
       }
     }
     const scope: TenantScope = { kind: "FAMILY", familyId: input.familyId };
+    await MediaService.assertTaskSourceAssets(
+      this.dependencies,
+      actor,
+      scope,
+      input.sourceAssetIds ?? [],
+    );
     const task = this.makeTask(actor, input, "FAMILY", scope);
     const assignments = childIds.map((childId) =>
       this.makeAssignment(task, input.occurrenceDate, {
@@ -174,6 +182,12 @@ export class TaskService {
       kind: "ORGANIZATION",
       organizationId: group.organizationId,
     };
+    await MediaService.assertTaskSourceAssets(
+      this.dependencies,
+      actor,
+      scope,
+      input.sourceAssetIds ?? [],
+    );
     const task = this.makeTask(actor, input, source, scope, group.id);
     const assignments = [];
     for (const membership of memberships) {
@@ -314,6 +328,7 @@ export class TaskService {
       requiresAcademicReview: input.requiresAcademicReview,
       schedule: structuredClone(input.schedule),
       source,
+      sourceAssetIds: [...(input.sourceAssetIds ?? [])],
       sourceScope,
       startsAt: input.startsAt,
       status: "PUBLISHED",

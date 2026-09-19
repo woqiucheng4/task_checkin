@@ -118,7 +118,7 @@ describe("media governance acceptance", () => {
         byteSize: 100_000,
         mimeType: "image/png",
         purpose: "SUBMISSION_EVIDENCE",
-        retentionDays: 1,
+        retentionDays: 90,
       },
       { actor: childActor },
     );
@@ -148,7 +148,7 @@ describe("media governance acceptance", () => {
     await expect(
       scenario.call<MediaAsset>(family.openId, "READ_MEDIA_ASSET", { assetId: upload.asset.id }),
     ).resolves.toMatchObject({ id: upload.asset.id, status: "ACTIVE" });
-    scenario.harness.clock.set("2026-09-07T10:00:00.000Z");
+    scenario.harness.clock.set("2026-12-05T10:00:00.000Z");
     await scenario.call(
       platformOpenId,
       "DELETE_EXPIRED_MEDIA",

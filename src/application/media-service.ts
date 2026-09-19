@@ -37,6 +37,29 @@ export class MediaService {
     this.policy = new AccessPolicy(dependencies.repository);
   }
 
+  static async assertTaskSourceAssets(
+    dependencies: ApplicationDependencies,
+    actor: ActorContext,
+    ownerScope: TenantScope,
+    assetIds: readonly string[],
+  ): Promise<void> {
+    if (assetIds.length > 3) {
+      throw new DomainError("INVALID_INPUT", "任务最多附加三张图片");
+    }
+    for (const assetId of assetIds) {
+      const asset = await dependencies.repository.read("mediaAssets", assetId);
+      if (
+        asset?.status !== "ACTIVE" ||
+        asset.purpose !== "TASK_SOURCE" ||
+        asset.uploaderAccountId !== actor.accountId ||
+        !asset.storageKey.startsWith("task-checkin/") ||
+        !sameScope(asset.ownerScope, ownerScope)
+      ) {
+        throw new DomainError("FORBIDDEN", "任务图片不属于当前发布者或空间");
+      }
+    }
+  }
+
   async createUploadIntent(
     actor: ActorContext,
     input: RequestBase & {
@@ -51,6 +74,9 @@ export class MediaService {
     requireRequestId(input.requestId);
     assertValidMediaInput(input);
     const ownerScope = await this.resolveUploadScope(actor, input);
+    if (input.purpose === "SUBMISSION_EVIDENCE" && input.retentionDays !== 90) {
+      throw new DomainError("INVALID_INPUT", "作业证据必须保存 90 天");
+    }
     const now = this.dependencies.clock.now();
     const expiresAt = addDays(now, input.retentionDays);
     const uploadUrlExpiresAt = new Date(Date.parse(now) + 15 * 60 * 1000).toISOString();
@@ -296,6 +322,7 @@ export class MediaService {
       requestId: input.requestId,
       requiresAcademicReview: input.requiresAcademicReview,
       schedule: input.schedule,
+      sourceAssetIds: [draft.sourceAssetId],
       startsAt: draft.startsAt,
       submissionMode: draft.submissionMode,
       title: draft.title,
@@ -379,7 +406,10 @@ export class MediaService {
     if (asset === undefined || asset.status !== "ACTIVE") {
       throw new DomainError("NOT_FOUND", "图片不存在或已删除");
     }
-    if (asset.uploaderAccountId === actor.accountId) {
+    if (asset.purpose === "SUBMISSION_EVIDENCE" && actor.mode !== "ACCOUNT") {
+      throw new DomainError("FORBIDDEN", "当前身份不能读取作业图片");
+    }
+    if (asset.uploaderAccountId === actor.accountId && asset.purpose !== "SUBMISSION_EVIDENCE") {
       return asset;
     }
     if (asset.purpose === "TASK_SOURCE") {
@@ -606,4 +636,13 @@ function requireRequestId(requestId: string): void {
 
 function stripUndefined<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}
+
+function sameScope(left: TenantScope, right: TenantScope): boolean {
+  return (
+    (left.kind === "FAMILY" && right.kind === "FAMILY" && left.familyId === right.familyId) ||
+    (left.kind === "ORGANIZATION" &&
+      right.kind === "ORGANIZATION" &&
+      left.organizationId === right.organizationId)
+  );
 }

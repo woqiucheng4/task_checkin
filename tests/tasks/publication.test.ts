@@ -33,6 +33,8 @@ describe("task publication", () => {
       taskId: task.id,
     });
 
+    expect(task.sourceAssetIds).toEqual([]);
+
     expect(assignments.map((item) => item.organizationMemberId).sort()).toEqual(
       seed.memberships.map((item) => item.organizationMemberId).sort(),
     );
