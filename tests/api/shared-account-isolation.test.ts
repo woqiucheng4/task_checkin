@@ -344,7 +344,8 @@ describe("final shared-account and withdrawal boundaries", () => {
     release();
     expect(await pending).toMatchObject({ ok: false, error: { code: "FORBIDDEN" } });
     expect(await s.harness.repository.read("mediaAssets", asset.id)).toMatchObject({
-      status: "PENDING_UPLOAD",
+      status: "QUARANTINED",
+      fileId: `cloud://test/${asset.storageKey}`,
     });
   });
 

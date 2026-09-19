@@ -27,3 +27,21 @@ Two existing fixtures were adjusted without weakening their intended assertions:
 - Existing source-retention tests still cover multiple pending recipients, last-completion retention, abandoned intents and deletion failure.
 
 No device, live CloudBase, external provider or production runtime verification is claimed.
+
+## D review fix round 1 — physical upload compensation
+
+The reviewer found that bytes could be uploaded before final authorization failed, while the asset remained `PENDING_UPLOAD` without its file ID. The old metadata-only pending-intent cleanup could then claim deletion without deleting those bytes.
+
+The upload state machine is now `PENDING_UPLOAD -> UPLOADING -> QUARANTINED -> ACTIVE`. A transaction claims `UPLOADING` before storage I/O, excluding another physical write or cleanup of the same key. After storage returns its file ID, a separate transaction persists that ID and upload time in unreadable `QUARANTINED` state before final authorization and activation. Activation authorization or transaction failure leaves the file durably tracked and unavailable for user reads, further uploads, or attachments. Transient staging persistence/commit-response errors are retried without re-uploading. An unresolved in-flight upload remains fail-closed and is never marked deleted by the metadata-only branch.
+
+Expired quarantine cleanup checks actual task/draft/submission/evidence references in its claim transaction. The original upload-intent assignment alone is not a committed reference. Unreferenced quarantined objects are reclaimed 90 days after upload, using the persisted file ID: `DELETING -> storage.delete(fileId) -> DELETED`. A failed deletion retains `DELETING` and the file ID for retry. A committed active upload is never demoted by an activation-response error; legitimate references continue to protect its physical object. Truly abandoned intents that never began physical upload retain the existing metadata-only expiration behavior.
+
+The verified storage fake now actually removes its stored bytes. Before this fix, the targeted red run had **3 failures and 1 pass**: revoked upload and failed activation both lacked the returned file ID, and no durable staging retry existed. Six new regression cases verify revoked-confirm `FORBIDDEN` followed by one successful physical deletion and object disappearance, activation-write failure plus failed-delete retry, transient staging failure recovery, lost activation response after a legitimate submission reference commits, single physical upload while in flight, and conservative protection of referenced quarantine records.
+
+Round 1 verification:
+
+- `npm test -- --run`: **92 files, 425 tests passed**.
+- `npm run typecheck`: passed.
+- Biome lint over the five changed TypeScript files: passed, no warnings.
+- `git diff --check`: passed.
+- No deployment, cloud operation, external network request, or production runtime validation.

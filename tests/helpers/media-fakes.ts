@@ -16,6 +16,7 @@ export class FakeMediaStorage implements MediaStorage {
 
   async delete(storageKey: string): Promise<void> {
     this.deletedKeys.push(storageKey);
+    this.privateFiles.delete(storageKey);
   }
 
   setPrivateFile(fileId: string, content: Uint8Array): void {
@@ -39,7 +40,11 @@ export class FakeOcrProvider implements TaskDraftProvider {
     readonly mimeType: "image/jpeg" | "image/png" | "image/webp";
     readonly requestId: string;
   }): Promise<RecognizedTaskFields> {
-    this.calls.push({ image: new Uint8Array(input.image), mimeType: input.mimeType, requestId: input.requestId });
+    this.calls.push({
+      image: new Uint8Array(input.image),
+      mimeType: input.mimeType,
+      requestId: input.requestId,
+    });
     return structuredClone(this.result);
   }
 }

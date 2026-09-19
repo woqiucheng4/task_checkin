@@ -186,14 +186,36 @@ export class MediaService {
     ) {
       throw new DomainError("INVALID_INPUT", "图片格式或大小与上传申请不一致");
     }
+    // Claim before storage I/O: cleanup and a second uploader must not race the
+    // same physical key while its file ID is still unknown.
+    const claimed = await this.dependencies.repository.transaction(async (tx) => {
+      const current = await this.requireUploader(actor, asset.id, tx);
+      if (current.status === "ACTIVE" && current.fileId) return current;
+      if (current.status !== "PENDING_UPLOAD")
+        throw new DomainError("CONFLICT", "图片正在上传或申请已失效");
+      return tx.update("mediaAssets", asset.id, {
+        status: "UPLOADING",
+        uploadConfirmationRequestId: input.requestId,
+        updatedAt: this.dependencies.clock.now(),
+      });
+    });
+    if (claimed.status === "ACTIVE") return claimed;
     const fileId = await this.storage.upload(asset.storageKey, content);
     if (!fileId.startsWith("cloud://"))
       throw new DomainError("CONFLICT", "云存储未返回有效文件 ID");
     const now = this.dependencies.clock.now();
+    // Durably account for the private object independently of caller authority.
+    // A denied/failed activation leaves a non-readable, reclaimable quarantine.
+    await this.stageUploadedFile(asset.id, input.requestId, fileId, now);
     return this.dependencies.repository.transaction(async (tx) => {
       const current = await this.requireUploader(actor, asset.id, tx);
       if (current.status === "ACTIVE" && current.fileId) return current;
-      if (current.status !== "PENDING_UPLOAD") throw new DomainError("CONFLICT", "上传申请已失效");
+      if (
+        current.status !== "QUARANTINED" ||
+        current.uploadConfirmationRequestId !== input.requestId ||
+        current.fileId !== fileId
+      )
+        throw new DomainError("CONFLICT", "上传申请已失效");
       const active = await tx.update("mediaAssets", asset.id, {
         fileId,
         status: "ACTIVE",
@@ -210,6 +232,40 @@ export class MediaService {
       );
       return active;
     });
+  }
+
+  private async stageUploadedFile(
+    assetId: string,
+    requestId: string,
+    fileId: string,
+    now: string,
+  ): Promise<void> {
+    // Retry a transient write/commit-response failure without uploading again.
+    // If persistence remains unavailable, UPLOADING stays fail-closed and is
+    // never declared physically deleted by the metadata-only cleanup branch.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await this.dependencies.repository.transaction(async (tx) => {
+          const current = await tx.read("mediaAssets", assetId);
+          if (
+            current?.uploadConfirmationRequestId !== requestId ||
+            !["UPLOADING", "QUARANTINED", "ACTIVE"].includes(current.status)
+          )
+            throw new DomainError("CONFLICT", "上传申请已失效");
+          if (current.fileId === fileId && current.status !== "UPLOADING") return;
+          if (current.status !== "UPLOADING") throw new DomainError("CONFLICT", "上传文件不匹配");
+          await tx.update("mediaAssets", assetId, {
+            fileId,
+            status: "QUARANTINED",
+            uploadedAt: now,
+            updatedAt: now,
+          });
+        });
+        return;
+      } catch (error) {
+        if (attempt === 2) throw error;
+      }
+    }
   }
 
   async recordUpload(
@@ -611,16 +667,24 @@ export class MediaService {
           (asset.purpose === "TASK_SOURCE" || Date.parse(asset.expiresAt) < Date.parse(now))) ||
         (asset.status === "PENDING_UPLOAD" &&
           ["TASK_SOURCE", "SUBMISSION_EVIDENCE"].includes(asset.purpose)) ||
+        asset.status === "QUARANTINED" ||
         asset.status === "DELETING",
     );
     let deletedCount = 0;
     for (const asset of assets) {
       const claimed = await this.dependencies.repository.transaction(async (tx) => {
         const current = await tx.read("mediaAssets", asset.id);
-        if (!current || current.status === "DELETED") return undefined;
+        if (!current || current.status === "DELETED" || current.status === "UPLOADING")
+          return undefined;
         if (current.status === "DELETING") return current;
         let expiresAt = current.expiresAt;
-        if (["TASK_SOURCE", "SUBMISSION_EVIDENCE"].includes(current.purpose)) {
+        if (current.status === "QUARANTINED") {
+          // An intent's assignment is not a committed submission reference.
+          // Quarantined uploads may be reclaimed after timeout, but preserve
+          // any actual reference conservatively rather than deleting live work.
+          if (await this.hasMediaReferences(tx, current.id)) return undefined;
+          expiresAt = addDays(current.uploadedAt ?? current.createdAt, 90);
+        } else if (["TASK_SOURCE", "SUBMISSION_EVIDENCE"].includes(current.purpose)) {
           expiresAt = addDays(current.uploadedAt ?? current.createdAt, 90);
           const tasks = await tx.query(
             "tasks",
@@ -702,6 +766,25 @@ export class MediaService {
       if (deleted) deletedCount += 1;
     }
     return { deletedCount };
+  }
+
+  private async hasMediaReferences(repository: ReadRepository, assetId: string): Promise<boolean> {
+    if ((await repository.query("submissionEvidenceLinks", { mediaAssetId: assetId })).length)
+      return true;
+    if (
+      (
+        await repository.query("submissions", (submission) =>
+          submission.mediaAssetIds.includes(assetId),
+        )
+      ).length
+    )
+      return true;
+    if (
+      (await repository.query("tasks", (task) => task.sourceAssetIds?.includes(assetId) === true))
+        .length
+    )
+      return true;
+    return (await repository.query("taskDrafts", { sourceAssetId: assetId })).length > 0;
   }
 
   private async resolveUploadScope(
