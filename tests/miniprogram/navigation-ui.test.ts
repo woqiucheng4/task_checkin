@@ -4,12 +4,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const sessionRuntime = vi.hoisted(() => ({
   accountShell: vi.fn(),
   command: vi.fn(),
+  lastLoginRole: vi.fn(),
+  saveLastLoginRole: vi.fn(),
   showError: vi.fn(),
 }));
 
 vi.mock("../../miniprogram/services/session-runtime.js", () => ({
   accountShell: sessionRuntime.accountShell,
   command: sessionRuntime.command,
+  lastLoginRole: sessionRuntime.lastLoginRole,
+  saveLastLoginRole: sessionRuntime.saveLastLoginRole,
   showError: sessionRuntime.showError,
 }));
 
@@ -22,10 +26,21 @@ type ShellDefinition = {
 type BootstrapDefinition = {
   data: Record<string, unknown>;
   cancelSetup(this: { setData(value: Record<string, unknown>): void }): void;
+  onLoad(
+    this: { setData(value: Record<string, unknown>): void },
+    query: { setup?: string; familyId?: string; role?: string; intent?: string },
+  ): void;
   chooseRole(
     this: { data: Record<string, unknown>; setData(value: Record<string, unknown>): void },
     event: { readonly currentTarget: { readonly dataset: { readonly role?: string } } },
-  ): Promise<void>;
+  ): void;
+  dismissLogin(this: { data: Record<string, unknown>; setData(value: Record<string, unknown>): void }): void;
+  openTaskCreation(this: { setData(value: Record<string, unknown>): void }): void;
+  startTaskLogin(
+    this: { setData(value: Record<string, unknown>): void },
+    event: { readonly currentTarget: { readonly dataset: { readonly role?: string } } },
+  ): void;
+  login(this: { data: Record<string, unknown>; setData(value: Record<string, unknown>): void }): Promise<void>;
 };
 
 type RoleSwitcherDefinition = {
@@ -39,6 +54,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
   sessionRuntime.accountShell.mockReset();
   sessionRuntime.command.mockReset();
+  sessionRuntime.lastLoginRole.mockReset();
+  sessionRuntime.saveLastLoginRole.mockReset();
   sessionRuntime.showError.mockReset();
 });
 
@@ -95,57 +112,70 @@ describe("身份入口与二级页面导航", () => {
     expect(styles).toMatch(/\.setup__submit\s*\{[^}]*white-space:\s*nowrap/s);
   });
 
-  it.each([
-    ["parent", "/pages/parent/home/index", []],
-    ["teacher", "/pages/teacher/home/index", [{ type: "TEACHER_WORKSPACE" }]],
-  ] as const)(
-    "选择 %s 时只高亮该入口，跳转后恢复默认样式",
-    async (role, destination, organizations) => {
-      let definition: BootstrapDefinition | undefined;
-      const redirectTo = vi.fn();
-      vi.stubGlobal("Page", (value: BootstrapDefinition) => {
-        definition = value;
-      });
-      vi.stubGlobal("wx", { redirectTo });
+  it("首页启动不校验账号，也不自动弹出微信登录", async () => {
+    let definition: BootstrapDefinition | undefined;
+    vi.stubGlobal("Page", (value: BootstrapDefinition) => {
+      definition = value;
+    });
+    vi.stubGlobal("wx", { redirectTo: vi.fn() });
+    await import("../../miniprogram/pages/bootstrap/index.js");
+    if (!definition) throw new Error("bootstrap page not registered");
+    const data = { ...definition.data };
+    definition.onLoad.call({ data, setData(value) { Object.assign(data, value); } }, {});
 
-      let resolveShell:
-        | ((value: {
-            families: Array<{ children: Array<{ id: string }> }>;
-            organizations: ReadonlyArray<{ type: string }>;
-          }) => void)
-        | undefined;
-      sessionRuntime.accountShell.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveShell = resolve;
-          }),
-      );
+    expect(data).toMatchObject({ loginVisible: false, loginRole: "" });
+    expect(sessionRuntime.accountShell).not.toHaveBeenCalled();
+  });
 
-      await import("../../miniprogram/pages/bootstrap/index.js");
-      if (!definition) throw new Error("bootstrap page not registered");
-      const data = { ...definition.data };
-      const page = {
-        data,
-        setData(value: Record<string, unknown>) {
-          Object.assign(data, value);
-        },
-      };
+  it("首页直接展示果树与任务示例，点击创建任务只打开身份选择", async () => {
+    let definition: BootstrapDefinition | undefined;
+    vi.stubGlobal("Page", (value: BootstrapDefinition) => {
+      definition = value;
+    });
+    vi.stubGlobal("wx", {});
 
-      const navigation = definition.chooseRole.call(page, {
-        currentTarget: { dataset: { role } },
-      });
+    await import("../../miniprogram/pages/bootstrap/index.js");
+    if (!definition) throw new Error("bootstrap page not registered");
+    const data = { ...definition.data };
+    definition.openTaskCreation.call({ setData(value) { Object.assign(data, value); } });
 
-      expect(data).toMatchObject({ activeRole: role, loading: true });
+    expect(data).toMatchObject({ loginVisible: false, rolePickerVisible: true });
+    expect(sessionRuntime.accountShell).not.toHaveBeenCalled();
+    const markup = readFileSync("miniprogram/pages/bootstrap/index.wxml", "utf8");
+    expect(markup).toContain("今日任务");
+    expect(markup).toContain("growth-guide-reference.webp");
+    expect(markup).toContain("创建我的任务");
+    expect(markup).toContain('<bottom-nav items="{{previewNavigation}}" bindnavigate="navigatePreviewTab" />');
+    expect(readFileSync("miniprogram/pages/bootstrap/index.ts", "utf8")).toContain(
+      "apple-reference-lv1-cutout.webp",
+    );
+    const navigationMarkup = readFileSync("miniprogram/components/bottom-nav/index.wxml", "utf8");
+    expect(navigationMarkup).toContain('src="{{item.selected ? item.activeIcon : item.inactiveIcon}}"');
+    const navigation = readFileSync("miniprogram/pages/bootstrap/index.ts", "utf8");
+    expect(navigation).toContain('icon: "apple-filled"');
+    expect(navigation).toContain('icon: "tree-round-dot-vertical"');
+  });
 
-      resolveShell?.({ families: [{ children: [{ id: "child-1" }] }], organizations });
-      await navigation;
+  it.each(["parent", "teacher"] as const)("选择 %s 创建任务时才打开微信登录面板", async (role) => {
+    let definition: BootstrapDefinition | undefined;
+    vi.stubGlobal("Page", (value: BootstrapDefinition) => {
+      definition = value;
+    });
+    vi.stubGlobal("wx", {});
 
-      expect(redirectTo).toHaveBeenCalledWith({ url: destination });
-      expect(data).toMatchObject({ activeRole: "", loading: false });
-    },
-  );
+    await import("../../miniprogram/pages/bootstrap/index.js");
+    if (!definition) throw new Error("bootstrap page not registered");
+    const data = { ...definition.data };
+    definition.startTaskLogin.call(
+      { setData(value) { Object.assign(data, value); } },
+      { currentTarget: { dataset: { role } } },
+    );
 
-  it("将没有孩子的家长带入可恢复的家庭创建状态", async () => {
+    expect(data).toMatchObject({ loginIntent: "CREATE_TASK", loginRole: role, loginVisible: true });
+    expect(sessionRuntime.accountShell).not.toHaveBeenCalled();
+  });
+
+  it("仅从创建任务入口打开家长登录，建档后回到任务编辑", async () => {
     let definition: BootstrapDefinition | undefined;
     const redirectTo = vi.fn();
     vi.stubGlobal("Page", (value: BootstrapDefinition) => {
@@ -160,26 +190,22 @@ describe("身份入口与二级页面导航", () => {
     await import("../../miniprogram/pages/bootstrap/index.js");
     if (!definition) throw new Error("bootstrap page not registered");
     const data = { ...definition.data };
-    await definition.chooseRole.call(
-      {
-        data,
-        setData(value) {
-          Object.assign(data, value);
-        },
-      },
-      { currentTarget: { dataset: { role: "parent" } } },
-    );
+    const page = { data, setData(value: Record<string, unknown>) { Object.assign(data, value); } };
+    definition.onLoad.call(page, { role: "parent", intent: "create-task" });
+    await definition.login.call(page);
 
+    expect(sessionRuntime.accountShell).toHaveBeenCalledWith(true);
+    expect(sessionRuntime.saveLastLoginRole).toHaveBeenCalledWith("parent");
     expect(data).toMatchObject({
-      setup: true,
       familyId: "family-1",
-      activeRole: "",
-      loading: false,
+      loginVisible: false,
+      postLoginPath: "/pages/parent/task-editor/index",
+      setup: true,
     });
     expect(redirectTo).not.toHaveBeenCalled();
   });
 
-  it("将尚未激活工作区的教师带入既有激活流程", async () => {
+  it("仅从创建任务入口打开教师登录，未激活时进入激活页", async () => {
     let definition: BootstrapDefinition | undefined;
     const redirectTo = vi.fn();
     vi.stubGlobal("Page", (value: BootstrapDefinition) => {
@@ -190,10 +216,10 @@ describe("身份入口与二级页面导航", () => {
 
     await import("../../miniprogram/pages/bootstrap/index.js");
     if (!definition) throw new Error("bootstrap page not registered");
-    await definition.chooseRole.call(
-      { data: { ...definition.data }, setData: vi.fn() },
-      { currentTarget: { dataset: { role: "teacher" } } },
-    );
+    const data = { ...definition.data };
+    const page = { data, setData(value: Record<string, unknown>) { Object.assign(data, value); } };
+    definition.onLoad.call(page, { role: "teacher", intent: "create-task" });
+    await definition.login.call(page);
 
     expect(redirectTo).toHaveBeenCalledWith({ url: "/pages/teacher/activation/index" });
   });

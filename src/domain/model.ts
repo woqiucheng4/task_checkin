@@ -27,6 +27,10 @@ export interface ActorContext {
 
 export interface Account extends MutableRecord {
   readonly openId: string;
+  /** Optional profile data explicitly supplied by the account owner. */
+  displayName?: string;
+  /** Private CloudBase asset owned by this account; never a public file URL. */
+  avatarAssetId?: string;
   status: ActiveStatus;
 }
 

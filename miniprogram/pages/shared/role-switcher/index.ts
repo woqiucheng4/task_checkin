@@ -1,4 +1,4 @@
-import { accountShell, showError } from "../../../services/session-runtime.js";
+import { accountShell, saveLastLoginRole, showError } from "../../../services/session-runtime.js";
 
 const PARENT_HOME = "/pages/parent/home/index";
 const TEACHER_HOME = "/pages/teacher/home/index";
@@ -41,6 +41,8 @@ Page({
       path === TEACHER_ACTIVATION ||
       path === BOOTSTRAP
     ) {
+      if (path === PARENT_HOME || path === BOOTSTRAP) saveLastLoginRole("parent");
+      else saveLastLoginRole("teacher");
       wx.redirectTo({ url: path });
     } else if (path?.startsWith("/pages/child/")) {
       wx.redirectTo({ url: `${PARENT_HOME}?legacy=child` });

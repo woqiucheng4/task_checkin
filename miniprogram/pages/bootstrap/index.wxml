@@ -1,29 +1,76 @@
-<view class="page">
-  <view class="brand">
-    <view class="brand__eyebrow">一棵果树 · 每天一点成长</view>
-    <view class="brand__title">成长果园</view>
-    <view class="brand__subtitle">选择本次要进入的身份</view>
-  </view>
-  <image class="tree" src="/assets/orchard/apple-mature.webp" mode="aspectFit" aria-label="成熟的苹果树" />
-  <view wx:if="{{notice}}" class="privacy">{{notice}}</view>
-  <view wx:if="{{setup}}" class="roles">
-    <button class="setup__back" bindtap="cancelSetup">‹ 返回选择身份</button>
+<view class="today-page" style="padding-top: {{topInset}}px;">
+  <block wx:if="{{setup}}">
+    <view class="brand">
+      <view class="brand__eyebrow">一棵果树 · 每天一点成长</view>
+      <view class="brand__title">创建家庭</view>
+      <view class="brand__subtitle">添加孩子后即可布置第一项任务</view>
+    </view>
+    <image class="tree tree--setup" src="/assets/orchard/apple-mature.webp" mode="aspectFit" aria-label="成熟的苹果树" />
+    <view wx:if="{{notice}}" class="privacy">{{notice}}</view>
+    <view class="roles">
+    <button class="setup__back" bindtap="cancelSetup">‹ 返回首页</button>
     <view>由家长创建家庭，添加孩子后即可布置任务。</view>
     <input placeholder="家庭名称" value="{{familyName}}" bindinput="editFamily" />
     <input placeholder="孩子昵称（不必填真实姓名）" value="{{nickname}}" bindinput="editChild" maxlength="30" />
     <button class="setup__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="createFamily">创建并进入家庭</button>
+    </view>
+  </block>
+  <block wx:else>
+    <view class="journal-date">今日</view>
+    <orchard-hero
+      asset="{{tree.asset}}"
+      embedded-sign="{{tree.embeddedSign}}"
+      current="{{sunlight.current}}"
+      level="{{tree.level}}"
+      name="{{tree.name}}"
+      progress-percent="{{progressPercent}}"
+      remaining="{{remainingSunlight}}"
+      target="{{sunlight.target}}"
+      title-asset="/assets/orchard/orchard-daily-title-reference-cutout.webp"
+    />
+    <view class="tasks">
+      <view class="growth-guide"><image src="/assets/orchard/growth-guide-reference.webp" mode="widthFix" aria-label="小树成长指南" /></view>
+      <view class="page-section__heading"><view><view class="page-title">今日任务</view><view class="page-subtitle">先看看孩子一天的成长计划</view></view></view>
+      <task-row wx:for="{{previewTasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTaskCreation" />
+      <view class="sunlight-note"><t-icon name="sunny" size="44rpx" color="#EE9A25" /><text>任务经家长确认后，阳光会自动存入果树，助力成长。</text><image src="/assets/orchard/scene-watering-reference.webp" mode="aspectFit" aria-label="给小树浇水" /></view>
+    </view>
+    <button class="home-create" bindtap="openTaskCreation">创建我的任务</button>
+    <view class="privacy">创建任务时才会使用微信身份；孩子的作品只向已授权成员展示</view>
+    <bottom-nav items="{{previewNavigation}}" bindnavigate="navigatePreviewTab" />
+  </block>
+  <view wx:if="{{rolePickerVisible}}" class="role-sheet">
+    <view class="role-sheet__mask" bindtap="dismissRolePicker" />
+    <view class="role-sheet__panel">
+      <view class="login-sheet__handle" />
+      <view class="role-sheet__title">谁来创建这项任务？</view>
+      <view class="role-sheet__copy">选择身份后，再使用微信登录保存任务。</view>
+      <button class="role" data-role="parent" bindtap="startTaskLogin"><t-icon name="home" size="42rpx" /><view><text>我是家长</text><text class="role__hint">为自己的孩子布置任务</text></view><t-icon name="chevron-right" size="34rpx" /></button>
+      <button class="role" data-role="teacher" bindtap="startTaskLogin"><t-icon name="education" size="42rpx" /><view><text>我是教师／助教</text><text class="role__hint">为学习小组发布任务</text></view><t-icon name="chevron-right" size="34rpx" /></button>
+    </view>
   </view>
-  <view wx:else class="roles">
-    <button class="role {{activeRole === 'parent' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="parent" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
-      <t-icon name="home" size="42rpx" />
-      <view><text>我是家长</text><text class="role__hint">布置、查看和确认阳光</text></view>
-      <t-icon name="chevron-right" size="34rpx" />
-    </button>
-    <button class="role {{activeRole === 'teacher' ? 'role--active' : ''}}" disabled="{{loading}}" data-role="teacher" bindtap="chooseRole" hover-class="role--active" hover-start-time="0" hover-stay-time="120">
-      <t-icon name="education" size="42rpx" />
-      <view><text>我是教师／助教</text><text class="role__hint">管理班级任务和学习审核</text></view>
-      <t-icon name="chevron-right" size="34rpx" />
-    </button>
+  <view wx:if="{{loginVisible}}" class="login-sheet">
+    <view class="login-sheet__mask" bindtap="dismissLogin" />
+    <view class="login-sheet__panel">
+      <view class="login-sheet__handle" />
+      <view class="login-sheet__title">使用微信登录</view>
+      <view class="login-sheet__copy">将以当前微信身份进入{{loginRoleLabel}}空间</view>
+      <view class="login-sheet__privacy">仅用于账号识别，不读取手机号。</view>
+      <view class="profile-consent">
+        <view class="profile-consent__title">完善资料（可跳过）</view>
+        <view class="profile-consent__row">
+          <button class="profile-consent__avatar" open-type="chooseAvatar" bindchooseavatar="chooseAccountAvatar" aria-label="选择头像">
+            <image wx:if="{{accountAvatarUrl}}" src="{{accountAvatarUrl}}" mode="aspectFill" />
+            <t-icon wx:else name="user" size="42rpx" />
+          </button>
+          <input class="profile-consent__nickname" type="nickname" value="{{accountNickname}}" bindinput="editAccountNickname" maxlength="40" placeholder="输入昵称" />
+        </view>
+        <view class="profile-consent__hint">头像和昵称仅在您主动选择或输入后保存到本小程序账号资料。</view>
+      </view>
+      <view wx:if="{{notice}}" class="login-sheet__error">{{notice}}</view>
+      <button class="login-sheet__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="login">
+        {{loading ? '正在验证微信身份…' : '使用微信登录'}}
+      </button>
+      <button class="login-sheet__dismiss" disabled="{{loading}}" bindtap="dismissLogin">暂不登录</button>
+    </view>
   </view>
-  <view class="privacy">孩子的任务与作品只向已授权的家庭和分组成员展示</view>
 </view>

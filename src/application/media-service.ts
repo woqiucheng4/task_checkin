@@ -95,7 +95,10 @@ export class MediaService {
     const now = this.dependencies.clock.now();
     const expiresAt = addDays(now, input.retentionDays);
     const uploadUrlExpiresAt = new Date(Date.parse(now) + 15 * 60 * 1000).toISOString();
-    const storageKey = `task-checkin/${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
+    const storageKey =
+      input.purpose === "AVATAR"
+        ? `task-checkin/account/${actor.accountId}/${this.dependencies.ids.next("asset")}`
+        : `task-checkin/${ownerScope.kind.toLowerCase()}/${this.dependencies.ids.next("asset")}`;
     const asset: MediaAsset = {
       uploadRequestId: input.requestId,
       id: this.dependencies.ids.next("media"),
@@ -113,7 +116,9 @@ export class MediaService {
       visibleRoles:
         input.purpose === "SUBMISSION_EVIDENCE"
           ? ["GUARDIAN", "TEACHER", "ASSISTANT"]
-          : ["ORGANIZATION_ADMIN", "TEACHER", "ASSISTANT"],
+          : input.purpose === "AVATAR"
+            ? []
+            : ["ORGANIZATION_ADMIN", "TEACHER", "ASSISTANT"],
     };
     const persisted = await this.dependencies.repository.transaction(async (tx) => {
       await this.resolveUploadScope(actor, input, tx);
@@ -826,6 +831,15 @@ export class MediaService {
     repository: ReadRepository = this.dependencies.repository,
   ): Promise<TenantScope> {
     const policy = new AccessPolicy(repository);
+    if (input.purpose === "AVATAR") {
+      if (actor.mode !== "ACCOUNT") {
+        throw new DomainError("FORBIDDEN", "只有普通账号可以上传头像");
+      }
+      if (input.ownerScope !== undefined && input.ownerScope.kind !== "PLATFORM") {
+        throw new DomainError("INVALID_INPUT", "头像不能关联家庭或机构空间");
+      }
+      return { kind: "PLATFORM" };
+    }
     if (input.purpose === "SUBMISSION_EVIDENCE") {
       if (input.assignmentId === undefined) {
         throw new DomainError("INVALID_INPUT", "作业证据必须关联孩子任务实例");
@@ -1013,6 +1027,7 @@ function stripUndefined<T extends object>(value: T): T {
 
 function sameScope(left: TenantScope, right: TenantScope): boolean {
   return (
+    (left.kind === "PLATFORM" && right.kind === "PLATFORM") ||
     (left.kind === "FAMILY" && right.kind === "FAMILY" && left.familyId === right.familyId) ||
     (left.kind === "ORGANIZATION" &&
       right.kind === "ORGANIZATION" &&

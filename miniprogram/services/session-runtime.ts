@@ -14,6 +14,8 @@ const client = new CoreApiClient({
 });
 const accountChildApi = new AccountChildApiClient(client);
 const KEY = "task_checkin_session_v1";
+const LAST_LOGIN_ROLE_KEY = "task_checkin_last_login_role_v1";
+export type LoginRole = "parent" | "teacher";
 let shell: AccountShellView | undefined;
 let selectedChildId = "";
 let init: Promise<AccountShellView> | undefined;
@@ -26,6 +28,15 @@ let init: Promise<AccountShellView> | undefined;
 export interface ParentDashboardPageData extends ParentDashboardView {
   readonly accountShell: AccountShellView;
   readonly selectionRequired: boolean;
+}
+
+export function lastLoginRole(): LoginRole | undefined {
+  const role = wx.getStorageSync(LAST_LOGIN_ROLE_KEY);
+  return role === "parent" || role === "teacher" ? role : undefined;
+}
+
+export function saveLastLoginRole(role: LoginRole): void {
+  wx.setStorageSync(LAST_LOGIN_ROLE_KEY, role);
 }
 
 export async function command<T>(

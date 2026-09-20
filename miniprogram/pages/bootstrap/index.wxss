@@ -1,7 +1,9 @@
-.page {
+.today-page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 58rpx 42rpx 52rpx;
+  padding-right: 36rpx;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  padding-left: 36rpx;
   background: #faf7ee;
 }
 
@@ -30,8 +32,19 @@
   display: block;
   width: 490rpx;
   height: 460rpx;
-  margin: -32rpx auto -26rpx;
+  margin: -30rpx auto -46rpx;
 }
+
+.tree--setup { margin: -32rpx auto -26rpx; }
+
+.journal-date { color: #183e24; font-size: 26rpx; letter-spacing: 1rpx; }
+orchard-hero { display: block; margin-right: -36rpx; }
+.tasks { margin-top: 10rpx; }
+.growth-guide { margin: -10rpx 0 50rpx; }
+.growth-guide image { display: block; width: 100%; }
+.sunlight-note { display: grid; grid-template-columns: 44rpx minmax(0, 1fr) 142rpx; align-items: center; gap: 15rpx; min-height: 102rpx; margin-top: 28rpx; padding: 10rpx 22rpx; border-radius: 14rpx; background: #f6f3e3; color: #52574e; font-size: 23rpx; line-height: 1.6; }
+.sunlight-note image { width: 142rpx; height: 82rpx; }
+.home-create { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 96rpx; margin: 28rpx 0 0; border: 2rpx solid #d93a22; border-radius: 18rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; text-align: center; }
 
 .roles {
   display: flex;
@@ -112,6 +125,172 @@
   margin-top: 28rpx;
   color: #7a7d75;
   font-size: 21rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.role-sheet { position: fixed; z-index: 30; inset: 0; }
+.role-sheet__mask { position: absolute; inset: 0; background: rgba(22, 35, 26, 0.42); }
+.role-sheet__panel { position: absolute; right: 0; bottom: 0; left: 0; box-sizing: border-box; padding: 20rpx 42rpx calc(42rpx + env(safe-area-inset-bottom)); border-radius: 32rpx 32rpx 0 0; background: #fffdf7; }
+.role-sheet__title { color: #174e2a; font-size: 38rpx; font-weight: 700; text-align: center; }
+.role-sheet__copy { margin: 16rpx 0 28rpx; color: #5f655d; font-size: 25rpx; line-height: 1.6; text-align: center; }
+.role-sheet__panel .role + .role { margin-top: 18rpx; }
+
+.login-sheet {
+  position: fixed;
+  z-index: 31;
+  inset: 0;
+}
+
+.login-sheet__mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(22, 35, 26, 0.42);
+}
+
+.login-sheet__panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  padding: 20rpx 42rpx calc(42rpx + env(safe-area-inset-bottom));
+  border-radius: 32rpx 32rpx 0 0;
+  background: #fffdf7;
+}
+
+.login-sheet__handle {
+  width: 72rpx;
+  height: 8rpx;
+  margin: 0 auto 36rpx;
+  border-radius: 99rpx;
+  background: #d9d6ca;
+}
+
+.login-sheet__title {
+  color: #174e2a;
+  font-size: 38rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.login-sheet__copy {
+  margin-top: 16rpx;
+  color: #5f655d;
+  font-size: 27rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.login-sheet__privacy {
+  margin-top: 10rpx;
+  color: #8a8d85;
+  font-size: 22rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.profile-consent {
+  margin-top: 28rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 18rpx;
+  background: #f7f5ed;
+}
+
+.profile-consent__title {
+  color: #315b3d;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.profile-consent__row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 18rpx;
+}
+
+.profile-consent__avatar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 2rpx solid #d5dacf;
+  border-radius: 50%;
+  background: #fffdf7;
+  color: #63806b;
+}
+
+.profile-consent__avatar::after {
+  border: 0;
+}
+
+.profile-consent__avatar image {
+  width: 100%;
+  height: 100%;
+}
+
+.profile-consent__nickname {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  height: 78rpx;
+  padding: 0 20rpx;
+  border: 2rpx solid #d5dacf;
+  border-radius: 14rpx;
+  background: #fffdf7;
+  color: #174e2a;
+  font-size: 27rpx;
+}
+
+.profile-consent__hint {
+  margin-top: 14rpx;
+  color: #777c74;
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.login-sheet__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 96rpx;
+  margin: 42rpx 0 0;
+  padding: 18rpx 28rpx;
+  border: 2rpx solid #17b866;
+  border-radius: 18rpx;
+  background: #17b866;
+  color: #fff;
+  font-size: 29rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.login-sheet__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 72rpx;
+  margin: 16rpx 0 0;
+  padding: 12rpx 28rpx;
+  border: 0;
+  background: transparent;
+  color: #777c74;
+  font-size: 26rpx;
+  line-height: 1.3;
+}
+
+.login-sheet__error {
+  margin-top: 22rpx;
+  color: #d93a22;
+  font-size: 24rpx;
   line-height: 1.6;
   text-align: center;
 }

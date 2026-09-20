@@ -54,6 +54,38 @@ describe("verified upload boundary", () => {
       downloadUrl: "https://storage.example/signed-image",
     });
   });
+  it("stores an opted-in account avatar privately and only lets its owner bind it", async () => {
+    const seed = await scenario();
+    const avatarIntent = await seed.media.createUploadIntent(seed.guardian, {
+      purpose: "AVATAR",
+      byteSize: seed.content.length,
+      mimeType: "image/jpeg",
+      retentionDays: 365,
+      requestId: "profile-avatar-intent",
+    });
+    const avatar = await seed.media.uploadContent(seed.guardian, {
+      assetId: avatarIntent.asset.id,
+      base64: seed.content.toString("base64"),
+      requestId: "profile-avatar-content",
+    });
+
+    expect(avatar.storageKey).toMatch(
+      new RegExp(`^task-checkin/account/${seed.guardian.accountId}/`),
+    );
+    await expect(
+      seed.identity.updateAccountProfile(seed.guardian, {
+        avatarAssetId: avatar.id,
+        displayName: "小明妈妈",
+        requestId: "profile-avatar-bind",
+      }),
+    ).resolves.toMatchObject({ avatarAssetId: avatar.id, displayName: "小明妈妈" });
+    await expect(
+      seed.identity.updateAccountProfile(seed.teacher, {
+        avatarAssetId: avatar.id,
+        requestId: "profile-avatar-forge",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
   it("rejects forged content before storage writes", async () => {
     const seed = await scenario();
     await expect(

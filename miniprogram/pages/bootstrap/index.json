@@ -1,6 +1,9 @@
 {
-  "navigationBarTitleText": "进入成长果园",
+  "navigationStyle": "custom",
   "usingComponents": {
+    "bottom-nav": "/components/bottom-nav/index",
+    "orchard-hero": "/components/orchard-hero/index",
+    "task-row": "/components/task-row/index",
     "t-icon": "/components/ui-icon/index"
   }
 }

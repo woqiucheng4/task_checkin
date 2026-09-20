@@ -11,3 +11,8 @@
 .tree-brief image { width: 150rpx; height: 150rpx; }
 .tree-brief__title { color: #174e2a; font-size: 29rpx; font-weight: 700; }
 .tree-brief__note { margin-top: 5rpx; color: #6c7068; font-size: 22rpx; line-height: 1.5; }
+.guest-intro { padding: 34rpx 30rpx; border-radius: 22rpx; background: #f2f3e4; text-align: center; }
+.guest-intro__image { width: 230rpx; height: 230rpx; }
+.guest-intro__title { margin-top: 12rpx; color: #174e2a; font-size: 34rpx; font-weight: 700; }
+.guest-intro__copy { margin-top: 16rpx; color: #6c7068; font-size: 25rpx; line-height: 1.65; }
+.guest-intro__cta { margin-top: 30rpx; border-radius: 16rpx; background: #d93a22; color: #fffdf7; font-size: 29rpx; font-weight: 700; }

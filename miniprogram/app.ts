@@ -8,7 +8,8 @@ App({
     }
   },
   onLaunch() {
-    void cloudReady().catch(() => {
+    void cloudReady().catch((error) => {
+      console.error("[CloudBase] 初始化失败", error);
       wx.showToast({ icon: "none", title: "云服务暂不可用，请稍后重试" });
     });
   },

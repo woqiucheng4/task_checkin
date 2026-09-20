@@ -24,6 +24,7 @@ export interface TaskRowPageModel {
   readonly category: string;
   readonly description?: string;
   readonly dueLabel: string;
+  readonly icon: string;
   readonly sourceLabel: string;
   readonly sourceTone: "family" | "school";
   readonly title: string;
@@ -74,10 +75,18 @@ export function buildTaskRow(task: PresentationTaskItemView): TaskRowPageModel {
     category: CATEGORY_LABELS[task.category],
     ...(task.description === undefined ? {} : { description: task.description }),
     dueLabel: formatDueTime(task.dueAt),
+    icon: taskIcon(task.category),
     sourceLabel: SOURCE_LABELS[task.source],
     sourceTone: task.source === "FAMILY" ? "family" : "school",
     title: task.title,
   };
+}
+
+function taskIcon(category: PresentationTaskItemView["category"]): string {
+  if (category === "MATHEMATICS") return "calculation";
+  if (category === "SPORT") return "activity";
+  if (category === "LIFE") return "home";
+  return "book-open";
 }
 
 export function buildParentTaskRow(task: PresentationTaskItemView): TaskRowPageModel {

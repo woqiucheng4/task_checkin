@@ -40,6 +40,10 @@ export interface GroupRoleView {
 }
 
 export interface AccountShellView {
+  readonly account: {
+    readonly displayName?: string;
+    readonly avatarAssetId?: string;
+  };
   readonly families: readonly FamilyWorkspaceView[];
   readonly organizations: readonly OrganizationWorkspaceView[];
   readonly groups: readonly GroupRoleView[];

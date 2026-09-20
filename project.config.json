@@ -3,6 +3,7 @@
   "cloudfunctionRoot": "dist/deploy/",
   "compileType": "miniprogram",
   "miniprogramRoot": "dist/miniprogram/",
+  "srcMiniprogramRoot": "dist/miniprogram/",
   "projectname": "growth-orchard-platform",
   "setting": {
     "es6": true,

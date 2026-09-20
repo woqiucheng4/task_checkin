@@ -1,4 +1,11 @@
-<app-shell title="家庭今日" subtitle="{{date}}" context-label="{{selectedName}}" bindroleswitch="openRoles">
+<app-shell title="家庭今日" subtitle="{{guest ? '先看看，再决定是否登录' : date}}" context-label="{{selectedName}}" show-role-switch="{{!guest}}" bindroleswitch="openRoles">
+  <view wx:if="{{guest}}" class="guest-intro">
+    <image class="guest-intro__image" src="/assets/orchard/apple-seedling.webp" mode="aspectFit" />
+    <view class="guest-intro__title">先为孩子布置第一件小任务</view>
+    <view class="guest-intro__copy">可先浏览。只有点击创建任务时，才会使用微信身份建立你的家庭账号。</view>
+    <button class="guest-intro__cta" bindtap="createTask">创建任务</button>
+  </view>
+  <block wx:else>
   <view wx:if="{{notice}}">{{notice}}</view>
   <scroll-view class="children" scroll-x><button wx:for="{{children}}" wx:key="id" class="child {{item.id === selectedChildId ? 'child--selected' : ''}}" data-id="{{item.id}}" data-name="{{item.nickname}}" bindtap="selectChild">{{item.nickname}}</button></scroll-view>
   <view wx:if="{{loading}}" class="page-subtitle">正在加载孩子的任务</view>
@@ -14,5 +21,6 @@
   <button class="text-link" bindtap="openGroups">为{{selectedName}}管理分组</button>
   <view class="page-section"><view class="page-section__heading"><view><view class="page-title">今天的任务</view><view class="page-subtitle">家庭和学习小组任务统一查看</view></view><button class="text-link" bindtap="createTask">布置任务</button></view><task-row wx:for="{{tasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTask" /></view>
   </block>
+  </block>
 </app-shell>
-<bottom-nav items="{{navigation}}" bindnavigate="navigateTab" />
+<bottom-nav wx:if="{{!guest}}" items="{{navigation}}" bindnavigate="navigateTab" />

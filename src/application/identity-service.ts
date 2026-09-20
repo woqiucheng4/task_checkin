@@ -111,6 +111,52 @@ export class IdentityService {
     });
   }
 
+  /**
+   * Profile data is deliberately opt-in.  The Mini Program only reaches this
+   * command after the user has selected an avatar or typed a nickname.
+   */
+  async updateAccountProfile(
+    actor: ActorContext,
+    input: RequestBase & { readonly displayName?: string; readonly avatarAssetId?: string },
+  ): Promise<Account> {
+    await this.requireActiveAccount(actor);
+    requireRequestId(input.requestId);
+    if (input.displayName === undefined && input.avatarAssetId === undefined) {
+      throw new DomainError("INVALID_INPUT", "请至少填写昵称或选择头像");
+    }
+    if (input.displayName !== undefined) requireName(input.displayName, "昵称");
+    if (input.avatarAssetId !== undefined) {
+      const avatar = await this.dependencies.repository.read("mediaAssets", input.avatarAssetId);
+      if (
+        avatar?.status !== "ACTIVE" ||
+        avatar.purpose !== "AVATAR" ||
+        avatar.uploaderAccountId !== actor.accountId ||
+        avatar.ownerScope.kind !== "PLATFORM" ||
+        !avatar.storageKey.startsWith("task-checkin/account/")
+      ) {
+        throw new DomainError("FORBIDDEN", "头像不属于当前账号");
+      }
+    }
+    return this.dependencies.repository.transaction(async (tx) => {
+      const account = await tx.read("accounts", actor.accountId);
+      if (account?.status !== "ACTIVE") throw new DomainError("UNAUTHORIZED", "账号不存在或已停用");
+      const updated = await tx.update("accounts", account.id, {
+        ...(input.displayName === undefined ? {} : { displayName: input.displayName.trim() }),
+        ...(input.avatarAssetId === undefined ? {} : { avatarAssetId: input.avatarAssetId }),
+        updatedAt: this.dependencies.clock.now(),
+      });
+      await this.audit(tx, {
+        action: "ACCOUNT_PROFILE_UPDATED",
+        actorAccountId: actor.accountId,
+        requestId: input.requestId,
+        resourceId: account.id,
+        resourceType: "ACCOUNT",
+        tenantScope: { kind: "PLATFORM" },
+      });
+      return updated;
+    });
+  }
+
   async createFamily(
     actor: ActorContext,
     input: RequestBase & { readonly name: string },

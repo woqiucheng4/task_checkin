@@ -10,6 +10,7 @@ import type { TeacherDashboardView } from "../../../../src/application/presentat
 import type { PresentationService } from "../../../../src/application/presentation-service.js";
 Page({
   data: {
+    guest: false,
     groupName: "",
     date: today(),
     navigation: buildNavigation("teacher", "home"),
@@ -19,7 +20,11 @@ Page({
     error: "",
     loading: true,
   },
+  onLoad(query: { guest?: string }) {
+    if (query.guest === "1") this.setData({ guest: true, loading: false });
+  },
   async onShow() {
+    if (this.data.guest) return;
     this.setData({ loading: true, error: "" });
     try {
       if (!(await teacherWorkspaceOrganization())) {
@@ -71,6 +76,10 @@ Page({
     }
   },
   createTask() {
+    if (this.data.guest) {
+      navigate("/pages/bootstrap/index?role=teacher&intent=create-task");
+      return;
+    }
     navigate("/pages/teacher/task-editor/index");
   },
   navigateTab(event: { detail: { path?: string } }) {

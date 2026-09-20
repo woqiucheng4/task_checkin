@@ -27,6 +27,7 @@ import { commandFailure, commandSuccess, type CommandResult } from "../shared/re
 export const CORE_ACTIONS = [
   ...TEACHER_ACTIVATION_ACTIONS,
   "BOOTSTRAP_ACCOUNT",
+  "UPDATE_ACCOUNT_PROFILE",
   "GET_ACCOUNT_SHELL",
   "GET_FAMILY_SETTINGS",
   "GET_CHILD_GROUPS",
@@ -409,6 +410,8 @@ async function dispatch(
       return services.identity.activateTeacherWorkspace(actor, castInput(input));
     case "GET_ACCOUNT_SHELL":
       return services.presentation.accountShell(actor);
+    case "UPDATE_ACCOUNT_PROFILE":
+      return services.identity.updateAccountProfile(actor, castInput(input));
     case "GET_FAMILY_SETTINGS":
       return services.presentation.familySettings(actor, requireString(payload.familyId));
     case "GET_CHILD_GROUPS":

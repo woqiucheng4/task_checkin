@@ -12,3 +12,7 @@
 .deadline { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 23rpx 0; border-bottom: 2rpx solid #dedbd0; color: #20231e; font-size: 26rpx; }
 .deadline text { display: block; color: #6c7068; font-size: 21rpx; }
 .deadline strong { color: #d93a22; font-size: 24rpx; }
+.guest-intro { padding: 48rpx 30rpx; border-radius: 22rpx; background: #f2f3e4; text-align: center; }
+.guest-intro__title { margin-top: 20rpx; color: #174e2a; font-size: 34rpx; font-weight: 700; }
+.guest-intro__copy { margin-top: 16rpx; color: #6c7068; font-size: 25rpx; line-height: 1.65; }
+.guest-intro__cta { margin-top: 30rpx; border-radius: 16rpx; background: #174e2a; color: #fffdf7; font-size: 29rpx; font-weight: 700; }

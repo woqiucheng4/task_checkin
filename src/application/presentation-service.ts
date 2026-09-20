@@ -30,6 +30,8 @@ export class PresentationService {
   }
 
   async accountShell(actor: ActorContext): Promise<AccountShellView> {
+    const account = await this.dependencies.repository.read("accounts", actor.accountId);
+    if (account?.status !== "ACTIVE") throw new DomainError("UNAUTHORIZED", "账号不存在或已停用");
     const familyMemberships = await this.dependencies.repository.query("familyMembers", {
       accountId: actor.accountId,
       status: "ACTIVE",
@@ -77,6 +79,10 @@ export class PresentationService {
     );
 
     return {
+      account: {
+        ...(account.displayName === undefined ? {} : { displayName: account.displayName }),
+        ...(account.avatarAssetId === undefined ? {} : { avatarAssetId: account.avatarAssetId }),
+      },
       families: families.sort(byName),
       groups: (await this.groupRoles(actor)).sort(byName),
       organizations:

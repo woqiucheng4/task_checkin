@@ -1,6 +1,6 @@
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 48%;
+  grid-template-columns: minmax(0, 56%) 44%;
   align-items: center;
   min-height: 520rpx;
   padding: 12rpx 0 36rpx;
@@ -15,8 +15,14 @@
   line-height: 1.14;
 }
 
+.hero__title-image {
+  display: block;
+  width: 302rpx;
+  height: 86rpx;
+}
+
 .hero__subtitle {
-  max-width: 360rpx;
+  max-width: 404rpx;
   margin-top: 22rpx;
   color: #3f423d;
   font-size: 27rpx;
@@ -71,7 +77,7 @@
   font-size: 23rpx;
 }
 
-.hero__remaining text {
+.hero__remaining-value {
   color: #174e2a;
   font-weight: 700;
 }
@@ -82,8 +88,11 @@
 }
 
 .hero__tree {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: -22rpx;
+  right: 0;
+  width: 360rpx;
+  height: 478rpx;
 }
 
 .hero__sign {

@@ -1,6 +1,7 @@
 <view class="hero">
   <view class="hero__copy">
-    <view class="hero__title">{{title}}</view>
+    <image wx:if="{{titleAsset}}" class="hero__title-image" src="{{titleAsset}}" mode="aspectFit" aria-label="{{title}}" />
+    <view wx:else class="hero__title">{{title}}</view>
     <view class="hero__subtitle">{{subtitle}}</view>
     <view class="hero__label">阳光进度</view>
     <view class="hero__numbers">
@@ -11,10 +12,10 @@
     <view class="hero__track" aria-label="阳光进度 {{progressPercent}}%">
       <view class="hero__fill" style="width: {{progressPercent}}%;"></view>
     </view>
-    <view class="hero__remaining">再收集 <text>{{remaining}}</text> 阳光就能长大啦！</view>
+    <view class="hero__remaining">再收集 <text class="hero__remaining-value">{{remaining}}</text> 阳光就能长大啦！</view>
   </view>
   <view class="hero__tree-wrap">
     <image class="hero__tree" src="{{asset}}" mode="aspectFit" aria-label="{{name}}，等级 {{level}}" />
-    <view class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
+    <view wx:if="{{!embeddedSign}}" class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
   </view>
 </view>

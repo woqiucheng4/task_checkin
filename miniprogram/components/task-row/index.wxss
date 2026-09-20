@@ -74,6 +74,9 @@
 }
 
 .task__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 126rpx;
   min-height: 88rpx;
   padding: 16rpx 18rpx;
@@ -92,10 +95,12 @@
 .task__status {
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-width: 126rpx;
   max-width: 174rpx;
   padding: 8rpx 0;
   background: transparent;
   color: #27653a;
   line-height: 1.35;
-  text-align: right;
+  text-align: center;
 }

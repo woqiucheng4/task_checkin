@@ -33,6 +33,7 @@ async function load(page: MiniPageInstance) {
 }
 Page({
   data: {
+    guest: false,
     children: [],
     navigation: buildNavigation("parent", "home"),
     pendingReviews: 0,
@@ -49,13 +50,19 @@ Page({
     selectionMessage: "请选择要操作的孩子",
     selectionAction: "选择孩子",
   },
-  onLoad(query: { legacy?: string }) {
+  onLoad(query: { legacy?: string; guest?: string }) {
+    if (query.guest === "1") this.setData({ guest: true, loading: false });
     if (query.legacy) wx.showToast({ icon: "none", title: "请由家长选择孩子后继续操作" });
   },
   async onShow() {
+    if (this.data.guest) return;
     await load(this);
   },
   createTask() {
+    if (this.data.guest) {
+      navigate("/pages/bootstrap/index?role=parent&intent=create-task");
+      return;
+    }
     guardedNavigate(this, "/pages/parent/task-editor/index");
   },
   openSelection() {

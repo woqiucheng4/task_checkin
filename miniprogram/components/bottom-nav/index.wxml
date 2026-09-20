@@ -6,7 +6,14 @@
     data-path="{{item.path}}"
     bindtap="navigate"
   >
-    <t-icon name="{{item.icon || item.key}}" size="44rpx" color="{{item.selected ? '#174E2A' : '#74766F'}}" />
+    <image
+      wx:if="{{item.activeIcon && item.inactiveIcon}}"
+      class="nav__icon"
+      src="{{item.selected ? item.activeIcon : item.inactiveIcon}}"
+      mode="aspectFit"
+      aria-hidden="true"
+    />
+    <t-icon wx:else name="{{item.icon || item.key}}" size="44rpx" color="{{item.selected ? '#174E2A' : '#74766F'}}" />
     <text>{{item.label}}</text>
   </button>
 </view>
