@@ -10,6 +10,8 @@
 
 ## 文档
 
+- [UI 规范 v1.0](docs/design/UI规范.md)：后续界面统一遵循第二张“果园日计划”视觉基准，包含色彩、字体、组件、插画及验收规则。
+
 - [产品总规划](docs/product/儿童成长打卡产品总规划.md)：第一版范围、商业路线、公众号内容体系、上线边界。
 - [V1 产品规格](docs/product/child-checkin-v1-spec.md)：家庭 MVP 的角色、规则、数据模型与验收要求。
 - [V1 实施计划](docs/superpowers/plans/2026-09-03-child-checkin-cloudbase-mvp.md)：微信云开发技术实现步骤。
