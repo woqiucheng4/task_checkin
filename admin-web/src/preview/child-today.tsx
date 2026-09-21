@@ -65,7 +65,9 @@ export function ChildTodayPreview(): React.JSX.Element {
         </header>
         <section className="orchard-intro">
           <div className="orchard-copy">
-            <h1><img src={orchardDailyTitleReference} alt="果园日计划" /></h1>
+            <h1>
+              <img src={orchardDailyTitleReference} alt="果园日计划" />
+            </h1>
             <p>
               完成任务，收集阳光，
               <br />

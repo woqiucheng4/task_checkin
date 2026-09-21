@@ -101,7 +101,9 @@ describe("身份入口与二级页面导航", () => {
     });
     vi.stubGlobal("wx", { redirectTo });
 
-    let resolveShell: ((value: { families: Array<{ children: Array<{ id: string }> }> }) => void) | undefined;
+    let resolveShell:
+      | ((value: { families: Array<{ children: Array<{ id: string }> }> }) => void)
+      | undefined;
     sessionRuntime.accountShell.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

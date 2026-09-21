@@ -7,7 +7,15 @@ const ROLE_HOME = {
 } as const;
 
 Page({
-  data: { loading: false, setup: false, familyName: "", nickname: "", notice: "", familyId: "", activeRole: "" },
+  data: {
+    loading: false,
+    setup: false,
+    familyName: "",
+    nickname: "",
+    notice: "",
+    familyId: "",
+    activeRole: "",
+  },
   editFamily(event: { detail: { value: string } }) {
     this.setData({ familyName: event.detail.value });
   },
