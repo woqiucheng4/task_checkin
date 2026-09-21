@@ -2,7 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/dist", "!**/coverage", "!**/node_modules"]
+    "includes": [
+      "**",
+      "!**/.worktrees",
+      "!**/dist",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/project.private.config.json"
+    ]
   },
   "formatter": {
     "enabled": true,

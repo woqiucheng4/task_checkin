@@ -1,8 +1,6 @@
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 48%;
-  align-items: center;
-  min-height: 520rpx;
+  position: relative;
+  min-height: 550rpx;
   padding: 12rpx 0 36rpx;
 }
 
@@ -19,6 +17,11 @@
   display: block;
   width: 338rpx;
   height: 98rpx;
+}
+
+.hero__copy {
+  width: 50%;
+  min-width: 0;
 }
 
 .hero__subtitle {
@@ -83,8 +86,11 @@
 }
 
 .hero__tree-wrap {
-  position: relative;
-  height: 500rpx;
+  position: absolute;
+  top: 12rpx;
+  right: 0;
+  width: 46%;
+  height: 430rpx;
 }
 
 .hero__tree {
