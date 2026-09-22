@@ -256,7 +256,9 @@ Page({
           sourceAssetIds: snapshot.sourceAssetIds,
         });
       wx.showToast({ icon: "success", title: "任务已发布" });
-      wx.navigateBack();
+      wx.navigateBack({
+        fail: () => wx.redirectTo({ url: "/pages/teacher/tasks/index" }),
+      });
     } catch (error) {
       showError(error);
     } finally {

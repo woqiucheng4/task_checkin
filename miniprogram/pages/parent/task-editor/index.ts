@@ -206,7 +206,10 @@ Page({
         icon: result.ok ? "success" : "none",
         title: result.ok ? "任务已发布" : result.error.message,
       });
-      if (result.ok) wx.navigateBack();
+      if (result.ok)
+        wx.navigateBack({
+          fail: () => wx.redirectTo({ url: "/pages/parent/tasks/index" }),
+        });
     } catch (error) {
       showError(error);
     } finally {

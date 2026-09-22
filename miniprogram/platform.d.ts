@@ -68,7 +68,7 @@ declare const wx: {
     readonly mediaType: readonly ("image" | "video")[];
     readonly sourceType: readonly ("album" | "camera")[];
   }): Promise<{ readonly tempFiles: readonly { readonly tempFilePath: string }[] }>;
-  navigateBack(input?: { readonly delta?: number }): void;
+  navigateBack(input?: { readonly delta?: number; readonly fail?: () => void }): void;
   navigateTo(input: { readonly url: string }): void;
   redirectTo(input: { readonly url: string }): void;
   reLaunch(input: { readonly url: string }): void;

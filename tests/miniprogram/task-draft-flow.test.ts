@@ -53,6 +53,7 @@ async function loadPage(path: string): Promise<MiniPageInstance> {
     getFileSystemManager: () => ({ readFileSync: vi.fn().mockReturnValue("/9j/4AAB/9k=") }),
     showToast: vi.fn(),
     navigateBack: vi.fn(),
+    redirectTo: vi.fn(),
   });
   await import(path);
   if (!definition) throw new Error("Page not registered");
@@ -66,6 +67,28 @@ async function loadPage(path: string): Promise<MiniPageInstance> {
   };
   return page;
 }
+
+it.each(["parent", "teacher"])(
+  "%s opens the task list when first-login publication has no previous page",
+  async (role) => {
+    const page = await loadPage(`../../miniprogram/pages/${role}/task-editor/index.js`);
+    bridge.selectedFamily.mockResolvedValue({ id: "family-own" });
+    bridge.selectedChild.mockResolvedValue("child-own");
+    bridge.selectedTeacherGroup.mockResolvedValue({ id: "group-own" });
+    bridge.coreExecute.mockResolvedValue({ ok: true, data: {} });
+    bridge.command.mockResolvedValue({});
+    vi.mocked(wx.navigateBack).mockImplementation((options) => {
+      options?.fail?.();
+    });
+    page.setData({ title: "首次登录发布任务" });
+
+    await page.publish();
+
+    expect(wx.redirectTo).toHaveBeenCalledWith({ url: `/pages/${role}/tasks/index` });
+    const publish = role === "parent" ? bridge.coreExecute : bridge.command;
+    expect(publish).toHaveBeenCalledTimes(1);
+  },
+);
 
 it("parent image recognition creates an editable draft without publishing it", async () => {
   bridge.selectedFamily.mockResolvedValue({ id: "family-own" });
