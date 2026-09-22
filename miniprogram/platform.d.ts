@@ -35,6 +35,13 @@ interface MiniCloud {
   init(): Promise<void>;
 }
 declare const wx: {
+  getUserProfile(input: {
+    readonly desc: string;
+  }): Promise<{ readonly userInfo: { readonly avatarUrl?: string; readonly nickName?: string } }>;
+  downloadFile(input: { readonly url: string }): Promise<{
+    readonly statusCode: number;
+    readonly tempFilePath: string;
+  }>;
   getFileSystemManager(): { readFileSync(path: string, encoding: "base64"): string };
   getStorageSync(key: string): unknown;
   setStorageSync(key: string, value: unknown): void;

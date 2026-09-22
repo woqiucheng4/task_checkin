@@ -127,7 +127,9 @@ describe("teacher-owned learning groups", () => {
     });
 
     const presentation = new PresentationService(seed.harness);
-    expect((await presentation.childGroups(seed.guardian, firstChild.id)).memberships).toHaveLength(1);
+    expect((await presentation.childGroups(seed.guardian, firstChild.id)).memberships).toHaveLength(
+      1,
+    );
     expect((await presentation.childGroups(seed.guardian, secondChild.id)).memberships).toEqual([]);
   });
 });

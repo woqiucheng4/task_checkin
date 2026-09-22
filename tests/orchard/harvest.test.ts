@@ -9,7 +9,7 @@ async function matureTreeScenario() {
   const sunlight = new SunlightService(seed.harness);
   const orchard = new OrchardService(seed.harness);
   await sunlight.grantForAssignment(seed.platform, {
-    amount: 6,
+    amount: 30,
     assignmentId: seed.assignment.id,
     reason: "MANUAL_CORRECTION",
     requestId: "harvest-mature-grant",

@@ -16,7 +16,7 @@
     </view>
   </block>
   <block wx:else>
-    <view class="journal-date">今日</view>
+    <view class="journal-date"><text>{{dateLabel}}</text><text>{{weekdayLabel}}</text></view>
     <orchard-hero
       asset="{{tree.asset}}"
       embedded-sign="{{tree.embeddedSign}}"
@@ -26,18 +26,38 @@
       progress-percent="{{progressPercent}}"
       remaining="{{remainingSunlight}}"
       target="{{sunlight.target}}"
-      title-asset="/assets/orchard/orchard-daily-title-reference-cutout.webp"
+      bindguide="openGrowthGuide"
     />
     <view class="tasks">
-      <view class="growth-guide"><image src="/assets/orchard/growth-guide-reference.webp" mode="widthFix" aria-label="小树成长指南" /></view>
-      <view class="page-section__heading"><view><view class="page-title">今日任务</view><view class="page-subtitle">先看看孩子一天的成长计划</view></view></view>
+      <view class="page-section__heading"><view><view class="page-title">今日任务</view><view class="page-subtitle">来自学校和家庭的 3 项任务</view></view></view>
       <task-row wx:for="{{previewTasks}}" wx:key="assignmentId" item="{{item}}" bindactivate="openTaskCreation" />
       <view class="sunlight-note"><t-icon name="sunny" size="44rpx" color="#EE9A25" /><text>任务经家长确认后，阳光会自动存入果树，助力成长。</text><image src="/assets/orchard/scene-watering-reference.webp" mode="aspectFit" aria-label="给小树浇水" /></view>
     </view>
-    <button class="home-create" bindtap="openTaskCreation">创建我的任务</button>
-    <view class="privacy">创建任务时才会使用微信身份；孩子的作品只向已授权成员展示</view>
     <bottom-nav items="{{previewNavigation}}" bindnavigate="navigatePreviewTab" />
   </block>
+  <view wx:if="{{growthGuideVisible}}" class="guide-sheet">
+    <view class="guide-sheet__mask" bindtap="dismissGrowthGuide" />
+    <view class="guide-sheet__panel" aria-label="小树成长指南">
+      <view class="login-sheet__handle" />
+      <view class="guide-sheet__header">
+        <view class="guide-sheet__title">小树成长指南</view>
+        <button class="guide-sheet__close" bindtap="dismissGrowthGuide" aria-label="关闭小树成长指南">×</button>
+      </view>
+      <view class="guide-sheet__intro">完成任务并经家长确认后，阳光会自动存入小树。</view>
+      <view class="guide-sheet__rules">
+        <view><text class="guide-sheet__rule-number">1</text><text>完成任务，收集阳光</text></view>
+        <view><text class="guide-sheet__rule-number">2</text><text>阳光进度提升，小树进入下一阶段</text></view>
+        <view><text class="guide-sheet__rule-number">3</text><text>进度到达 100%，可以采摘果实</text></view>
+      </view>
+      <view class="guide-sheet__stage-title">成长阶段</view>
+      <scroll-view class="guide-sheet__stages" scroll-y>
+        <view wx:for="{{growthGuideStages}}" wx:key="name" class="guide-stage">
+          <view class="guide-stage__progress">{{item.progress}}</view>
+          <view><view class="guide-stage__name">{{item.name}}</view><view class="guide-stage__description">{{item.description}}</view></view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
   <view wx:if="{{rolePickerVisible}}" class="role-sheet">
     <view class="role-sheet__mask" bindtap="dismissRolePicker" />
     <view class="role-sheet__panel">
@@ -55,17 +75,6 @@
       <view class="login-sheet__title">使用微信登录</view>
       <view class="login-sheet__copy">将以当前微信身份进入{{loginRoleLabel}}空间</view>
       <view class="login-sheet__privacy">仅用于账号识别，不读取手机号。</view>
-      <view class="profile-consent">
-        <view class="profile-consent__title">完善资料（可跳过）</view>
-        <view class="profile-consent__row">
-          <button class="profile-consent__avatar" open-type="chooseAvatar" bindchooseavatar="chooseAccountAvatar" aria-label="选择头像">
-            <image wx:if="{{accountAvatarUrl}}" src="{{accountAvatarUrl}}" mode="aspectFill" />
-            <t-icon wx:else name="user" size="42rpx" />
-          </button>
-          <input class="profile-consent__nickname" type="nickname" value="{{accountNickname}}" bindinput="editAccountNickname" maxlength="40" placeholder="输入昵称" />
-        </view>
-        <view class="profile-consent__hint">头像和昵称仅在您主动选择或输入后保存到本小程序账号资料。</view>
-      </view>
       <view wx:if="{{notice}}" class="login-sheet__error">{{notice}}</view>
       <button class="login-sheet__submit" loading="{{loading}}" disabled="{{loading}}" bindtap="login">
         {{loading ? '正在验证微信身份…' : '使用微信登录'}}

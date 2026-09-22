@@ -293,8 +293,11 @@ export class OrchardService {
 
   private async ensureDefaultCatalogs(tx: Transaction): Promise<void> {
     for (const catalog of DEFAULT_TREE_CATALOGS) {
-      if ((await tx.read("treeCatalog", catalog.id)) === undefined) {
+      const existing = await tx.read("treeCatalog", catalog.id);
+      if (existing === undefined) {
         await tx.insert("treeCatalog", structuredClone(catalog));
+      } else if (existing.updatedAt < catalog.updatedAt) {
+        await tx.update("treeCatalog", catalog.id, structuredClone(catalog));
       }
     }
   }

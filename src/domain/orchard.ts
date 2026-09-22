@@ -4,18 +4,18 @@ import { DomainError } from "../shared/errors.js";
 
 const DEFAULT_STAGES = [
   { minimumRatio: 0, name: "种子" },
-  { minimumRatio: 0.08, name: "破土" },
-  { minimumRatio: 0.16, name: "嫩芽" },
-  { minimumRatio: 0.25, name: "树干" },
-  { minimumRatio: 0.34, name: "长叶" },
-  { minimumRatio: 0.42, name: "花苞" },
-  { minimumRatio: 0.5, name: "开花" },
-  { minimumRatio: 0.65, name: "小果" },
-  { minimumRatio: 0.82, name: "果实变大" },
+  { minimumRatio: 0.04, name: "破土" },
+  { minimumRatio: 0.09, name: "嫩芽" },
+  { minimumRatio: 0.15, name: "树干" },
+  { minimumRatio: 0.23, name: "长叶" },
+  { minimumRatio: 0.33, name: "花苞" },
+  { minimumRatio: 0.45, name: "开花" },
+  { minimumRatio: 0.6, name: "小果" },
+  { minimumRatio: 0.78, name: "果实变大" },
   { minimumRatio: 1, name: "成熟采摘" },
 ] as const;
 
-const CATALOG_TIMESTAMP = "2026-01-01T00:00:00.000Z";
+const CATALOG_TIMESTAMP = "2026-09-21T00:00:00.000Z";
 
 export const DEFAULT_TREE_CATALOGS: readonly TreeCatalog[] = [
   {
@@ -26,7 +26,7 @@ export const DEFAULT_TREE_CATALOGS: readonly TreeCatalog[] = [
     rarity: "STARTER",
     stages: DEFAULT_STAGES,
     status: "ACTIVE",
-    threshold: 6,
+    threshold: 30,
     updatedAt: CATALOG_TIMESTAMP,
   },
   {

@@ -228,7 +228,7 @@ describe("final shared-account and withdrawal boundaries", () => {
     );
     await new SunlightService(s.harness).grantForAssignment(s.platform, {
       assignmentId: s.assignment.id,
-      amount: 6,
+      amount: 30,
       reason: "MANUAL_CORRECTION",
       requestId: "isolation-mature-tree",
     });

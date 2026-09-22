@@ -16,24 +16,38 @@ const PARENT_TASK_EDITOR = "/pages/parent/task-editor/index";
 const TEACHER_TASK_EDITOR = "/pages/teacher/task-editor/index";
 const HOME_PREVIEW_TASKS = [
   {
-    action: { kind: "PRIMARY", label: "创建任务" },
+    action: { kind: "PRIMARY", label: "去完成" },
     assignmentId: "preview-reading",
     category: "语文",
-    dueLabel: "今天完成",
+    description: "认真朗读课文，录音 2 分钟",
+    dueLabel: "截止时间　今天 20:00",
     icon: "book-open",
-    sourceLabel: "家庭",
-    sourceTone: "family",
-    title: "阅读 20 分钟",
+    sourceLabel: "学校",
+    sourceTone: "school",
+    title: "语文 · 朗读《秋天的雨》",
   },
   {
-    action: { kind: "STATUS", label: "等待开始" },
-    assignmentId: "preview-bag",
+    action: { kind: "PRIMARY", label: "去完成" },
+    assignmentId: "preview-math",
+    category: "数学",
+    description: "拍照上传作业结果",
+    dueLabel: "截止时间　今天 21:00",
+    icon: "calculation",
+    sourceLabel: "学校",
+    sourceTone: "school",
+    title: "数学 · 完成练习题 5 道",
+  },
+  {
+    action: { kind: "STATUS", label: "待确认 · 阳光已保护" },
+    assignmentId: "preview-desk",
     category: "自理",
-    dueLabel: "明天上学前",
+    description: "分类摆放书本和文具，保持整洁",
+    dueLabel: "截止时间　今天 22:00",
     icon: "home",
     sourceLabel: "家庭",
     sourceTone: "family",
-    title: "整理明天的书包",
+    statusDetail: "已提交 09:48",
+    title: "整理自己的书桌",
   },
 ] as const;
 const HOME_PREVIEW_NAVIGATION = [
@@ -65,11 +79,38 @@ const HOME_PREVIEW_NAVIGATION = [
     selected: false,
   },
 ] as const;
+const GROWTH_GUIDE_STAGES = [
+  { name: "种子", progress: "0%", description: "把今天的小目标种下，成长从这里开始。" },
+  { name: "破土", progress: "8%", description: "坚持完成任务，小芽悄悄探出头。" },
+  { name: "嫩芽", progress: "16%", description: "新叶舒展，每一份努力都被看见。" },
+  { name: "树干", progress: "25%", description: "小树站得更稳，继续积攒阳光。" },
+  { name: "长叶", progress: "34%", description: "枝头渐渐茂盛，习惯正在养成。" },
+  { name: "花苞", progress: "42%", description: "小小花苞出现，离收获又近一步。" },
+  { name: "开花", progress: "50%", description: "花儿盛开，为持续的努力喝彩。" },
+  { name: "小果", progress: "65%", description: "果实初长成，保持节奏继续前进。" },
+  { name: "果实变大", progress: "82%", description: "果子越来越饱满，收获就在眼前。" },
+  { name: "成熟采摘", progress: "100%", description: "小树成熟，可以采摘这份成长的果实。" },
+] as const;
 
 type BootstrapPage = {
   readonly data: Readonly<Record<string, unknown>>;
   setData(value: Record<string, unknown>): void;
 };
+
+type WechatProfile = {
+  readonly avatarUrl: string;
+  readonly displayName: string;
+};
+
+const WEEKDAY_LABELS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+function currentJournalDate(): { readonly dateLabel: string; readonly weekdayLabel: string } {
+  const today = new Date();
+  return {
+    dateLabel: `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`,
+    weekdayLabel: WEEKDAY_LABELS[today.getDay()] || "",
+  };
+}
 
 function isLoginRole(value: string): value is LoginRole {
   return value === "parent" || value === "teacher";
@@ -91,17 +132,36 @@ function wantsTaskCreation(page: BootstrapPage): boolean {
   return page.data.loginIntent === "CREATE_TASK";
 }
 
-async function loginWithRole(page: BootstrapPage, role: LoginRole): Promise<void> {
+async function requestWechatProfile(): Promise<WechatProfile> {
+  try {
+    const { userInfo } = await wx.getUserProfile({ desc: "用于展示账号昵称和头像" });
+    return {
+      avatarUrl: String(userInfo.avatarUrl || ""),
+      displayName: String(userInfo.nickName || "").trim(),
+    };
+  } catch {
+    return { avatarUrl: "", displayName: "" };
+  }
+}
+
+async function loginWithRole(
+  page: BootstrapPage,
+  role: LoginRole,
+  profile: WechatProfile,
+): Promise<void> {
   if (page.data.loading) return;
   page.setData({ loading: true, notice: "" });
   try {
-    // CloudBase supplies the current WeChat OpenID to the cloud function. No
-    // profile, phone number, or extra authorization is requested here.
+    // CloudBase supplies the current WeChat OpenID to the cloud function.
     const shell = await accountShell(true);
-    const displayName = String(page.data.accountNickname || "").trim();
-    const avatarUrl = String(page.data.accountAvatarUrl || "");
+    const { displayName, avatarUrl } = profile;
     if (displayName || avatarUrl) {
-      const avatarAssetId = avatarUrl ? await uploadAccountAvatar(avatarUrl) : undefined;
+      // Profile avatars are served from a WeChat domain. If that domain has
+      // not been configured for downloads yet, do not make a valid account
+      // login fail; the account page remains available for choosing an avatar.
+      const avatarAssetId = avatarUrl
+        ? await uploadAccountAvatar(avatarUrl).catch(() => undefined)
+        : undefined;
       await command("UPDATE_ACCOUNT_PROFILE", {
         ...(displayName ? { displayName } : {}),
         ...(avatarAssetId ? { avatarAssetId } : {}),
@@ -149,9 +209,10 @@ Page({
     loginIntent: "",
     rolePickerVisible: false,
     postLoginPath: "",
-    accountNickname: "",
-    accountAvatarUrl: "",
+    growthGuideVisible: false,
+    growthGuideStages: GROWTH_GUIDE_STAGES,
     topInset: 44,
+    ...currentJournalDate(),
     previewTasks: HOME_PREVIEW_TASKS,
     previewNavigation: HOME_PREVIEW_NAVIGATION,
     progressPercent: 60,
@@ -165,8 +226,7 @@ Page({
     },
   },
   onLoad(query: { setup?: string; familyId?: string; role?: string; intent?: string }) {
-    const windowInfo =
-      typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : undefined;
+    const windowInfo = typeof wx.getWindowInfo === "function" ? wx.getWindowInfo() : undefined;
     this.setData({ topInset: Math.max((windowInfo?.statusBarHeight || 20) + 18, 38) });
     if (query.setup === "1") {
       this.setData({
@@ -197,6 +257,12 @@ Page({
   },
   openTaskCreation() {
     this.setData({ notice: "", rolePickerVisible: true });
+  },
+  openGrowthGuide() {
+    this.setData({ growthGuideVisible: true });
+  },
+  dismissGrowthGuide() {
+    this.setData({ growthGuideVisible: false });
   },
   navigatePreviewTab(event: { detail: { path?: string } }) {
     if (event.detail.path) this.setData({ notice: "", rolePickerVisible: true });
@@ -230,14 +296,7 @@ Page({
   },
   async login() {
     const role = String(this.data.loginRole);
-    if (isLoginRole(role)) await loginWithRole(this, role);
-  },
-  editAccountNickname(event: { detail: { value: string } }) {
-    this.setData({ accountNickname: event.detail.value });
-  },
-  chooseAccountAvatar(event: { detail: { avatarUrl?: string } }) {
-    const avatarUrl = String(event.detail.avatarUrl || "");
-    if (avatarUrl) this.setData({ accountAvatarUrl: avatarUrl });
+    if (isLoginRole(role)) await loginWithRole(this, role, await requestWechatProfile());
   },
   async createFamily() {
     if (this.data.loading) return;

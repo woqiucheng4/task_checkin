@@ -2,11 +2,12 @@ import { imageUploadMetadata } from "./upload-evidence.js";
 import { command } from "./session-runtime.js";
 
 /**
- * Persists an avatar picked with WeChat's `chooseAvatar` control.  The source
- * path is a temporary local file, so it is never stored as a profile value.
+ * Persists an avatar picked with WeChat's `chooseAvatar` or returned by
+ * `getUserProfile`. Profile avatars are remote URLs, while chooseAvatar
+ * returns a temporary local file; neither source is stored directly.
  */
 export async function uploadAccountAvatar(filePath: string): Promise<string> {
-  const base64 = readFileAsBase64(filePath);
+  const base64 = readFileAsBase64(await localAvatarFile(filePath));
   const { byteSize, mimeType } = imageUploadMetadata(base64);
   const intent = await command<{ asset: { id: string } }>("CREATE_UPLOAD_INTENT", {
     byteSize,
@@ -22,6 +23,18 @@ export async function uploadAccountAvatar(filePath: string): Promise<string> {
     throw new Error("头像未上传完成，请重试");
   }
   return saved.id;
+}
+
+async function localAvatarFile(filePath: string): Promise<string> {
+  if (!/^https?:\/\//.test(filePath)) return filePath;
+  try {
+    const downloaded = await wx.downloadFile({ url: filePath });
+    if (downloaded.statusCode !== 200 || !downloaded.tempFilePath)
+      throw new Error("download failed");
+    return downloaded.tempFilePath;
+  } catch {
+    throw new Error("头像下载失败，请重试");
+  }
 }
 
 function readFileAsBase64(filePath: string): string {

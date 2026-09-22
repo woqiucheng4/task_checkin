@@ -6,6 +6,7 @@ import {
   selectedFamily,
   showError,
 } from "../../../services/session-runtime.js";
+import { uploadAccountAvatar } from "../../../services/upload-account-avatar.js";
 import type { PresentationService } from "../../../../src/application/presentation-service.js";
 
 const PENDING_ADD_CHILD_KEY = "task_checkin_pending_add_child_v1";
@@ -32,15 +33,25 @@ Page({
     members: [],
     rewards: {},
     roleLabel: "",
+    accountNickname: "",
+    accountAvatarUrl: "",
+    pendingAccountAvatarUrl: "",
+    savingAccountProfile: false,
   },
   async onShow() {
     this.setData({ loading: true, familyId: "" });
     try {
-      const family = await selectedFamily();
-      const view = await command<Awaited<ReturnType<PresentationService["familySettings"]>>>(
-        "GET_FAMILY_SETTINGS",
-        { familyId: family.id },
-      );
+      const [family, shell] = await Promise.all([selectedFamily(), accountShell(true)]);
+      const [view, avatar] = await Promise.all([
+        command<Awaited<ReturnType<PresentationService["familySettings"]>>>("GET_FAMILY_SETTINGS", {
+          familyId: family.id,
+        }),
+        shell.account.avatarAssetId
+          ? command<{ downloadUrl?: string }>("READ_MEDIA_ASSET", {
+              assetId: shell.account.avatarAssetId,
+            })
+          : Promise.resolve<{ downloadUrl?: string }>({}),
+      ]);
       this.setData({
         familyId: family.id,
         familyName: view.name,
@@ -52,6 +63,9 @@ Page({
         })),
         rewards: view.defaultRewards,
         roleLabel: view.role === "FAMILY_ADMIN" ? "家庭管理员" : "监护人",
+        accountNickname: shell.account.displayName || "",
+        accountAvatarUrl: avatar.downloadUrl || "",
+        pendingAccountAvatarUrl: "",
         notifications: wx.getStorageSync("task_checkin_notification_preference") === true,
       });
     } catch (error) {
@@ -62,6 +76,35 @@ Page({
   },
   editChildNickname(event: { detail: { value: string } }) {
     this.setData({ childNickname: event.detail.value });
+  },
+  editAccountNickname(event: { detail: { value: string } }) {
+    this.setData({ accountNickname: event.detail.value });
+  },
+  chooseAccountAvatar(event: { detail: { avatarUrl?: string } }) {
+    const avatarUrl = String(event.detail.avatarUrl || "");
+    if (avatarUrl)
+      this.setData({ accountAvatarUrl: avatarUrl, pendingAccountAvatarUrl: avatarUrl });
+  },
+  async saveAccountProfile() {
+    if (this.data.savingAccountProfile) return;
+    const displayName = String(this.data.accountNickname || "").trim();
+    const avatarUrl = String(this.data.pendingAccountAvatarUrl || "");
+    if (!displayName && !avatarUrl) return showError(new Error("请填写昵称或选择头像"));
+    this.setData({ savingAccountProfile: true });
+    try {
+      const avatarAssetId = avatarUrl ? await uploadAccountAvatar(avatarUrl) : undefined;
+      await command("UPDATE_ACCOUNT_PROFILE", {
+        ...(displayName ? { displayName } : {}),
+        ...(avatarAssetId ? { avatarAssetId } : {}),
+      });
+      await accountShell(true);
+      this.setData({ accountNickname: displayName, pendingAccountAvatarUrl: "" });
+      wx.showToast({ icon: "success", title: "账号资料已保存" });
+    } catch (error) {
+      showError(error);
+    } finally {
+      this.setData({ savingAccountProfile: false });
+    }
   },
   async addChild() {
     if (this.data.loading || this.data.addingChild || !this.data.familyId) return;
@@ -82,10 +125,15 @@ Page({
             requestId,
           } satisfies PendingAddChild);
         }
-        const child = await command<{ id: string }>("ADD_CHILD", {
-          familyId: String(this.data.familyId),
-          nickname,
-        }, undefined, requestId);
+        const child = await command<{ id: string }>(
+          "ADD_CHILD",
+          {
+            familyId: String(this.data.familyId),
+            nickname,
+          },
+          undefined,
+          requestId,
+        );
         this.setData({ createdChildId: child.id, childNickname: "" });
       }
       await accountShell(true);

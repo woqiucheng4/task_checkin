@@ -16,7 +16,8 @@
     bindtap="activate"
   >{{item.action.label}}</button>
   <button wx:else class="task__status" bindtap="activate">
-    <text>{{item.action.label}}</text>
-    <t-icon name="chevron-right" size="32rpx" color="#59615A" />
+    <text class="task__status-title">{{item.action.label}}</text>
+    <text wx:if="{{item.statusDetail}}" class="task__status-detail">{{item.statusDetail}}</text>
+    <t-icon class="task__status-arrow" name="chevron-right" size="32rpx" color="#59615A" />
   </button>
 </view>

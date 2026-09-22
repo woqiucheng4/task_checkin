@@ -3,3 +3,12 @@
 .identity__mark { display: flex; align-items: center; justify-content: center; width: 94rpx; height: 94rpx; border-radius: 50%; background: #fffdf7; }
 .identity text { display: block; color: #6c7068; font-size: 22rpx; font-weight: 400; }
 .setting-row { width: 100%; margin: 0; padding: 0; border: 0; border-bottom: 2rpx solid #dedbd0; border-radius: 0; background: transparent; text-align: left; }
+.account-profile__form { display: flex; align-items: center; gap: 20rpx; margin-top: 18rpx; padding: 22rpx; border: 2rpx solid #ebe7da; border-radius: 18rpx; background: #f7f5ed; }
+.account-profile__avatar { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 96rpx; height: 96rpx; margin: 0; padding: 0; overflow: hidden; border: 2rpx solid #d2ddcf; border-radius: 50%; background: #edf2e9; color: #315b3d; }
+.account-profile__avatar::after { border: 0; }
+.account-profile__avatar image { width: 100%; height: 100%; }
+.account-profile__fields { flex: 1; min-width: 0; }
+.account-profile__label { color: #315b3d; font-size: 23rpx; font-weight: 700; }
+.account-profile__nickname { box-sizing: border-box; width: 100%; height: 76rpx; margin-top: 10rpx; padding: 0 18rpx; border: 2rpx solid #d2ddcf; border-radius: 14rpx; background: #fffdf7; color: #174e2a; font-size: 26rpx; }
+.account-profile__save { width: 100%; min-height: 88rpx; margin-top: 16rpx; border: 2rpx solid #d93a22; border-radius: 16rpx; background: #d93a22; color: #fffdf7; font-size: 27rpx; font-weight: 700; }
+.account-profile__save::after { border: 0; }

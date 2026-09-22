@@ -1,6 +1,12 @@
+import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({
+  accountShell: async () => ({
+    account: { avatarAssetId: "avatar-real", displayName: "小新妈妈" },
+    families: [],
+    organizations: [],
+  }),
   selectedChild: async () => "child-real",
   selectedFamily: async () => ({
     id: "family-real",
@@ -34,6 +40,8 @@ const session = vi.hoisted(() => ({
         members: [{ id: "member-real", role: "FAMILY_ADMIN", isSelf: true }],
         defaultRewards: { ordinary: 2, focus: 3, challenge: 1, revision: 1 },
       };
+    if (action === "READ_MEDIA_ASSET")
+      return { downloadUrl: "https://private.invalid/avatar-real" };
     throw new Error(`Unexpected action ${action}`);
   }),
   showError: vi.fn(),
@@ -53,6 +61,7 @@ type Definition = {
 };
 async function loadPage(path: string) {
   let definition: Definition | undefined;
+  vi.resetModules();
   vi.stubGlobal("Page", (value: Definition) => {
     definition = value;
   });
@@ -77,12 +86,32 @@ it("shows real orchard progress and harvest history in the parent orchard", asyn
   await page.onShow();
   expect(page.data).toMatchObject({
     child: "小新",
+    treeTitle: "小新的小树",
     treeName: "小苹果",
     current: 4,
     target: 6,
     lifetimeSunlight: 4,
     growthCards: [{ id: "card-real", title: "第一次收获" }],
   });
+});
+it("renders the tree image that matches the recorded growth stage", async () => {
+  const originalDashboard = session.dashboard;
+  session.dashboard = async () => ({
+    children: [{ id: "child-real", nickname: "小新", grade: 2 }],
+    selectionRequired: false,
+    selectedChild: { id: "child-real", nickname: "小新", grade: 2 },
+    family: { id: "family-real", name: "真实家庭" },
+    groups: [],
+    currentTree: { name: "小苹果", progress: 10, threshold: 30, status: "GROWING", stage: "花苞" },
+  });
+  try {
+    const page = await loadPage("../../miniprogram/pages/parent/orchard/index.js");
+    await page.onShow();
+
+    expect(page.data).toMatchObject({ asset: "/assets/orchard/apple-bud.webp" });
+  } finally {
+    session.dashboard = originalDashboard;
+  }
 });
 it("loads family settings without exposing an export action", async () => {
   const page = await loadPage("../../miniprogram/pages/parent/profile/index.js");
@@ -94,6 +123,19 @@ it("loads family settings without exposing an export action", async () => {
     rewards: { ordinary: 2, focus: 3, challenge: 1, revision: 1 },
   });
   expect(session.command).not.toHaveBeenCalledWith("REQUEST_EXPORT", expect.anything());
+});
+it("loads account information and renders its edit controls in the parent profile", async () => {
+  const page = await loadPage("../../miniprogram/pages/parent/profile/index.js");
+  await page.onShow();
+
+  expect(page.data).toMatchObject({
+    accountAvatarUrl: "https://private.invalid/avatar-real",
+    accountNickname: "小新妈妈",
+  });
+  const markup = readFileSync("miniprogram/pages/parent/profile/index.wxml", "utf8");
+  expect(markup).toContain('open-type="chooseAvatar"');
+  expect(markup).toContain('type="nickname"');
+  expect(markup).toContain('bindtap="saveAccountProfile"');
 });
 it("redirects the old child profile to the parent selector", async () => {
   const page = await loadPage("../../miniprogram/pages/child/profile/index.js");

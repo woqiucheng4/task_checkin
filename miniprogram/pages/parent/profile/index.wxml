@@ -1,5 +1,17 @@
 <app-shell title="家庭设置" subtitle="{{familyName}} · {{roleLabel}}" show-role-switch="{{false}}">
   <view class="family"><view class="family__mark"><t-icon name="home" size="54rpx" color="#174E2A" /></view><view><view class="family__name">{{familyName}}</view><view class="family__note">{{childCount}} 个孩子 · {{memberCount}} 位家庭成员</view></view></view>
+  <view class="page-section account-profile">
+    <view class="page-title">账号资料</view>
+    <view class="page-subtitle">用于本小程序内展示，可随时修改。</view>
+    <view class="account-profile__form">
+      <button class="account-profile__avatar" open-type="chooseAvatar" bindchooseavatar="chooseAccountAvatar" aria-label="更换账号头像">
+        <image wx:if="{{accountAvatarUrl}}" src="{{accountAvatarUrl}}" mode="aspectFill" />
+        <t-icon wx:else name="user" size="46rpx" />
+      </button>
+      <view class="account-profile__fields"><view class="account-profile__label">昵称</view><input class="account-profile__nickname" type="nickname" value="{{accountNickname}}" bindinput="editAccountNickname" maxlength="40" placeholder="请输入昵称" /></view>
+    </view>
+    <button class="account-profile__save" loading="{{savingAccountProfile}}" disabled="{{savingAccountProfile}}" bindtap="saveAccountProfile">保存账号资料</button>
+  </view>
   <view wx:if="{{familyId}}" class="page-section child-setup">
     <view class="page-title">添加孩子</view>
     <view class="page-subtitle">添加到{{familyName}}，可在首页选择孩子查看任务和成长记录。</view>

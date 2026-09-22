@@ -71,9 +71,7 @@ describe("mini-program core API client", () => {
   });
 
   it("requires a non-empty child resource instead of reading authority from local state", () => {
-    expect(() => withRequiredChildId("  ", { date: "2026-09-19" })).toThrow(
-      "请选择孩子",
-    );
+    expect(() => withRequiredChildId("  ", { date: "2026-09-19" })).toThrow("请选择孩子");
   });
 
   it("returns the client-safe result from the cloud function", async () => {

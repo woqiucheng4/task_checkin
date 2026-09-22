@@ -31,7 +31,9 @@ export class CloudMediaStorage implements MediaStorage {
     private readonly cloud: CloudStorage,
     options: CloudMediaStorageOptions,
   ) {
-    this.allowedFileIdAuthorities = new Set(options.allowedFileIdAuthorities.filter(isFileIdAuthority));
+    this.allowedFileIdAuthorities = new Set(
+      options.allowedFileIdAuthorities.filter(isFileIdAuthority),
+    );
   }
   async createUploadUrl(storageKey: string): Promise<string> {
     requireOwnPath(storageKey);
@@ -72,7 +74,11 @@ export class CloudMediaStorage implements MediaStorage {
   }
 }
 
-function requireOwnFileId(fileId: string, allowedAuthorities: ReadonlySet<string>, action: string): void {
+function requireOwnFileId(
+  fileId: string,
+  allowedAuthorities: ReadonlySet<string>,
+  action: string,
+): void {
   const match = /^cloud:\/\/([A-Za-z0-9][A-Za-z0-9._-]*)\/(.+)$/.exec(fileId);
   if (!match?.[1] || !match[2] || !allowedAuthorities.has(match[1])) {
     throw new DomainError("FORBIDDEN", `${action}必须使用本项目云文件 ID`);

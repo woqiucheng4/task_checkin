@@ -5,12 +5,12 @@ import type { FamilyWishView } from "../../src/application/wish-service.js";
 import { AcceptanceScenario, ORDINARY_TASK } from "./scenario.js";
 
 describe("family growth orchard acceptance", () => {
-  it("AC-FAMILY-001 completes three tasks, harvests the first apple, and links a private wish", async () => {
+  it("AC-FAMILY-001 completes fifteen tasks, harvests the first apple, and links a private wish", async () => {
     const scenario = new AcceptanceScenario();
     const family = await scenario.createFamilyWithChild();
     const childActor = { mode: "ACCOUNT" as const };
 
-    for (let index = 1; index <= 3; index += 1) {
+    for (let index = 1; index <= 15; index += 1) {
       const task = await scenario.call<Task>(family.openId, "PUBLISH_FAMILY_TASK", {
         ...ORDINARY_TASK,
         childIds: [family.child.id],
@@ -40,8 +40,8 @@ describe("family growth orchard acceptance", () => {
       { actor: childActor },
     );
     expect(orchard).toMatchObject({
-      currentTree: { catalogId: "starter-apple", progress: 6, status: "MATURE" },
-      lifetimeSunlight: 6,
+      currentTree: { catalogId: "starter-apple", progress: 30, status: "MATURE" },
+      lifetimeSunlight: 30,
     });
 
     const harvest = await scenario.call<HarvestResult>(

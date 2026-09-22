@@ -2,7 +2,7 @@
   <view wx:if="{{loading}}" class="page-subtitle">正在加载孩子的果园</view>
   <view wx:elif="{{selectionRequired || error}}" class="page-subtitle"><view>{{error || selectionMessage}}</view><button bindtap="openSelection">{{selectionRequired ? selectionAction : '返回首页选择孩子'}}</button></view>
   <block wx:elif="{{ready}}">
-    <orchard-hero title="{{treeName}}" subtitle="孩子的每一次努力都被记录" asset="{{asset}}" current="{{current}}" target="{{target}}" remaining="{{remaining}}" progress-percent="{{progressPercent}}" name="{{treeName}}" />
+    <orchard-hero title="{{treeTitle}}" subtitle="孩子的每一次努力都被记录" asset="{{asset}}" current="{{current}}" target="{{target}}" remaining="{{remaining}}" progress-percent="{{progressPercent}}" name="{{treeName}}" />
     <button wx:if="{{mature}}" loading="{{working}}" disabled="{{working}}" bindtap="harvest">为{{selectedName}}采摘果实</button>
     <view wx:if="{{!treeId}}" class="page-section"><view>为{{selectedName}}选择果树</view><button wx:for="{{catalogs}}" wx:key="id" data-catalog-id="{{item.id}}" loading="{{working}}" disabled="{{working}}" bindtap="startNext">种下{{item.name}}</button></view>
     <view class="growth-card"><image src="/assets/orchard/scene-watering.webp" mode="aspectFit" /><view><view>累计成长阳光</view><text>{{lifetimeSunlight}} 阳光</text></view></view>

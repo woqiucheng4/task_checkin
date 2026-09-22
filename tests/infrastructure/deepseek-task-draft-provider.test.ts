@@ -17,8 +17,11 @@ const draftJson = JSON.stringify({
 
 describe("DeepSeekTaskDraftProvider", () => {
   it("sends private image bytes to the fixed completion endpoint and normalizes strict JSON", async () => {
-    const fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ choices: [{ message: { content: draftJson } }] }), { status: 200 }),
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ choices: [{ message: { content: draftJson } }] }), {
+          status: 200,
+        }),
     );
     const provider = new DeepSeekTaskDraftProvider({ apiKey: "test-key", fetch });
 
@@ -50,25 +53,36 @@ describe("DeepSeekTaskDraftProvider", () => {
 
   it.each([
     ["an HTTP failure", async () => new Response("provider detail", { status: 500 })],
-    ["markdown-wrapped output", async () => new Response(JSON.stringify({ choices: [{ message: { content: "```json\\n{}\\n```" } }] }))],
-  ])("maps %s to a manual-entry conflict without exposing provider details", async (_name, response) => {
-    const provider = new DeepSeekTaskDraftProvider({ apiKey: "test-key", fetch: vi.fn(response) });
+    [
+      "markdown-wrapped output",
+      async () =>
+        new Response(JSON.stringify({ choices: [{ message: { content: "```json\\n{}\\n```" } }] })),
+    ],
+  ])(
+    "maps %s to a manual-entry conflict without exposing provider details",
+    async (_name, response) => {
+      const provider = new DeepSeekTaskDraftProvider({
+        apiKey: "test-key",
+        fetch: vi.fn(response),
+      });
 
-    await expect(
-      provider.generateTaskDraft({
-        image: new Uint8Array([1]),
-        mimeType: "image/png",
-        requestId: "ai-draft-002",
-      }),
-    ).rejects.toMatchObject({
-      code: "CONFLICT",
-      message: "图片暂时无法生成任务草稿，请手动填写",
-    });
-  });
+      await expect(
+        provider.generateTaskDraft({
+          image: new Uint8Array([1]),
+          mimeType: "image/png",
+          requestId: "ai-draft-002",
+        }),
+      ).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "图片暂时无法生成任务草稿，请手动填写",
+      });
+    },
+  );
 
   it("rejects a custom base URL that could redirect requests away from DeepSeek", () => {
     expect(
-      () => new DeepSeekTaskDraftProvider({ apiKey: "test-key", baseUrl: "https://internal.example" }),
+      () =>
+        new DeepSeekTaskDraftProvider({ apiKey: "test-key", baseUrl: "https://internal.example" }),
     ).toThrow("DEEPSEEK_BASE_URL");
   });
 
@@ -89,7 +103,14 @@ describe("DeepSeekTaskDraftProvider", () => {
   it("rejects an otherwise valid response whose due time is not later than its start time", async () => {
     const provider = new DeepSeekTaskDraftProvider({
       apiKey: "test-key",
-      fetch: vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: draftJson.replace("18:00", "08:00") } }] }))),
+      fetch: vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [{ message: { content: draftJson.replace("18:00", "08:00") } }],
+            }),
+          ),
+      ),
     });
     await expect(
       provider.generateTaskDraft({

@@ -3,7 +3,13 @@
     <image wx:if="{{titleAsset}}" class="hero__title-image" src="{{titleAsset}}" mode="aspectFit" aria-label="{{title}}" />
     <view wx:else class="hero__title">{{title}}</view>
     <view class="hero__subtitle">{{subtitle}}</view>
-    <view class="hero__label">阳光进度</view>
+    <view class="hero__label-row">
+      <view class="hero__label">阳光进度</view>
+      <button class="hero__guide" bindtap="openGrowthGuide" aria-label="查看小树成长指南">
+        <t-icon name="info-circle" size="28rpx" color="#63806b" />
+        <text>成长指南</text>
+      </button>
+    </view>
     <view class="hero__numbers">
       <text class="hero__current">{{current}}</text>
       <text class="hero__target"> / {{target}} 阳光</text>
@@ -16,6 +22,6 @@
   </view>
   <view class="hero__tree-wrap">
     <image class="hero__tree" src="{{asset}}" mode="aspectFit" aria-label="{{name}}，等级 {{level}}" />
-    <view wx:if="{{!embeddedSign}}" class="hero__sign">{{name}}<text>LV.{{level}}</text></view>
+    <view wx:if="{{!embeddedSign}}" class="hero__sign">{{name}}<text class="hero__sign-level">LV.{{level}}</text></view>
   </view>
 </view>

@@ -1,6 +1,6 @@
-export const CLOUD_ENV_ID = "__CLOUDBASE_ENV_ID__";
-export const CLOUD_RESOURCE_APP_ID = "";
-export const CLOUD_MODE: "direct" | "shared" = "direct";
+export const CLOUD_ENV_ID = "zufang-9g5z3mbf127882aa";
+export const CLOUD_RESOURCE_APP_ID = "wx0d22b0cfcfa8f232";
+export const CLOUD_MODE: "direct" | "shared" = "shared";
 export const TASK_CHECKIN_CLOUD_FUNCTION = "taskCheckinCoreApi";
 
 export function assertConfiguredEnvironment(environmentId: string): string {

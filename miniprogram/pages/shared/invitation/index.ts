@@ -1,8 +1,4 @@
-import {
-  command,
-  selectedFamily,
-  showError,
-} from "../../../services/session-runtime.js";
+import { command, selectedFamily, showError } from "../../../services/session-runtime.js";
 import type { InvitationService } from "../../../../src/application/invitation-service.js";
 async function preview(page: MiniPageInstance) {
   const code = String(page.data.code || "").trim();
@@ -71,7 +67,12 @@ Page({
     }
   },
   editCode(event: { detail: { value?: string } }) {
-    this.setData({ code: event.detail.value || "", ready: false, consent: false, pendingApproval: false });
+    this.setData({
+      code: event.detail.value || "",
+      ready: false,
+      consent: false,
+      pendingApproval: false,
+    });
   },
   editConsent(event: { detail: { value: readonly string[] } }) {
     this.setData({ consent: event.detail.value.includes("agree") });

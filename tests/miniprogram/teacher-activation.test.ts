@@ -86,7 +86,10 @@ it("creates and selects each learning group in the activated workspace", async (
     organizations: [{ id: "workspace-1", type: "TEACHER_WORKSPACE", name: "王老师的学习小组" }],
     groups: [],
   });
-  runtime.teacherWorkspaceOrganization.mockResolvedValue({ id: "workspace-1", name: "王老师的学习小组" });
+  runtime.teacherWorkspaceOrganization.mockResolvedValue({
+    id: "workspace-1",
+    name: "王老师的学习小组",
+  });
   session.command.mockResolvedValue({ id: "group-2", name: "周末阅读组" });
   const page = await loadPage("../../miniprogram/pages/teacher/groups/index.js");
   await page.onShow();

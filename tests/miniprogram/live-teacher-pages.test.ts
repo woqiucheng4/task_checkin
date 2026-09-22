@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 const teacher = vi.hoisted(() => ({
   selectedTeacherGroup: async () => ({
@@ -26,6 +27,11 @@ const teacher = vi.hoisted(() => ({
   }),
 }));
 const session = vi.hoisted(() => ({
+  accountShell: async () => ({
+    account: { avatarAssetId: "avatar-real", displayName: "王老师" },
+    families: [],
+    organizations: [],
+  }),
   today: () => "2026-09-07",
   showError: vi.fn(),
   command: vi.fn(async (action: string) => {
@@ -54,6 +60,8 @@ const session = vi.hoisted(() => ({
         academicState: "PENDING",
         submission: { text: "已完成内容", mediaAssetIds: [], submittedAt: "2026-09-07T08:00:00Z" },
       };
+    if (action === "READ_MEDIA_ASSET")
+      return { downloadUrl: "https://private.invalid/avatar-real" };
     return { id: "result-real" };
   }),
 }));
@@ -83,6 +91,7 @@ type Definition = {
 };
 async function loadPage(path: string) {
   let definition: Definition | undefined;
+  vi.resetModules();
   vi.stubGlobal("Page", (value: Definition) => {
     definition = value;
   });
@@ -188,4 +197,17 @@ it("shows real teacher authorization without inventing a teacher identity", asyn
     organizationName: "真实学校",
     roleLabel: "教师",
   });
+});
+it("loads account information and renders its edit controls in the teacher profile", async () => {
+  const page = await loadPage("../../miniprogram/pages/teacher/profile/index.js");
+  await page.onShow();
+
+  expect(page.data).toMatchObject({
+    accountAvatarUrl: "https://private.invalid/avatar-real",
+    accountNickname: "王老师",
+  });
+  const markup = readFileSync("miniprogram/pages/teacher/profile/index.wxml", "utf8");
+  expect(markup).toContain('open-type="chooseAvatar"');
+  expect(markup).toContain('type="nickname"');
+  expect(markup).toContain('bindtap="saveAccountProfile"');
 });

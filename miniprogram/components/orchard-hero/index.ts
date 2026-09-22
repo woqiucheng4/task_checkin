@@ -10,6 +10,11 @@ Component({
     subtitle: { type: String, value: "完成任务，收集阳光，让小树快快长大！" },
     target: { type: Number, value: 30 },
     titleAsset: { type: String, value: "" },
-    title: { type: String, value: "果园日计划" },
+    title: { type: String, value: "我的小树" },
+  },
+  methods: {
+    openGrowthGuide() {
+      this.triggerEvent("guide");
+    },
   },
 });

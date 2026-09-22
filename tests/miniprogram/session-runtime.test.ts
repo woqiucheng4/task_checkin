@@ -37,9 +37,7 @@ describe("parent child session runtime", () => {
   });
 
   it("does not silently choose the first child when multiple children have no preference", async () => {
-    stubShell([
-      { id: "family-1", children: [{ id: "child-1" }, { id: "child-2" }] },
-    ]);
+    stubShell([{ id: "family-1", children: [{ id: "child-1" }, { id: "child-2" }] }]);
     const runtime = await import("../../miniprogram/services/session-runtime.js");
 
     await runtime.accountShell();
@@ -112,9 +110,7 @@ describe("parent child session runtime", () => {
     await runtime.selectChild("child-2");
     expect(await runtime.selectedChild()).toBe("child-2");
 
-    families = [
-      { id: "family-1", children: [{ id: "child-1" }, { id: "child-3" }] },
-    ];
+    families = [{ id: "family-1", children: [{ id: "child-1" }, { id: "child-3" }] }];
     await runtime.accountShell(true);
 
     await expect(runtime.selectedChild()).rejects.toThrow("请选择孩子");
@@ -130,7 +126,11 @@ function stubShell(families: readonly unknown[] | (() => readonly unknown[])) {
     ok: true,
     data:
       action === "GET_ACCOUNT_SHELL"
-        ? { families: typeof families === "function" ? families() : families, groups: [], organizations: [] }
+        ? {
+            families: typeof families === "function" ? families() : families,
+            groups: [],
+            organizations: [],
+          }
         : {},
   }));
 }

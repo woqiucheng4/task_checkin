@@ -1,6 +1,6 @@
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 56%) 44%;
+  grid-template-columns: minmax(0, 54%) 46%;
   align-items: center;
   min-height: 520rpx;
   padding: 12rpx 0 36rpx;
@@ -17,23 +17,47 @@
 
 .hero__title-image {
   display: block;
-  width: 302rpx;
-  height: 86rpx;
+  width: 100%;
+  max-width: 385rpx;
+  height: 112rpx;
 }
 
 .hero__subtitle {
-  max-width: 404rpx;
-  margin-top: 22rpx;
+  max-width: 100%;
+  margin-top: 38rpx;
   color: #3f423d;
   font-size: 27rpx;
   line-height: 1.65;
 }
 
-.hero__label {
+.hero__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 38rpx;
+}
+
+.hero__label {
   color: #20231e;
   font-size: 27rpx;
   font-weight: 700;
+}
+
+.hero__guide {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  margin: 0;
+  padding: 4rpx 0;
+  border: 0;
+  background: transparent;
+  color: #63806b;
+  font-size: 22rpx;
+  line-height: 1.3;
+}
+
+.hero__guide::after {
+  border: 0;
 }
 
 .hero__numbers {
@@ -84,15 +108,15 @@
 
 .hero__tree-wrap {
   position: relative;
-  height: 500rpx;
+  height: 570rpx;
 }
 
 .hero__tree {
   position: absolute;
-  top: -22rpx;
+  top: -52rpx;
   right: 0;
-  width: 360rpx;
-  height: 478rpx;
+  width: 100%;
+  height: 570rpx;
 }
 
 .hero__sign {
@@ -110,7 +134,7 @@
   text-align: center;
 }
 
-.hero__sign text {
+.hero__sign-level {
   display: block;
   font-size: 20rpx;
 }

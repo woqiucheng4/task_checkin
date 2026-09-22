@@ -47,7 +47,9 @@ export class DeepSeekTaskDraftProvider implements TaskDraftProvider {
     this.fetch = options.fetch ?? globalThis.fetch;
   }
 
-  async generateTaskDraft(input: Parameters<TaskDraftProvider["generateTaskDraft"]>[0]): Promise<RecognizedTaskFields> {
+  async generateTaskDraft(
+    input: Parameters<TaskDraftProvider["generateTaskDraft"]>[0],
+  ): Promise<RecognizedTaskFields> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
@@ -71,7 +73,9 @@ export class DeepSeekTaskDraftProvider implements TaskDraftProvider {
                 },
                 {
                   type: "image_url",
-                  image_url: { url: `data:${input.mimeType};base64,${Buffer.from(input.image).toString("base64")}` },
+                  image_url: {
+                    url: `data:${input.mimeType};base64,${Buffer.from(input.image).toString("base64")}`,
+                  },
                 },
               ],
             },
@@ -98,7 +102,9 @@ export function createOptionalDeepSeekTaskDraftProvider(
   try {
     return new DeepSeekTaskDraftProvider({
       apiKey,
-      ...(environment.DEEPSEEK_BASE_URL === undefined ? {} : { baseUrl: environment.DEEPSEEK_BASE_URL }),
+      ...(environment.DEEPSEEK_BASE_URL === undefined
+        ? {}
+        : { baseUrl: environment.DEEPSEEK_BASE_URL }),
     });
   } catch {
     return unavailableProvider();
@@ -129,7 +135,8 @@ function parseBaseUrl(value: string): string {
 
 async function readLimited(response: Response): Promise<string> {
   const contentLength = Number(response.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) throw new Error("response too large");
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES)
+    throw new Error("response too large");
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error("response body missing");
   const chunks: Uint8Array[] = [];
@@ -149,9 +156,14 @@ async function readLimited(response: Response): Promise<string> {
 }
 
 function normalizeResponse(value: unknown): RecognizedTaskFields {
-  if (!isRecord(value) || !Array.isArray(value.choices) || value.choices.length !== 1) throw new Error("invalid response");
+  if (!isRecord(value) || !Array.isArray(value.choices) || value.choices.length !== 1)
+    throw new Error("invalid response");
   const message = value.choices[0];
-  if (!isRecord(message) || !isRecord(message.message) || typeof message.message.content !== "string")
+  if (
+    !isRecord(message) ||
+    !isRecord(message.message) ||
+    typeof message.message.content !== "string"
+  )
     throw new Error("invalid response");
   const content = message.message.content.trim();
   if (!content.startsWith("{") || !content.endsWith("}")) throw new Error("not a JSON object");
@@ -178,8 +190,17 @@ function normalizeResponse(value: unknown): RecognizedTaskFields {
 function isExactDraft(value: unknown): value is DeepSeekDraftResponse {
   if (!isRecord(value)) return false;
   const keys = Object.keys(value).sort();
-  const expected = ["category", "confidence", "description", "dueAt", "startsAt", "submissionMode", "title"];
-  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index])) return false;
+  const expected = [
+    "category",
+    "confidence",
+    "description",
+    "dueAt",
+    "startsAt",
+    "submissionMode",
+    "title",
+  ];
+  if (keys.length !== expected.length || keys.some((key, index) => key !== expected[index]))
+    return false;
   return (
     isText(value.title, 160) &&
     isText(value.description, 2_000) &&
@@ -202,7 +223,8 @@ function isText(value: unknown, maxLength: number): value is string {
 }
 
 function isIsoInstant(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value))
+    return false;
   return !Number.isNaN(Date.parse(value)) && new Date(value).toISOString() === value;
 }
 

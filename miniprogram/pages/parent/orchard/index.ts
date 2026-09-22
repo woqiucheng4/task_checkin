@@ -9,6 +9,24 @@ import {
   requireCurrentChild,
 } from "../child-context.js";
 
+const APPLE_STAGE_ASSETS: Readonly<Record<string, string>> = {
+  种子: "/assets/orchard/apple-seed.webp",
+  破土: "/assets/orchard/apple-sprout.webp",
+  嫩芽: "/assets/orchard/apple-seedling.webp",
+  树干: "/assets/orchard/apple-trunk.webp",
+  长叶: "/assets/orchard/apple-leaves.webp",
+  花苞: "/assets/orchard/apple-bud.webp",
+  开花: "/assets/orchard/apple-blossom.webp",
+  小果: "/assets/orchard/apple-fruit-small.webp",
+  果实变大: "/assets/orchard/apple-fruit-growing.webp",
+  成熟采摘: "/assets/orchard/apple-mature.webp",
+};
+
+function treeAsset(status: string | undefined, stage: string | undefined): string {
+  if (status === "MATURE") return "/assets/orchard/apple-mature.webp";
+  return APPLE_STAGE_ASSETS[stage || ""] || "/assets/orchard/apple-seed.webp";
+}
+
 async function load(page: MiniPageInstance) {
   page.setData({
     loading: true,
@@ -32,7 +50,7 @@ async function load(page: MiniPageInstance) {
     const target =
       orchard.currentTree?.status === "MATURE"
         ? Math.max(1, current)
-        : home.currentTree?.threshold || 6;
+        : home.currentTree?.threshold || 30;
     page.setData({
       ready: true,
       child: home.selectedChild.nickname,
@@ -46,16 +64,17 @@ async function load(page: MiniPageInstance) {
         orchard.currentTree?.name ||
         home.currentTree?.name ||
         (orchard.currentTree ? "孩子的果树" : "为孩子种下第一棵树"),
+      treeTitle: home.selectedChild.nickname ? `${home.selectedChild.nickname}的小树` : "我的小树",
       lifetimeSunlight: orchard.lifetimeSunlight,
       growthCards: orchard.growthCards.map((card) => ({
         ...card,
         date: card.harvestedAt.slice(0, 10),
       })),
       fruits: orchard.fruits,
-      asset:
-        orchard.currentTree?.status === "MATURE"
-          ? "/assets/orchard/apple-mature.webp"
-          : "/assets/orchard/apple-seedling.webp",
+      asset: treeAsset(
+        orchard.currentTree?.status,
+        orchard.currentTree?.stage || home.currentTree?.stage,
+      ),
     });
   } catch (error) {
     page.setData({ error: error instanceof Error ? error.message : "加载失败" });
@@ -76,10 +95,11 @@ Page({
     selectionAction: "选择孩子",
     navigation: buildNavigation("parent", "orchard"),
     current: 0,
-    target: 6,
-    remaining: 6,
+    target: 30,
+    remaining: 30,
     progressPercent: 0,
     treeName: "尚未种树",
+    treeTitle: "我的小树",
     treeId: "",
     mature: false,
     ready: false,

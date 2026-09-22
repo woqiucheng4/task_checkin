@@ -80,15 +80,14 @@ export async function selectedFamily(): Promise<FamilyWorkspaceView> {
     (wx.getStorageSync(KEY) as { selectedChildId?: string } | undefined)?.selectedChildId;
   const current = await accountShell();
   const selectedId =
-    childIdAtStart && current.families.some((family) => family.children.some((c) => c.id === childIdAtStart))
+    childIdAtStart &&
+    current.families.some((family) => family.children.some((c) => c.id === childIdAtStart))
       ? childIdAtStart
       : selectedChildId;
-  const family =
-    current.families.find((f) =>
-      f.children.some((c) => c.id === selectedId),
-    );
+  const family = current.families.find((f) => f.children.some((c) => c.id === selectedId));
   if (!family) {
-    if (!current.families.some((item) => item.children.length)) throw new Error("请先创建家庭并添加孩子");
+    if (!current.families.some((item) => item.children.length))
+      throw new Error("请先创建家庭并添加孩子");
     throw new Error("请选择孩子");
   }
   return family;
